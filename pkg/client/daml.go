@@ -53,8 +53,5 @@ func (c *DamlClient) Build(ctx context.Context) (*damlBindingClient, error) {
 		return nil, fmt.Errorf("failed to connect to DAML ledger: %w", err)
 	}
 
-	return &damlBindingClient{
-		client: c,
-		grpcCl: conn,
-	}, nil
+	return NewDamlBindingClient(c, conn), nil
 }

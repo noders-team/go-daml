@@ -35,3 +35,15 @@ func (ParticipantAdmin) isRightType() {}
 type IdentityProviderAdmin struct{}
 
 func (IdentityProviderAdmin) isRightType() {}
+
+type PartyDetails struct {
+	Party              string
+	IsLocal            bool
+	LocalMetadata      map[string]string
+	IdentityProviderID string
+}
+
+type ListKnownPartiesResponse struct {
+	PartyDetails  []*PartyDetails
+	NextPageToken string
+}
