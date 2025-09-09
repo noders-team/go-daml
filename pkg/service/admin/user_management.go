@@ -7,15 +7,17 @@ import (
 	"google.golang.org/grpc"
 
 	adminv2 "github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2/admin"
+	"github.com/noders-team/go-daml/pkg/model"
 )
 
 type UserManagement interface {
-	CreateUser(ctx context.Context, userID, primaryParty string, rights []*adminv2.Right) (*adminv2.User, error)
-	GetUser(ctx context.Context, userID string) (*adminv2.User, error)
+	CreateUser(ctx context.Context, user *model.User, rights []*model.Right) (*model.User, error)
+	GetUser(ctx context.Context, userID string) (*model.User, error)
 	DeleteUser(ctx context.Context, userID string) error
-	GrantUserRights(ctx context.Context, userID string, rights []*adminv2.Right) ([]*adminv2.Right, error)
-	RevokeUserRights(ctx context.Context, userID string, rights []*adminv2.Right) ([]*adminv2.Right, error)
-	ListUserRights(ctx context.Context, userID string) ([]*adminv2.Right, error)
+	GrantUserRights(ctx context.Context, userID string, rights []*model.Right) ([]*model.Right, error)
+	RevokeUserRights(ctx context.Context, userID string, rights []*model.Right) ([]*model.Right, error)
+	ListUserRights(ctx context.Context, userID string) ([]*model.Right, error)
+	ListUsers(ctx context.Context) ([]*model.User, error)
 }
 
 type userManagement struct {
@@ -29,13 +31,10 @@ func NewUserManagementClient(conn *grpc.ClientConn) *userManagement {
 	}
 }
 
-func (c *userManagement) CreateUser(ctx context.Context, userID, primaryParty string, rights []*adminv2.Right) (*adminv2.User, error) {
+func (c *userManagement) CreateUser(ctx context.Context, user *model.User, rights []*model.Right) (*model.User, error) {
 	request := &adminv2.CreateUserRequest{
-		User: &adminv2.User{
-			Id:           userID,
-			PrimaryParty: primaryParty,
-		},
-		Rights: rights,
+		User:   userToProto(user),
+		Rights: rightsToProto(rights),
 	}
 
 	resp, err := c.client.CreateUser(ctx, request)
@@ -43,10 +42,10 @@ func (c *userManagement) CreateUser(ctx context.Context, userID, primaryParty st
 		return nil, err
 	}
 
-	return resp.GetUser(), nil
+	return userFromProto(resp.GetUser()), nil
 }
 
-func (c *userManagement) GetUser(ctx context.Context, userID string) (*adminv2.User, error) {
+func (c *userManagement) GetUser(ctx context.Context, userID string) (*model.User, error) {
 	req := &adminv2.GetUserRequest{
 		UserId: userID,
 	}
@@ -56,10 +55,10 @@ func (c *userManagement) GetUser(ctx context.Context, userID string) (*adminv2.U
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	return resp.User, nil
+	return userFromProto(resp.User), nil
 }
 
-func (c *userManagement) ListUsers(ctx context.Context) ([]*adminv2.User, error) {
+func (c *userManagement) ListUsers(ctx context.Context) ([]*model.User, error) {
 	req := &adminv2.ListUsersRequest{}
 
 	resp, err := c.client.ListUsers(ctx, req)
@@ -67,7 +66,7 @@ func (c *userManagement) ListUsers(ctx context.Context) ([]*adminv2.User, error)
 		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
 
-	return resp.Users, nil
+	return usersFromProto(resp.Users), nil
 }
 
 func (c *userManagement) DeleteUser(ctx context.Context, userID string) error {
@@ -83,10 +82,10 @@ func (c *userManagement) DeleteUser(ctx context.Context, userID string) error {
 	return nil
 }
 
-func (c *userManagement) GrantUserRights(ctx context.Context, userID string, rights []*adminv2.Right) ([]*adminv2.Right, error) {
+func (c *userManagement) GrantUserRights(ctx context.Context, userID string, rights []*model.Right) ([]*model.Right, error) {
 	req := &adminv2.GrantUserRightsRequest{
 		UserId: userID,
-		Rights: rights,
+		Rights: rightsToProto(rights),
 	}
 
 	resp, err := c.client.GrantUserRights(ctx, req)
@@ -94,13 +93,13 @@ func (c *userManagement) GrantUserRights(ctx context.Context, userID string, rig
 		return nil, fmt.Errorf("failed to grant user rights: %w", err)
 	}
 
-	return resp.NewlyGrantedRights, nil
+	return rightsFromProto(resp.NewlyGrantedRights), nil
 }
 
-func (c *userManagement) RevokeUserRights(ctx context.Context, userID string, rights []*adminv2.Right) ([]*adminv2.Right, error) {
+func (c *userManagement) RevokeUserRights(ctx context.Context, userID string, rights []*model.Right) ([]*model.Right, error) {
 	req := &adminv2.RevokeUserRightsRequest{
 		UserId: userID,
-		Rights: rights,
+		Rights: rightsToProto(rights),
 	}
 
 	resp, err := c.client.RevokeUserRights(ctx, req)
@@ -108,10 +107,10 @@ func (c *userManagement) RevokeUserRights(ctx context.Context, userID string, ri
 		return nil, fmt.Errorf("failed to revoke user rights: %w", err)
 	}
 
-	return resp.NewlyRevokedRights, nil
+	return rightsFromProto(resp.NewlyRevokedRights), nil
 }
 
-func (c *userManagement) ListUserRights(ctx context.Context, userID string) ([]*adminv2.Right, error) {
+func (c *userManagement) ListUserRights(ctx context.Context, userID string) ([]*model.Right, error) {
 	req := &adminv2.ListUserRightsRequest{
 		UserId: userID,
 	}
@@ -121,5 +120,109 @@ func (c *userManagement) ListUserRights(ctx context.Context, userID string) ([]*
 		return nil, fmt.Errorf("failed to list user rights: %w", err)
 	}
 
-	return resp.Rights, nil
+	return rightsFromProto(resp.Rights), nil
+}
+
+func userFromProto(pb *adminv2.User) *model.User {
+	if pb == nil {
+		return nil
+	}
+	metadata := make(map[string]string)
+	if pb.Metadata != nil {
+		metadata = pb.Metadata.Annotations
+	}
+	return &model.User{
+		ID:                 pb.Id,
+		PrimaryParty:       pb.PrimaryParty,
+		IsDeactivated:      pb.IsDeactivated,
+		Metadata:           metadata,
+		IdentityProviderID: pb.IdentityProviderId,
+	}
+}
+
+func userToProto(u *model.User) *adminv2.User {
+	if u == nil {
+		return nil
+	}
+	var metadata *adminv2.ObjectMeta
+	if len(u.Metadata) > 0 {
+		metadata = &adminv2.ObjectMeta{
+			Annotations: u.Metadata,
+		}
+	}
+	return &adminv2.User{
+		Id:                 u.ID,
+		PrimaryParty:       u.PrimaryParty,
+		IsDeactivated:      u.IsDeactivated,
+		Metadata:           metadata,
+		IdentityProviderId: u.IdentityProviderID,
+	}
+}
+
+func rightFromProto(pb *adminv2.Right) *model.Right {
+	if pb == nil {
+		return nil
+	}
+	r := &model.Right{}
+	switch rt := pb.Kind.(type) {
+	case *adminv2.Right_CanActAs_:
+		r.Type = model.CanActAs{Party: rt.CanActAs.Party}
+	case *adminv2.Right_CanReadAs_:
+		r.Type = model.CanReadAs{Party: rt.CanReadAs.Party}
+	case *adminv2.Right_ParticipantAdmin_:
+		r.Type = model.ParticipantAdmin{}
+	case *adminv2.Right_IdentityProviderAdmin_:
+		r.Type = model.IdentityProviderAdmin{}
+	}
+	return r
+}
+
+func rightToProto(r *model.Right) *adminv2.Right {
+	if r == nil {
+		return nil
+	}
+	pb := &adminv2.Right{}
+	switch rt := r.Type.(type) {
+	case model.CanActAs:
+		pb.Kind = &adminv2.Right_CanActAs_{
+			CanActAs: &adminv2.Right_CanActAs{Party: rt.Party},
+		}
+	case model.CanReadAs:
+		pb.Kind = &adminv2.Right_CanReadAs_{
+			CanReadAs: &adminv2.Right_CanReadAs{Party: rt.Party},
+		}
+	case model.ParticipantAdmin:
+		pb.Kind = &adminv2.Right_ParticipantAdmin_{
+			ParticipantAdmin: &adminv2.Right_ParticipantAdmin{},
+		}
+	case model.IdentityProviderAdmin:
+		pb.Kind = &adminv2.Right_IdentityProviderAdmin_{
+			IdentityProviderAdmin: &adminv2.Right_IdentityProviderAdmin{},
+		}
+	}
+	return pb
+}
+
+func rightsFromProto(pbs []*adminv2.Right) []*model.Right {
+	rights := make([]*model.Right, len(pbs))
+	for i, pb := range pbs {
+		rights[i] = rightFromProto(pb)
+	}
+	return rights
+}
+
+func rightsToProto(rights []*model.Right) []*adminv2.Right {
+	pbs := make([]*adminv2.Right, len(rights))
+	for i, r := range rights {
+		pbs[i] = rightToProto(r)
+	}
+	return pbs
+}
+
+func usersFromProto(pbs []*adminv2.User) []*model.User {
+	users := make([]*model.User, len(pbs))
+	for i, pb := range pbs {
+		users[i] = userFromProto(pb)
+	}
+	return users
 }
