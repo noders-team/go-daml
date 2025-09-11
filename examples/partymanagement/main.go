@@ -25,7 +25,6 @@ func main() {
 	cl, err := client.NewDamlClient(bearerToken, grpcAddress).
 		WithTLSConfig(tlsConfig).
 		Build(context.Background())
-
 	if err != nil {
 		panic(err)
 	}
