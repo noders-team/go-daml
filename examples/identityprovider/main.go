@@ -17,7 +17,7 @@ func main() {
 
 	bearerToken := os.Getenv("BEARER_TOKEN")
 	if bearerToken == "" {
-		fmt.Println("Warning: BEARER_TOKEN environment variable not set")
+		fmt.Println("warning: BEARER_TOKEN environment variable not set")
 	}
 
 	tlsConfig := client.TlsConfig{}
@@ -78,7 +78,7 @@ func main() {
 		if err != nil {
 			fmt.Printf("delete identity provider error: %v\n", err)
 		} else {
-			fmt.Println("Identity provider deleted successfully")
+			fmt.Println("identity provider deleted successfully")
 		}
 	}
 
@@ -86,13 +86,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Final identity provider configs:")
+	fmt.Println("final identity provider configs:")
 	for _, cfg := range finalConfigs {
 		println(fmt.Sprintf("  - %+v", cfg))
-	}
-
-	err = cl.IdentityProviderMng.DeleteIdentityProviderConfig(context.Background(), createdConfig.IdentityProviderID)
-	if err != nil {
-		panic(err)
 	}
 }

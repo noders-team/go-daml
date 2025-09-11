@@ -18,7 +18,7 @@ func main() {
 
 	bearerToken := os.Getenv("BEARER_TOKEN")
 	if bearerToken == "" {
-		fmt.Println("Warning: BEARER_TOKEN environment variable not set")
+		fmt.Println("warning: BEARER_TOKEN environment variable not set")
 	}
 
 	tlsConfig := client.TlsConfig{}
@@ -38,13 +38,13 @@ func main() {
 		PruneAllDivulgedContracts: false,
 	}
 
-	fmt.Printf("Attempting to prune ledger up to: %s (offset: %d)\n",
+	fmt.Printf("attempting to prune ledger up to: %s (offset: %d)\n",
 		time.UnixMicro(pruneUpTo).Format(time.RFC3339), pruneUpTo)
 
 	err = cl.PruningMng.Prune(context.Background(), pruneReq)
 	if err != nil {
-		fmt.Printf("Prune operation result: %v\n", err)
+		fmt.Printf("prune operation result: %v\n", err)
 	} else {
-		fmt.Println("Prune operation completed successfully")
+		fmt.Println("prune operation completed successfully")
 	}
 }

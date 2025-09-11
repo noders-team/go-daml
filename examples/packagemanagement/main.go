@@ -34,7 +34,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Known packages:")
+	fmt.Println("known packages:")
 	for _, pkg := range packages {
 		println(fmt.Sprintf("  Package ID: %s", pkg.PackageID))
 		println(fmt.Sprintf("  Name: %s", pkg.Name))
@@ -46,42 +46,40 @@ func main() {
 		println("")
 	}
 
-	darFilePath := os.Getenv("DAR_FILE_PATH")
-	if darFilePath != "" {
-		fmt.Printf("Reading DAR file from: %s\n", darFilePath)
+	darFilePath := "./examples/packagemanagement/test.dar"
+	fmt.Printf("\ntesting DAR file upload from: %s\n", darFilePath)
 
-		darContent, err := os.ReadFile(darFilePath)
+	darContent, err := os.ReadFile(darFilePath)
+	if err != nil {
+		fmt.Printf("failed to read DAR file: %v\n", err)
+	} else {
+		fmt.Printf("dar file size: %d bytes\n", len(darContent))
+
+		submissionID := fmt.Sprintf("validate-%d", time.Now().Unix())
+		fmt.Printf("validating DAR file (submission ID: %s)...\n", submissionID)
+
+		err = cl.PackageMng.ValidateDarFile(context.Background(), darContent, submissionID)
 		if err != nil {
-			fmt.Printf("Failed to read DAR file: %v\n", err)
+			fmt.Printf("dar validation failed: %v\n", err)
 		} else {
-			submissionID := fmt.Sprintf("validate-%d", time.Now().Unix())
-			fmt.Printf("Validating DAR file (submission ID: %s)...\n", submissionID)
+			fmt.Println("dar validation successful!")
 
-			err = cl.PackageMng.ValidateDarFile(context.Background(), darContent, submissionID)
+			uploadSubmissionID := fmt.Sprintf("upload-%d", time.Now().Unix())
+			fmt.Printf("uploading DAR file (submission ID: %s)...\n", uploadSubmissionID)
+
+			err = cl.PackageMng.UploadDarFile(context.Background(), darContent, uploadSubmissionID)
 			if err != nil {
-				fmt.Printf("DAR validation failed: %v\n", err)
+				fmt.Printf("dar upload failed: %v\n", err)
 			} else {
-				fmt.Println("DAR validation successful!")
+				fmt.Println("dar upload successful!")
 
-				uploadSubmissionID := fmt.Sprintf("upload-%d", time.Now().Unix())
-				fmt.Printf("Uploading DAR file (submission ID: %s)...\n", uploadSubmissionID)
-
-				err = cl.PackageMng.UploadDarFile(context.Background(), darContent, uploadSubmissionID)
+				updatedPackages, err := cl.PackageMng.ListKnownPackages(context.Background())
 				if err != nil {
-					fmt.Printf("DAR upload failed: %v\n", err)
+					fmt.Printf("failed to list packages after upload: %v\n", err)
 				} else {
-					fmt.Println("DAR upload successful!")
-
-					updatedPackages, err := cl.PackageMng.ListKnownPackages(context.Background())
-					if err != nil {
-						fmt.Printf("Failed to list packages after upload: %v\n", err)
-					} else {
-						fmt.Printf("Total packages after upload: %d\n", len(updatedPackages))
-					}
+					fmt.Printf("total packages after upload: %d\n", len(updatedPackages))
 				}
 			}
 		}
-	} else {
-		fmt.Println("\nTo test DAR file upload, set DAR_FILE_PATH environment variable to point to a .dar file")
 	}
 }
