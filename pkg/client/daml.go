@@ -31,7 +31,7 @@ func (c *DamlClient) WithTLSConfig(cfg TlsConfig) *DamlClient {
 	return c
 }
 
-func (c *DamlClient) Build(ctx context.Context) (*damlBindingClient, error) {
+func (c *DamlClient) Build(ctx context.Context) (*DamlBindingClient, error) {
 	client := NewClient(c.config)
 	conn, err := client.Connect(ctx)
 	if err != nil {

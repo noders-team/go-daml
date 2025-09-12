@@ -2,37 +2,13 @@ package main
 
 import (
 	"context"
-	"os"
 
 	"github.com/noders-team/go-daml/pkg/client"
 	"github.com/noders-team/go-daml/pkg/model"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-func main() {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-
-	grpcAddress := os.Getenv("GRPC_ADDRESS")
-	if grpcAddress == "" {
-		grpcAddress = "localhost:8080"
-	}
-
-	bearerToken := os.Getenv("BEARER_TOKEN")
-	if bearerToken == "" {
-		log.Warn().Msg("BEARER_TOKEN environment variable not set")
-	}
-
-	tlsConfig := client.TlsConfig{}
-
-	cl, err := client.NewDamlClient(bearerToken, grpcAddress).
-		WithTLSConfig(tlsConfig).
-		Build(context.Background())
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to build DAML client")
-	}
-
+func RunUsersManagement(cl *client.DamlBindingClient) {
 	users, err := cl.UserMng.ListUsers(context.Background())
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to list users")
@@ -61,7 +37,7 @@ func main() {
 
 	updatedRights, err := cl.UserMng.GrantUserRights(context.Background(), user.ID, newRights)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to grant user rights")
+		log.Warn().Err(err).Msg("failed to grant user rights")
 	}
 	for _, r := range updatedRights {
 		log.Info().Interface("right", r).Msg("user rights after grant")
@@ -69,7 +45,7 @@ func main() {
 
 	updatedRights, err = cl.UserMng.RevokeUserRights(context.Background(), user.ID, newRights)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to revoke user rights")
+		log.Warn().Err(err).Msg("failed to revoke user rights")
 	}
 	for _, r := range updatedRights {
 		log.Info().Interface("right", r).Msg("user rights after revoke")

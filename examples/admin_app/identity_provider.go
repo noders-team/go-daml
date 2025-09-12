@@ -6,33 +6,10 @@ import (
 
 	"github.com/noders-team/go-daml/pkg/client"
 	"github.com/noders-team/go-daml/pkg/model"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-func main() {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-
-	grpcAddress := os.Getenv("GRPC_ADDRESS")
-	if grpcAddress == "" {
-		grpcAddress = "localhost:8080"
-	}
-
-	bearerToken := os.Getenv("BEARER_TOKEN")
-	if bearerToken == "" {
-		log.Warn().Msg("BEARER_TOKEN environment variable not set")
-	}
-
-	tlsConfig := client.TlsConfig{}
-
-	cl, err := client.NewDamlClient(bearerToken, grpcAddress).
-		WithTLSConfig(tlsConfig).
-		Build(context.Background())
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to build DAML client")
-	}
-
+func RunIdentityProvider(cl *client.DamlBindingClient) {
 	configs, err := cl.IdentityProviderMng.ListIdentityProviderConfigs(context.Background())
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to list identity provider configs")

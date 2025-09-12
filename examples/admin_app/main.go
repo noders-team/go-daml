@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	"os"
-	"time"
 
 	"github.com/noders-team/go-daml/pkg/client"
-	"github.com/noders-team/go-daml/pkg/model"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -34,23 +32,18 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to build DAML client")
 	}
 
-	pruneUpTo := time.Now().Add(-24 * time.Hour).UnixMicro()
+	log.Info().Msg("=== Starting Users Management ===")
+	RunUsersManagement(cl)
 
-	pruneReq := &model.PruneRequest{
-		PruneUpTo:                 pruneUpTo,
-		SubmissionID:              "prune-" + time.Now().Format("20060102150405"),
-		PruneAllDivulgedContracts: false,
-	}
+	log.Info().Msg("=== Starting Identity Provider Management ===")
+	RunIdentityProvider(cl)
 
-	log.Info().
-		Time("pruneUpTo", time.UnixMicro(pruneUpTo)).
-		Int64("offset", pruneUpTo).
-		Msg("attempting to prune ledger")
+	log.Info().Msg("=== Starting Package Management ===")
+	RunPackageManagement(cl)
 
-	err = cl.PruningMng.Prune(context.Background(), pruneReq)
-	if err != nil {
-		log.Warn().Err(err).Msg("prune operation result")
-	} else {
-		log.Info().Msg("prune operation completed successfully")
-	}
+	log.Info().Msg("=== Starting Party Management ===")
+	RunPartyManagement(cl)
+
+	log.Info().Msg("=== Starting Pruning ===")
+	RunPrunning(cl)
 }

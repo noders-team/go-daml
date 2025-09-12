@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-type damlBindingClient struct {
+type DamlBindingClient struct {
 	client                       *DamlClient
 	grpcCl                       *grpc.ClientConn
 	UserMng                      admin.UserManagement
@@ -28,8 +28,8 @@ type damlBindingClient struct {
 	TimeService                  testing.TimeService
 }
 
-func NewDamlBindingClient(client *DamlClient, grpc *grpc.ClientConn) *damlBindingClient {
-	return &damlBindingClient{
+func NewDamlBindingClient(client *DamlClient, grpc *grpc.ClientConn) *DamlBindingClient {
+	return &DamlBindingClient{
 		client:                       client,
 		grpcCl:                       grpc,
 		UserMng:                      admin.NewUserManagementClient(grpc),
@@ -51,6 +51,6 @@ func NewDamlBindingClient(client *DamlClient, grpc *grpc.ClientConn) *damlBindin
 	}
 }
 
-func (c *damlBindingClient) Close() {
+func (c *DamlBindingClient) Close() {
 	c.grpcCl.Close()
 }
