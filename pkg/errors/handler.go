@@ -1,12 +1,13 @@
 package errors
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 
 	"google.golang.org/grpc/status"
 )
+
+const genericErr = "DAML_GENERIC_ERROR_CODE"
 
 type DamlError struct {
 	ErrorCode     string
@@ -15,14 +16,22 @@ type DamlError struct {
 	Message       string
 }
 
-func AsDamlError(err error) (*DamlError, error) {
+func AsDamlError(err error) *DamlError {
 	if err == nil {
-		return nil, fmt.Errorf("no error")
+		return &DamlError{
+			ErrorCode:  genericErr,
+			CategoryID: -1,
+			Message:    err.Error(),
+		}
 	}
 
 	grpcStatus, ok := status.FromError(err)
 	if !ok {
-		return nil, err
+		return &DamlError{
+			ErrorCode:  genericErr,
+			CategoryID: -2,
+			Message:    err.Error(),
+		}
 	}
 
 	damlErrorRegex := regexp.MustCompile(`^([A-Z_]+)\((\d+),([^)]+)\):\s*(.*)$`)
@@ -32,7 +41,11 @@ func AsDamlError(err error) (*DamlError, error) {
 	if len(matches) == 5 {
 		categoryID, err := strconv.Atoi(matches[2])
 		if err != nil {
-			return nil, fmt.Errorf("invalid category ID: %v", err)
+			return &DamlError{
+				ErrorCode:  genericErr,
+				CategoryID: -3,
+				Message:    err.Error(),
+			}
 		}
 
 		return &DamlError{
@@ -40,8 +53,12 @@ func AsDamlError(err error) (*DamlError, error) {
 			CategoryID:    categoryID,
 			CorrelationID: matches[3],
 			Message:       matches[4],
-		}, nil
+		}
 	}
 
-	return nil, fmt.Errorf("unable to parse DAML error: %s", message)
+	return &DamlError{
+		ErrorCode:  genericErr,
+		CategoryID: -5,
+		Message:    err.Error(),
+	}
 }

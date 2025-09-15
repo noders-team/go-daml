@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"errors"
 	"testing"
 
 	"google.golang.org/grpc/codes"
@@ -12,7 +13,6 @@ func TestAsDamlError(t *testing.T) {
 		name          string
 		inputError    error
 		expectedError *DamlError
-		shouldFail    bool
 	}{
 		{
 			name:       "valid DAML error from gRPC",
@@ -23,36 +23,42 @@ func TestAsDamlError(t *testing.T) {
 				CorrelationID: "aa8b050d",
 				Message:       "The following package names do not match upgradable packages uploaded on this participant: [DamlScript].",
 			},
-			shouldFail: false,
 		},
 		{
-			name:          "nil error",
-			inputError:    nil,
-			expectedError: nil,
-			shouldFail:    true,
+			name:       "non-gRPC error",
+			inputError: errors.New("regular error message"),
+			expectedError: &DamlError{
+				ErrorCode:  genericErr,
+				CategoryID: -2,
+				Message:    "regular error message",
+			},
 		},
 		{
-			name:          "non-gRPC error",
-			inputError:    status.Error(codes.Internal, "regular error message without DAML format"),
-			expectedError: nil,
-			shouldFail:    true,
+			name:       "gRPC error without DAML format",
+			inputError: status.Error(codes.Internal, "regular error message without DAML format"),
+			expectedError: &DamlError{
+				ErrorCode:  genericErr,
+				CategoryID: -5,
+				Message:    "rpc error: code = Internal desc = regular error message without DAML format",
+			},
+		},
+		{
+			name:       "gRPC error without DAML format (no regex match)",
+			inputError: status.Error(codes.NotFound, "INVALID_ERROR(invalid_id,aa8b050d): Test message"),
+			expectedError: &DamlError{
+				ErrorCode:  genericErr,
+				CategoryID: -5,
+				Message:    "rpc error: code = NotFound desc = INVALID_ERROR(invalid_id,aa8b050d): Test message",
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := AsDamlError(tt.inputError)
+			result := AsDamlError(tt.inputError)
 
-			if tt.shouldFail {
-				if err == nil {
-					t.Errorf("expected error but got none")
-				}
-				return
-			}
-
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-				return
+			if result == nil {
+				t.Fatal("AsDamlError should never return nil")
 			}
 
 			if result.ErrorCode != tt.expectedError.ErrorCode {
@@ -72,4 +78,14 @@ func TestAsDamlError(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAsDamlErrorPanicWithNil(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("AsDamlError should panic when passed nil error")
+		}
+	}()
+
+	AsDamlError(nil)
 }

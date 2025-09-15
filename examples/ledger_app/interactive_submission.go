@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/noders-team/go-daml/pkg/client"
+	damlError "github.com/noders-team/go-daml/pkg/errors"
 	"github.com/noders-team/go-daml/pkg/model"
 	"github.com/rs/zerolog/log"
 )
@@ -18,7 +19,14 @@ func RunInteractiveSubmission(cl *client.DamlBindingClient) {
 
 	packageVersionResp, err := cl.InteractiveSubmissionService.GetPreferredPackageVersion(context.Background(), packageVersionReq)
 	if err != nil {
-		log.Warn().Err(err).Msg("failed to get preferred package version")
+		dErr := damlError.AsDamlError(err)
+		log.Err(err).
+			Str("errorCode", dErr.ErrorCode).
+			Str("message", dErr.Message).
+			Int("categoryId", dErr.CategoryID).
+			Interface("correlationID", dErr.CorrelationID).
+			Msg("failed to get preferred package version")
+
 	} else {
 		log.Info().
 			Interface("packageReference", packageVersionResp.PackageReference).
@@ -35,7 +43,7 @@ func RunInteractiveSubmission(cl *client.DamlBindingClient) {
 
 	prepareResp, err := cl.InteractiveSubmissionService.PrepareSubmission(context.Background(), prepareReq)
 	if err != nil {
-		log.Warn().Err(err).Msg("failed to prepare submission")
+		log.Error().Err(err).Msg("error while preparing submission")
 	} else {
 		log.Info().
 			Int("transactionSize", len(prepareResp.PreparedTransaction)).
