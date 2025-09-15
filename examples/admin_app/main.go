@@ -32,18 +32,18 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to build DAML client")
 	}
 
-	log.Info().Msg("=== Starting Users Management ===")
+	log.Info().Msg("=== starting Users Management ===")
 	RunUsersManagement(cl)
 
-	log.Info().Msg("=== Starting Identity Provider Management ===")
+	log.Info().Msg("=== starting Identity Provider Management ===")
 	RunIdentityProvider(cl)
 
-	log.Info().Msg("=== Starting Package Management ===")
+	log.Info().Msg("=== starting Package Management ===")
 	RunPackageManagement(cl)
 
-	log.Info().Msg("=== Starting Party Management ===")
+	log.Info().Msg("=== starting Party Management ===")
 	RunPartyManagement(cl)
 
-	log.Info().Msg("=== Starting Pruning ===")
+	log.Info().Msg("=== starting Pruning ===")
 	RunPrunning(cl)
 }

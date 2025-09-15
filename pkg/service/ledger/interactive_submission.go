@@ -59,7 +59,7 @@ func (c *interactiveSubmissionService) GetPreferredPackageVersion(ctx context.Co
 
 	pbResp, err := c.client.GetPreferredPackageVersion(ctx, pbReq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get preferred package version: %w", err)
+		return nil, err
 	}
 
 	resp := &model.GetPreferredPackageVersionResponse{}
