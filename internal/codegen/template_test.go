@@ -1,17 +1,15 @@
-package internal
+package codegen
 
 import (
 	"strings"
 	"testing"
-
-	"github.com/noders-team/go-daml/internal/model"
 )
 
 func TestBind(t *testing.T) {
-	structs := map[string]*model.TmplStruct{
+	structs := map[string]*tmplStruct{
 		"RentalProposal": {
 			Name: "RentalProposal",
-			Fields: []*model.TmplField{
+			Fields: []*tmplField{
 				{Name: "landlord", Type: "string"},
 				{Name: "tenant", Type: "string"},
 				{Name: "terms", Type: "string"},
@@ -19,7 +17,7 @@ func TestBind(t *testing.T) {
 		},
 		"RentalAgreement": {
 			Name: "RentalAgreement",
-			Fields: []*model.TmplField{
+			Fields: []*tmplField{
 				{Name: "landlord", Type: "string"},
 				{Name: "tenant", Type: "string"},
 				{Name: "terms", Type: "string"},

@@ -1,4 +1,4 @@
-package internal
+package codegen
 
 import (
 	"bytes"
@@ -7,19 +7,17 @@ import (
 	"go/format"
 	"strings"
 	"text/template"
-
-	"github.com/noders-team/go-daml/internal/model"
 )
 
 type tmplData struct {
 	Package string
-	Structs map[string]*model.TmplStruct
+	Structs map[string]*tmplStruct
 }
 
 //go:embed source.go.tpl
 var tmplSource string
 
-func Bind(pkg string, structs map[string]*model.TmplStruct) (string, error) {
+func Bind(pkg string, structs map[string]*tmplStruct) (string, error) {
 	data := &tmplData{
 		Package: pkg,
 		Structs: structs,

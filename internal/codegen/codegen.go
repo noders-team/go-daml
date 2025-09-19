@@ -1,4 +1,4 @@
-package internal
+package codegen
 
 import (
 	"archive/zip"
@@ -13,7 +13,6 @@ import (
 
 	"github.com/digital-asset/dazl-client/v8/go/api/com/daml/daml_lf_1_17"
 	"github.com/digital-asset/dazl-client/v8/go/api/com/daml/daml_lf_2_1"
-	"github.com/noders-team/go-daml/internal/model"
 	"github.com/rs/zerolog/log"
 )
 
@@ -102,7 +101,7 @@ func UnzipDar(src string, output *string) (string, error) {
 	return *output, nil
 }
 
-func GetManifest(srcPath string) (*model.Manifest, error) {
+func GetManifest(srcPath string) (*Manifest, error) {
 	manifestPath := strings.Join([]string{srcPath, "META-INF", "MANIFEST.MF"}, "/")
 	file, err := os.Open(manifestPath)
 	if err != nil {
@@ -117,7 +116,7 @@ func GetManifest(srcPath string) (*model.Manifest, error) {
 
 	content := strings.ReplaceAll(string(b), "\n ", "")
 
-	manifest := &model.Manifest{}
+	manifest := &Manifest{}
 	lines := strings.Split(content, "\n")
 	for _, line := range lines {
 		if strings.HasPrefix(line, "Manifest-Version:") {
@@ -152,8 +151,8 @@ func GetManifest(srcPath string) (*model.Manifest, error) {
 	return manifest, nil
 }
 
-func GetAST(payload []byte, manifest *model.Manifest) (*model.Package, error) {
-	structs := make(map[string]*model.TmplStruct)
+func GetAST(payload []byte, manifest *Manifest) (*Package, error) {
+	structs := make(map[string]*tmplStruct)
 
 	if strings.HasPrefix(manifest.SdkVersion, "1.") {
 		var archive daml_lf_1_17.Archive
@@ -175,7 +174,7 @@ func GetAST(payload []byte, manifest *model.Manifest) (*model.Package, error) {
 				if err != nil {
 					return nil, err
 				}
-				tmplStruct := model.TmplStruct{
+				tmplStruct := tmplStruct{
 					Name: name,
 				}
 
@@ -186,7 +185,7 @@ func GetAST(payload []byte, manifest *model.Manifest) (*model.Package, error) {
 						if err != nil {
 							return nil, err
 						}
-						tmplStruct.Fields = append(tmplStruct.Fields, &model.TmplField{
+						tmplStruct.Fields = append(tmplStruct.Fields, &tmplField{
 							Name: fieldExtracted,
 							Type: typeExtracted,
 						})
@@ -197,7 +196,7 @@ func GetAST(payload []byte, manifest *model.Manifest) (*model.Package, error) {
 						if err != nil {
 							return nil, err
 						}
-						tmplStruct.Fields = append(tmplStruct.Fields, &model.TmplField{
+						tmplStruct.Fields = append(tmplStruct.Fields, &tmplField{
 							Name: fieldExtracted,
 							Type: typeExtracted,
 						})
@@ -205,7 +204,7 @@ func GetAST(payload []byte, manifest *model.Manifest) (*model.Package, error) {
 					}
 				case *daml_lf_1_17.DefDataType_Enum:
 					for _, constructorStr := range v.Enum.ConstructorsStr {
-						tmplStruct.Fields = append(tmplStruct.Fields, &model.TmplField{
+						tmplStruct.Fields = append(tmplStruct.Fields, &tmplField{
 							Name: constructorStr,
 							Type: "enum",
 						})
@@ -216,7 +215,7 @@ func GetAST(payload []byte, manifest *model.Manifest) (*model.Package, error) {
 							return nil, fmt.Errorf("interned enum constructor index out of bounds: %d", constructorIdx)
 						}
 						constructorName := damlLf1.InternedStrings[constructorIdx]
-						tmplStruct.Fields = append(tmplStruct.Fields, &model.TmplField{
+						tmplStruct.Fields = append(tmplStruct.Fields, &tmplField{
 							Name: constructorName,
 							Type: "enum",
 						})
@@ -255,7 +254,7 @@ func GetAST(payload []byte, manifest *model.Manifest) (*model.Package, error) {
 		}
 	}
 
-	return &model.Package{
+	return &Package{
 		Structs: structs,
 	}, nil
 }

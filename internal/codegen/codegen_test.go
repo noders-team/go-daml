@@ -1,4 +1,4 @@
-package internal
+package codegen
 
 import (
 	"os"
@@ -9,8 +9,8 @@ import (
 )
 
 func TestGetMainDalf(t *testing.T) {
-	srcPath := "../test-data/test.dar"
-	output := "../test-data/test_unzipped"
+	srcPath := "../../test-data/test.dar"
+	output := "../../test-data/test_unzipped"
 	defer os.RemoveAll(output)
 
 	_, err := UnzipDar(srcPath, &output)
@@ -42,8 +42,8 @@ func TestGetMainDalf(t *testing.T) {
 }
 
 func TestGetMainDalfV2(t *testing.T) {
-	srcPath := "../test-data/test.dar"
-	output := "../test-data/test_unzipped"
+	srcPath := "../../test-data/test.dar"
+	output := "../../test-data/test_unzipped"
 	defer os.RemoveAll(output)
 
 	resDir, err := UnzipDar(srcPath, &output)

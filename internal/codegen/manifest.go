@@ -1,4 +1,4 @@
-package model
+package codegen
 
 type Manifest struct {
 	Version    string
