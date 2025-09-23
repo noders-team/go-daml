@@ -94,4 +94,83 @@ func TestGetMainDalfV2(t *testing.T) {
 	pkg, err := GetAST(dalfContent, manifest)
 	require.Nil(t, err)
 	require.NotEmpty(t, pkg.Structs)
+
+	// Test Address struct (variant/union type)
+	addressStruct, exists := pkg.Structs["Address"]
+	require.True(t, exists)
+	require.Len(t, addressStruct.Fields, 2)
+	require.Equal(t, addressStruct.Name, "Address")
+	require.Equal(t, addressStruct.Fields[0].Name, "US")
+	require.Equal(t, addressStruct.Fields[0].Type, "USAddress")
+	require.Equal(t, addressStruct.Fields[1].Name, "UK")
+	require.Equal(t, addressStruct.Fields[1].Type, "UKAddress")
+
+	// Test USAddress struct
+	usAddressStruct, exists := pkg.Structs["USAddress"]
+	require.True(t, exists)
+	require.Len(t, usAddressStruct.Fields, 4)
+	require.Equal(t, usAddressStruct.Name, "USAddress")
+	require.Equal(t, usAddressStruct.Fields[0].Name, "address")
+	require.Equal(t, usAddressStruct.Fields[1].Name, "city")
+	require.Equal(t, usAddressStruct.Fields[2].Name, "state")
+	require.Equal(t, usAddressStruct.Fields[3].Name, "zip")
+
+	// Test UKAddress struct
+	ukAddressStruct, exists := pkg.Structs["UKAddress"]
+	require.True(t, exists)
+	require.Len(t, ukAddressStruct.Fields, 5)
+	require.Equal(t, ukAddressStruct.Name, "UKAddress")
+	require.Equal(t, ukAddressStruct.Fields[0].Name, "address")
+	require.Equal(t, ukAddressStruct.Fields[1].Name, "locality")
+	require.Equal(t, ukAddressStruct.Fields[2].Name, "city")
+	require.Equal(t, ukAddressStruct.Fields[3].Name, "state")
+	require.Equal(t, ukAddressStruct.Fields[4].Name, "postcode")
+
+	// Test Person struct (uses Address)
+	personStruct, exists := pkg.Structs["Person"]
+	require.True(t, exists)
+	require.Len(t, personStruct.Fields, 2)
+	require.Equal(t, personStruct.Name, "Person")
+	require.Equal(t, personStruct.Fields[0].Name, "person")
+	require.Equal(t, personStruct.Fields[1].Name, "address")
+	require.Equal(t, personStruct.Fields[1].Type, "Address")
+
+	// Test American struct (uses USAddress)
+	americanStruct, exists := pkg.Structs["American"]
+	require.True(t, exists)
+	require.Len(t, americanStruct.Fields, 2)
+	require.Equal(t, americanStruct.Name, "American")
+	require.Equal(t, americanStruct.Fields[0].Name, "person")
+	require.Equal(t, americanStruct.Fields[1].Name, "address")
+	require.Equal(t, americanStruct.Fields[1].Type, "USAddress")
+
+	// Test Briton struct (uses UKAddress)
+	britonStruct, exists := pkg.Structs["Briton"]
+	require.True(t, exists)
+	require.Len(t, britonStruct.Fields, 2)
+	require.Equal(t, britonStruct.Name, "Briton")
+	require.Equal(t, britonStruct.Fields[0].Name, "person")
+	require.Equal(t, britonStruct.Fields[1].Name, "address")
+	require.Equal(t, britonStruct.Fields[1].Type, "UKAddress")
+
+	// Test SimpleFields struct (various primitive types)
+	simpleFieldsStruct, exists := pkg.Structs["SimpleFields"]
+	require.True(t, exists)
+	require.Len(t, simpleFieldsStruct.Fields, 7)
+	require.Equal(t, simpleFieldsStruct.Name, "SimpleFields")
+	require.Equal(t, simpleFieldsStruct.Fields[0].Name, "party")
+	require.Equal(t, simpleFieldsStruct.Fields[1].Name, "aBool")
+	require.Equal(t, simpleFieldsStruct.Fields[2].Name, "aInt")
+	require.Equal(t, simpleFieldsStruct.Fields[3].Name, "aDecimal")
+	require.Equal(t, simpleFieldsStruct.Fields[4].Name, "aText")
+	require.Equal(t, simpleFieldsStruct.Fields[5].Name, "aDate")
+	require.Equal(t, simpleFieldsStruct.Fields[6].Name, "aDatetime")
+
+	// Test OptionalFields struct
+	optionalFieldsStruct, exists := pkg.Structs["OptionalFields"]
+	require.True(t, exists)
+	require.Len(t, optionalFieldsStruct.Fields, 2)
+	require.Equal(t, optionalFieldsStruct.Name, "OptionalFields")
+	require.Equal(t, optionalFieldsStruct.Fields[0].Name, "party")
+	require.Equal(t, optionalFieldsStruct.Fields[1].Name, "aMaybe")
 }
