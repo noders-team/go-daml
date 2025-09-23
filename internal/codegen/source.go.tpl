@@ -24,7 +24,7 @@ type NUMERIC *big.Int
 type DATE time.Time
 type TIMESTAMP time.Time
 type UNIT struct{}
-type LIST []interface{}
+type LIST []string
 type MAP map[string]interface{}
 type OPTIONAL *interface{}
 
