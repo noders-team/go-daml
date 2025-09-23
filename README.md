@@ -58,19 +58,21 @@ go get github.com/noders-team/go-daml
 
 ```go
 import (
+    "context"
     "github.com/noders-team/go-daml/pkg/client"
-    "github.com/noders-team/go-daml/pkg/service/ledger"
 )
 
-// Create DAML client
-config := &client.Config{
-    LedgerHost: "localhost:6865",
-    Token:      "your-auth-token",
-}
-damlClient := client.New(config)
+// Create DAML client using builder pattern
+bearerToken := "your-auth-token"
+grpcAddress := "localhost:8080"
+tlsConfig := client.TlsConfig{}
 
-// Use ledger services
-commandService := ledger.NewCommandService(damlClient)
+cl, err := client.NewDamlClient(bearerToken, grpcAddress).
+    WithTLSConfig(tlsConfig).
+    Build(context.Background())
+if err != nil {
+    log.Fatal().Err(err).Msg("failed to build DAML client")
+}
 ```
 
 ### Code Generation
@@ -186,27 +188,35 @@ package main
 
 import (
     "context"
+    "os"
     "github.com/noders-team/go-daml/pkg/client"
-    "github.com/noders-team/go-daml/pkg/service/ledger"
+    "github.com/rs/zerolog/log"
 )
 
 func main() {
-    // Create client configuration
-    config := &client.Config{
-        LedgerHost: "localhost:6865",
-        Token:      "your-auth-token",
+    // Get configuration from environment
+    grpcAddress := os.Getenv("GRPC_ADDRESS")
+    if grpcAddress == "" {
+        grpcAddress = "localhost:8080"
     }
     
-    // Initialize DAML client
-    damlClient := client.New(config)
-    defer damlClient.Close()
+    bearerToken := os.Getenv("BEARER_TOKEN")
+    if bearerToken == "" {
+        log.Warn().Msg("BEARER_TOKEN environment variable not set")
+    }
     
-    // Create ledger services
-    commandService := ledger.NewCommandService(damlClient)
-    queryService := ledger.NewEventQueryService(damlClient)
+    tlsConfig := client.TlsConfig{}
     
-    // Submit commands and query events
-    // ... your business logic
+    // Initialize DAML client using builder pattern
+    cl, err := client.NewDamlClient(bearerToken, grpcAddress).
+        WithTLSConfig(tlsConfig).
+        Build(context.Background())
+    if err != nil {
+        log.Fatal().Err(err).Msg("failed to build DAML client")
+    }
+    
+    // Use the client for ledger operations
+    // Example: RunVersionService(cl), RunPackageService(cl), etc.
 }
 ```
 
@@ -216,36 +226,33 @@ package main
 
 import (
     "context"
+    "os"
     "github.com/noders-team/go-daml/pkg/client"
-    "github.com/noders-team/go-daml/pkg/service/admin"
+    "github.com/rs/zerolog/log"
 )
 
 func main() {
-    config := &client.Config{
-        LedgerHost: "localhost:6865",
-        Token:      "admin-token",
+    grpcAddress := os.Getenv("GRPC_ADDRESS")
+    if grpcAddress == "" {
+        grpcAddress = "localhost:8080"
     }
     
-    adminClient := client.New(config)
-    defer adminClient.Close()
+    bearerToken := os.Getenv("BEARER_TOKEN")
+    tlsConfig := client.TlsConfig{}
     
-    // Package management
-    packageService := admin.NewPackageManagementService(adminClient)
-    
-    // User management  
-    userService := admin.NewUserManagementService(adminClient)
-    
-    // Party management
-    partyService := admin.NewPartyManagementService(adminClient)
+    // Build admin client
+    cl, err := client.NewDamlClient(bearerToken, grpcAddress).
+        WithTLSConfig(tlsConfig).
+        Build(context.Background())
+    if err != nil {
+        log.Fatal().Err(err).Msg("failed to build DAML client")
+    }
     
     // Perform administrative operations
-    // ... your admin logic
+    // Example: RunUsersManagement(cl), RunPackageManagement(cl), etc.
+    // See examples/admin_app/ for complete implementations
 }
 ```
-
-## Code Generation Examples
-
-### Example 1: Basic Contract Generation
 
 ## Architecture
 
