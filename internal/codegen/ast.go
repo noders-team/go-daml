@@ -8,8 +8,9 @@ type tmplStruct struct {
 }
 
 type tmplField struct {
-	Type string
-	Name string
+	Type    string
+	Name    string
+	RawType string
 }
 
 type Package struct {
