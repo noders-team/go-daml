@@ -95,7 +95,7 @@ func runCodeGen(dar, outputDir, pkgFile string, debugMode bool) error {
 		return fmt.Errorf("failed to create output directory '%s': %w", outputDir, err)
 	}
 
-	fileName := filepath.Join(outputDir, strings.ReplaceAll(strings.ReplaceAll(manifest.Name, ".", "_"), "-", "_")+".go")
+	fileName := filepath.Join(outputDir, strings.ReplaceAll(strings.ReplaceAll(strings.ToLower(manifest.Name), ".", "_"), "-", "_")+".go")
 	err = os.WriteFile(fileName, []byte(res), 0o644)
 	if err != nil {
 		return fmt.Errorf("failed to save generated file '%s': %w", fileName, err)

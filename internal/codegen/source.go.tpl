@@ -92,5 +92,20 @@ type OPTIONAL *interface{}
 		{{range $field := .Fields}}
 		{{capitalise $field.Name}} {{$field.Type}} `json:"{{$field.Name}}"`{{end}}
 	}
+	{{if and .IsTemplate .Key}}
+	
+	// GetKey returns the key for this template as a string
+	func (t {{capitalise .Name}}) GetKey() string {
+		{{if eq .Key.Type "TEXT"}}
+		return string(t.{{capitalise .Key.Name}})
+		{{else if eq .Key.Type "PARTY"}}
+		return string(t.{{capitalise .Key.Name}})
+		{{else if eq .Key.Type "INT64"}}
+		return fmt.Sprintf("%d", t.{{capitalise .Key.Name}})
+		{{else}}
+		return fmt.Sprintf("%v", t.{{capitalise .Key.Name}})
+		{{end}}
+	}
+	{{end}}
 	{{end}}
 {{end}}

@@ -9,9 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"google.golang.org/protobuf/proto"
-
-	daml "github.com/digital-asset/dazl-client/v8/go/api/com/daml/daml_lf_1_17"
+	"github.com/noders-team/go-daml/internal/codegen/astgen"
+	"github.com/noders-team/go-daml/internal/codegen/model"
 	"github.com/rs/zerolog/log"
 )
 
@@ -104,7 +103,7 @@ func UnzipDar(src string, output *string) (string, error) {
 	return out, nil
 }
 
-func GetManifest(srcPath string) (*Manifest, error) {
+func GetManifest(srcPath string) (*model.Manifest, error) {
 	manifestPath := strings.Join([]string{srcPath, "META-INF", "MANIFEST.MF"}, "/")
 	file, err := os.Open(manifestPath)
 	if err != nil {
@@ -119,7 +118,7 @@ func GetManifest(srcPath string) (*Manifest, error) {
 
 	content := strings.ReplaceAll(string(b), "\n ", "")
 
-	manifest := &Manifest{}
+	manifest := &model.Manifest{}
 	lines := strings.Split(content, "\n")
 	for _, line := range lines {
 		if strings.HasPrefix(line, "Manifest-Version:") {
@@ -154,267 +153,29 @@ func GetManifest(srcPath string) (*Manifest, error) {
 	return manifest, nil
 }
 
-type codeGenAst struct {
-	Package *daml.Package
-}
+func GetAST(payload []byte, manifest *model.Manifest) (*model.Package, error) {
+	structs := make(map[string]*model.TmplStruct)
 
-func NewCodegenAst(pkg *daml.Package) *codeGenAst {
-	return &codeGenAst{Package: pkg}
-}
-
-func (c *codeGenAst) getName(id int32) string {
-	idx := c.Package.InternedDottedNames[id].SegmentsInternedStr
-	return c.Package.InternedStrings[idx[len(idx)-1]]
-}
-
-func (c *codeGenAst) getDataTypes(module *daml.Module) (map[string]*tmplStruct, error) {
-	structs := make(map[string]*tmplStruct, 0)
-	for _, dataType := range module.GetDataTypes() {
-		if !dataType.Serializable {
-			continue
-		}
-
-		name := c.getName(dataType.GetNameInternedDname())
-		tmplStruct := tmplStruct{
-			Name: name,
-		}
-
-		switch v := dataType.DataCons.(type) {
-		case *daml.DefDataType_Record:
-			tmplStruct.RawType = "Record"
-			for _, field := range v.Record.Fields {
-				fieldExtracted, typeExtracted, err := c.extractField(field)
-				if err != nil {
-					return nil, err
-				}
-				tmplStruct.Fields = append(tmplStruct.Fields, &tmplField{
-					Name:    fieldExtracted,
-					Type:    typeExtracted,
-					RawType: field.String(),
-				})
-			}
-		case *daml.DefDataType_Variant:
-			tmplStruct.RawType = "Variant"
-			for _, field := range v.Variant.Fields {
-				fieldExtracted, typeExtracted, err := c.extractField(field)
-				if err != nil {
-					return nil, err
-				}
-				tmplStruct.Fields = append(tmplStruct.Fields, &tmplField{
-					Name:       fieldExtracted,
-					Type:       typeExtracted,
-					RawType:    field.String(),
-					IsOptional: true,
-				})
-				log.Info().Msgf("variant constructor: %s, type: %s", fieldExtracted, typeExtracted)
-			}
-		case *daml.DefDataType_Enum:
-			tmplStruct.RawType = "Enum"
-			for _, constructorIdx := range v.Enum.ConstructorsInternedStr {
-				constructorName := c.getName(constructorIdx)
-				tmplStruct.Fields = append(tmplStruct.Fields, &tmplField{
-					Name: constructorName,
-					Type: "enum",
-				})
-				log.Info().Msgf("enum constructor: %s", constructorName)
-			}
-		case *daml.DefDataType_Interface:
-			tmplStruct.RawType = "Interface"
-			log.Warn().Msgf("interface not supported %s", v.Interface.String())
-		default:
-			log.Warn().Msgf("unknown data cons type: %T", v)
-		}
-		structs[name] = &tmplStruct
+	var version string
+	if strings.HasPrefix(manifest.SdkVersion, astgen.V3) {
+		version = astgen.V3
+	} else if strings.HasPrefix(manifest.SdkVersion, astgen.V2) || strings.HasPrefix(manifest.SdkVersion, astgen.V1) {
+		version = astgen.V2
+	} else {
+		return nil, fmt.Errorf("unsupported sdk version %s", manifest.SdkVersion)
 	}
 
-	return structs, nil
-}
-
-func (c *codeGenAst) extractField(field *daml.FieldWithType) (string, string, error) {
-	if field == nil {
-		return "", "", fmt.Errorf("field is nil")
+	gen, err := astgen.GetAstGenFromVersion(payload, version)
+	if err != nil {
+		return nil, err
 	}
-
-	internedStrIdx := field.GetFieldInternedStr()
-	if int(internedStrIdx) >= len(c.Package.InternedStrings) {
-		return "", "", fmt.Errorf("invalid interned string index for field name: %d", internedStrIdx)
-	}
-	fieldName := c.Package.InternedStrings[internedStrIdx]
-	if field.Type == nil {
-		return fieldName, "", fmt.Errorf("field type is nil")
-	}
-
-	//	*Type_Var_
-	//	*Type_Con_
-	//	*Type_Builtin_
-	//	*Type_Forall_
-	//	*Type_Struct_
-	//	*Type_Nat
-	//	*Type_Syn_
-	//	*Type_Interned
-	var fieldType string
-	switch v := field.Type.Sum.(type) {
-	case *daml.Type_Interned:
-		prim := c.Package.InternedTypes[v.Interned]
-		if prim != nil {
-			isConType := prim.GetCon()
-			if isConType != nil {
-				tyconName := c.getName(isConType.Tycon.GetNameInternedDname())
-				fieldType = tyconName
-			} else {
-				fieldType = prim.String()
-			}
-		} else {
-			fieldType = "complex_interned_type"
-		}
-	case *daml.Type_Con_:
-		if v.Con.Tycon != nil {
-			switch {
-			case v.Con.Tycon.GetNameInternedDname() != 0:
-				fieldType = c.getName(v.Con.Tycon.GetNameInternedDname())
-			default:
-				fieldType = "unknown_con_type"
-			}
-		} else {
-			fieldType = "con_without_tycon"
-		}
-	case *daml.Type_Var_:
-		switch {
-		case v.Var.GetVarInternedStr() != 0:
-			fieldType = c.getName(v.Var.GetVarInternedStr())
-		default:
-			fieldType = "unnamed_var"
-		}
-	case *daml.Type_Forall_:
-		fieldType = fmt.Sprintf("forall[%d_vars]", len(v.Forall.Vars))
-	case *daml.Type_Struct_:
-		fieldType = fmt.Sprintf("struct[%d_fields]", len(v.Struct.Fields))
-	case *daml.Type_Nat:
-		fieldType = fmt.Sprintf("nat_%d", v.Nat)
-	case *daml.Type_Syn_:
-		if v.Syn.Tysyn != nil {
-			switch {
-			case v.Syn.Tysyn.GetNameInternedDname() != 0:
-				fieldType = fmt.Sprintf("syn_%s", c.getName(v.Syn.Tysyn.GetNameInternedDname()))
-			default:
-				fieldType = "syn_unknown"
-			}
-		} else {
-			fieldType = "syn_without_name"
-		}
-	default:
-		return fieldName, "", fmt.Errorf("unsupported type sum: %T", field.Type.Sum)
-	}
-
-	return fieldName, normalizeDAMLType(fieldType), nil
-}
-
-func GetAST(payload []byte, manifest *Manifest) (*Package, error) {
-	structs := make(map[string]*tmplStruct)
-
-	var archive daml.Archive
-	err := proto.Unmarshal(payload, &archive)
+	packageID, structs, err := gen.GetTemplateStructs()
 	if err != nil {
 		return nil, err
 	}
 
-	var payloadMapped daml.ArchivePayload
-	err = proto.Unmarshal(archive.Payload, &payloadMapped)
-	if err != nil {
-		return nil, err
-	}
-
-	damlLf1 := payloadMapped.GetDamlLf_1()
-	packageID := archive.Hash
-	codeGen := NewCodegenAst(damlLf1)
-	for _, module := range damlLf1.Modules {
-		if len(damlLf1.InternedStrings) == 0 {
-			continue
-		}
-
-		idx := damlLf1.InternedDottedNames[module.GetNameInternedDname()].SegmentsInternedStr
-		moduleName := damlLf1.InternedStrings[idx[len(idx)-1]]
-		log.Info().Msgf("processing module %s", moduleName)
-		for _, dataType := range module.GetDataTypes() {
-			if !dataType.Serializable {
-				log.Warn().Msgf("skipping non-serializable data type in module %s", moduleName)
-				continue
-			}
-
-			dt, err := codeGen.getDataTypes(module)
-			if err != nil {
-				return nil, err
-			}
-			for key, val := range dt {
-				structs[key] = val
-			}
-		}
-
-		for _, itrfc := range module.Interfaces {
-			log.Info().Msgf("interface: %+v", itrfc)
-		}
-
-		/*
-			for _, tmplt := range module.Templates {
-				switch v := tmplt.Tycon.(type) {
-				case *daml.DefTemplate_TyconDname:
-					log.Info().Msgf("v: %+v", v)
-				case *daml.DefTemplate_TyconInternedDname:
-					idx := damlLf1.InternedDottedNames[v.TyconInternedDname].SegmentsInternedStr
-					tmplName := damlLf1.InternedStrings[idx[len(idx)-1]]
-					log.Info().Msgf("template name: %+s", tmplName)
-				}
-			}*/
-	}
-
-	return &Package{
+	return &model.Package{
 		PackageID: packageID,
 		Structs:   structs,
 	}, nil
-}
-
-func normalizeDAMLType(damlType string) string {
-	switch {
-	case strings.Contains(damlType, "prim:PARTY"):
-		return "PARTY"
-	case strings.Contains(damlType, "prim:TEXT"):
-		return "TEXT"
-	case strings.Contains(damlType, "prim:INT64"):
-		return "INT64"
-	case strings.Contains(damlType, "prim:BOOL"):
-		return "BOOL"
-	case strings.Contains(damlType, "prim:DECIMAL"):
-		return "DECIMAL"
-	case strings.Contains(damlType, "prim:NUMERIC"):
-		return "NUMERIC"
-	case strings.Contains(damlType, "prim:DATE"):
-		return "DATE"
-	case strings.Contains(damlType, "prim:TIMESTAMP"):
-		return "TIMESTAMP"
-	case strings.Contains(damlType, "prim:UNIT"):
-		return "UNIT"
-	case strings.Contains(damlType, "prim:LIST"):
-		return "LIST"
-	case strings.Contains(damlType, "prim:MAP"):
-		return "MAP"
-	case strings.Contains(damlType, "prim:OPTIONAL"):
-		return "OPTIONAL"
-	case strings.Contains(damlType, "prim:CONTRACT_ID"):
-		return "CONTRACT_ID"
-	case strings.Contains(damlType, "prim:GENMAP"):
-		return "GENMAP"
-	case strings.Contains(damlType, "prim:TEXTMAP"):
-		return "TEXTMAP"
-	case strings.Contains(damlType, "prim:BIGNUMERIC"):
-		return "BIGNUMERIC"
-	case strings.Contains(damlType, "prim:ROUNDING_MODE"):
-		return "ROUNDING_MODE"
-	case strings.Contains(damlType, "prim:ANY"):
-		return "ANY"
-	case damlType == "enum":
-		return "string"
-	default:
-		log.Warn().Msgf("unknown daml type %s", damlType)
-		return damlType
-	}
 }
