@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	v2 "github.com/noders-team/go-daml/internal/codegen/astgen/v2"
-	v3 "github.com/noders-team/go-daml/internal/codegen/astgen/v2"
+	v3 "github.com/noders-team/go-daml/internal/codegen/astgen/v3"
 	"github.com/noders-team/go-daml/internal/codegen/model"
 )
 

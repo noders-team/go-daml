@@ -416,7 +416,7 @@ type USAddress struct {
 	require.Equal(t, expectedMainCode, res, "Generated main package code should match expected output")
 }
 
-func DeactivatedTestGetMainDalfV2_10_1(t *testing.T) {
+func TestGetMainDalfV3(t *testing.T) {
 	srcPath := "../../test-data/all-kinds-of-1.0.0_lf.dar"
 	output := "../../test-data/test_unzipped"
 	defer os.RemoveAll(output)
@@ -445,28 +445,39 @@ func DeactivatedTestGetMainDalfV2_10_1(t *testing.T) {
 	require.Nil(t, err)
 	require.NotEmpty(t, pkg.Structs)
 
-	pkg1, exists := pkg.Structs["RentalAgreement"]
+	// Test MappyContract template
+	pkg1, exists := pkg.Structs["MappyContract"]
 	require.True(t, exists)
-	require.Len(t, pkg1.Fields, 3)
-	require.Equal(t, pkg1.Name, "RentalAgreement")
-	require.Equal(t, pkg1.Fields[0].Name, "landlord")
-	require.Equal(t, pkg1.Fields[1].Name, "tenant")
-	require.Equal(t, pkg1.Fields[2].Name, "terms")
+	require.Equal(t, pkg1.Name, "MappyContract")
+	require.Equal(t, "Template", pkg1.RawType)
+	require.Len(t, pkg1.Fields, 2)
+	require.Equal(t, pkg1.Fields[0].Name, "operator")
+	require.Equal(t, pkg1.Fields[1].Name, "value")
 
-	pkg2, exists := pkg.Structs["Accept"]
+	// Test OneOfEverything template
+	pkg2, exists := pkg.Structs["OneOfEverything"]
 	require.True(t, exists)
-	require.Len(t, pkg2.Fields, 2)
-	require.Equal(t, pkg2.Name, "Accept")
-	require.Equal(t, pkg2.Fields[0].Name, "foo")
-	require.Equal(t, pkg2.Fields[1].Name, "bar")
+	require.Equal(t, pkg2.Name, "OneOfEverything")
+	require.Equal(t, "Template", pkg2.RawType)
+	require.Len(t, pkg2.Fields, 16) // Based on the generated output
+	require.Equal(t, pkg2.Fields[0].Name, "operator")
+	require.Equal(t, pkg2.Fields[1].Name, "someBoolean")
+	require.Equal(t, pkg2.Fields[2].Name, "someInteger")
 
-	pkg3, exists := pkg.Structs["RentalProposal"]
+	// Test Accept struct
+	pkg3, exists := pkg.Structs["Accept"]
 	require.True(t, exists)
-	require.Len(t, pkg3.Fields, 3)
-	require.Equal(t, pkg3.Name, "RentalProposal")
-	require.Equal(t, pkg3.Fields[0].Name, "landlord")
-	require.Equal(t, pkg3.Fields[1].Name, "tenant")
-	require.Equal(t, pkg3.Fields[2].Name, "terms")
+	require.Equal(t, pkg3.Name, "Accept")
+	require.Equal(t, "Record", pkg3.RawType)
+
+	// Test Color enum
+	colorStruct, exists := pkg.Structs["Color"]
+	require.True(t, exists)
+	require.Equal(t, "Enum", colorStruct.RawType)
+	require.Len(t, colorStruct.Fields, 3)
+	require.Equal(t, colorStruct.Fields[0].Name, "Red")
+	require.Equal(t, colorStruct.Fields[1].Name, "Green")
+	require.Equal(t, colorStruct.Fields[2].Name, "Blue")
 
 	res, err := Bind("main", pkg.PackageID, pkg.Structs)
 	require.NoError(t, err)
@@ -490,7 +501,7 @@ var (
 	_ = strings.NewReader
 )
 
-const PackageID = "28583fa5d41b7d36a1030152ab474228229d05ebcd398cc238d5b7a563293952"
+const PackageID = "6d7e83e81a0a7960eec37340f5b11e7a61606bd9161f413684bc345c3f387948"
 
 type PARTY string
 type TEXT string
@@ -507,22 +518,122 @@ type OPTIONAL *interface{}
 
 // Accept is a Record type
 type Accept struct {
-	Foo TEXT  ` + "`json:\"foo\"`" + `
-	Bar INT64 ` + "`json:\"bar\"`" + `
 }
 
-// RentalAgreement is a Template type
-type RentalAgreement struct {
-	Landlord PARTY ` + "`json:\"landlord\"`" + `
-	Tenant   PARTY ` + "`json:\"tenant\"`" + `
-	Terms    TEXT  ` + "`json:\"terms\"`" + `
+// Color is an enum type
+type Color string
+
+const (
+	ColorRed   Color = "Red"
+	ColorGreen Color = "Green"
+	ColorBlue  Color = "Blue"
+)
+
+// MappyContract is a Template type
+type MappyContract struct {
+	Operator PARTY  ` + "`json:\"operator\"`" + `
+	Value    GENMAP ` + "`json:\"value\"`" + `
 }
 
-// RentalProposal is a Template type
-type RentalProposal struct {
-	Landlord PARTY ` + "`json:\"landlord\"`" + `
-	Tenant   PARTY ` + "`json:\"tenant\"`" + `
-	Terms    TEXT  ` + "`json:\"terms\"`" + `
+// MyPair is a Record type
+type MyPair struct {
+	Left  interface{} ` + "`json:\"left\"`" + `
+	Right interface{} ` + "`json:\"right\"`" + `
+}
+
+// OneOfEverything is a Template type
+type OneOfEverything struct {
+	Operator        PARTY     ` + "`json:\"operator\"`" + `
+	SomeBoolean     BOOL      ` + "`json:\"someBoolean\"`" + `
+	SomeInteger     INT64     ` + "`json:\"someInteger\"`" + `
+	SomeDecimal     NUMERIC   ` + "`json:\"someDecimal\"`" + `
+	SomeMaybe       OPTIONAL  ` + "`json:\"someMaybe\"`" + `
+	SomeMaybeNot    OPTIONAL  ` + "`json:\"someMaybeNot\"`" + `
+	SomeText        TEXT      ` + "`json:\"someText\"`" + `
+	SomeDate        DATE      ` + "`json:\"someDate\"`" + `
+	SomeDatetime    TIMESTAMP ` + "`json:\"someDatetime\"`" + `
+	SomeSimpleList  LIST      ` + "`json:\"someSimpleList\"`" + `
+	SomeSimplePair  MyPair    ` + "`json:\"someSimplePair\"`" + `
+	SomeNestedPair  MyPair    ` + "`json:\"someNestedPair\"`" + `
+	SomeUglyNesting VPair     ` + "`json:\"someUglyNesting\"`" + `
+	SomeMeasurement NUMERIC   ` + "`json:\"someMeasurement\"`" + `
+	SomeEnum        Color     ` + "`json:\"someEnum\"`" + `
+	TheUnit         UNIT      ` + "`json:\"theUnit\"`" + `
+}
+
+// VPair is a variant/union type
+type VPair struct {
+	Left  *interface{} ` + "`json:\"Left,omitempty\"`" + `
+	Right *interface{} ` + "`json:\"Right,omitempty\"`" + `
+	Both  *VPair       ` + "`json:\"Both,omitempty\"`" + `
+}
+
+// MarshalJSON implements custom JSON marshaling for VPair
+func (v VPair) MarshalJSON() ([]byte, error) {
+
+	if v.Left != nil {
+		return json.Marshal(map[string]interface{}{
+			"tag":   "Left",
+			"value": v.Left,
+		})
+	}
+
+	if v.Right != nil {
+		return json.Marshal(map[string]interface{}{
+			"tag":   "Right",
+			"value": v.Right,
+		})
+	}
+
+	if v.Both != nil {
+		return json.Marshal(map[string]interface{}{
+			"tag":   "Both",
+			"value": v.Both,
+		})
+	}
+
+	return json.Marshal(map[string]interface{}{})
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for VPair
+func (v *VPair) UnmarshalJSON(data []byte) error {
+	var tagged struct {
+		Tag   string          ` + "`json:\"tag\"`" + `
+		Value json.RawMessage ` + "`json:\"value\"`" + `
+	}
+
+	if err := json.Unmarshal(data, &tagged); err != nil {
+		return err
+	}
+
+	switch tagged.Tag {
+
+	case "Left":
+		var value interface{}
+		if err := json.Unmarshal(tagged.Value, &value); err != nil {
+			return err
+		}
+		v.Left = &value
+
+	case "Right":
+		var value interface{}
+		if err := json.Unmarshal(tagged.Value, &value); err != nil {
+			return err
+		}
+		v.Right = &value
+
+	case "Both":
+		var value VPair
+		if err := json.Unmarshal(tagged.Value, &value); err != nil {
+			return err
+		}
+		v.Both = &value
+
+	default:
+		return fmt.Errorf("unknown tag: %s", tagged.Tag)
+	}
+
+	return nil
 }
 `
 
