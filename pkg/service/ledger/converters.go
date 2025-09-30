@@ -12,6 +12,7 @@ import (
 	v2 "github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2"
 	"github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2/interactive"
 	"github.com/noders-team/go-daml/pkg/model"
+	"github.com/rs/zerolog/log"
 )
 
 func parseTemplateID(templateID string) (packageID, moduleName, entityName string) {
@@ -25,10 +26,6 @@ func parseTemplateID(templateID string) (packageID, moduleName, entityName strin
 }
 
 func commandsToProto(cmd *model.Commands) *v2.Commands {
-	if cmd == nil {
-		return nil
-	}
-
 	pbCmd := &v2.Commands{
 		WorkflowId:   cmd.WorkflowID,
 		UserId:       cmd.UserID,
@@ -62,10 +59,6 @@ func commandsToProto(cmd *model.Commands) *v2.Commands {
 }
 
 func commandsArrayToProto(cmds []*model.Command) []*v2.Command {
-	if cmds == nil {
-		return nil
-	}
-
 	result := make([]*v2.Command, len(cmds))
 	for i, cmd := range cmds {
 		result[i] = commandToProto(cmd)
@@ -74,12 +67,9 @@ func commandsArrayToProto(cmds []*model.Command) []*v2.Command {
 }
 
 func commandToProto(cmd *model.Command) *v2.Command {
-	if cmd == nil {
-		return nil
-	}
-
 	pbCmd := &v2.Command{}
 
+	log.Info().Msgf("command: %+v", cmd.Command)
 	switch c := cmd.Command.(type) {
 	case model.CreateCommand:
 		packageID, moduleName, entityName := parseTemplateID(c.TemplateID)
@@ -93,7 +83,8 @@ func commandToProto(cmd *model.Command) *v2.Command {
 				CreateArguments: convertToRecord(c.Arguments),
 			},
 		}
-	case model.ExerciseCommand:
+		log.Info().Msgf("create command: %+v", c)
+	case *model.ExerciseCommand:
 		packageID, moduleName, entityName := parseTemplateID(c.TemplateID)
 		pbCmd.Command = &v2.Command_Exercise{
 			Exercise: &v2.ExerciseCommand{
@@ -107,6 +98,7 @@ func commandToProto(cmd *model.Command) *v2.Command {
 				ChoiceArgument: mapToValue(c.Arguments),
 			},
 		}
+		log.Info().Msgf("exercise command: %+v", c)
 	case model.ExerciseByKeyCommand:
 		packageID, moduleName, entityName := parseTemplateID(c.TemplateID)
 		pbCmd.Command = &v2.Command_ExerciseByKey{
@@ -121,6 +113,7 @@ func commandToProto(cmd *model.Command) *v2.Command {
 				ChoiceArgument: mapToValue(c.Arguments),
 			},
 		}
+		log.Info().Msgf("ExerciseByKeyCommand command: %+v", c)
 	}
 
 	return pbCmd
@@ -176,6 +169,23 @@ func templateFilterToProto(tf *model.TemplateFilter) *v2.TemplateFilter {
 			EntityName: entityName,
 		},
 		IncludeCreatedEventBlob: tf.IncludeCreatedEventBlob,
+	}
+}
+
+func eventFormatToProto(format *model.EventFormat) *v2.EventFormat {
+	if format == nil {
+		return nil
+	}
+	filtersByParty := make(map[string]*v2.Filters)
+	if format.FiltersByParty != nil {
+		for key, val := range format.FiltersByParty {
+			filtersByParty[key] = filtersToProto(val)
+		}
+	}
+	return &v2.EventFormat{
+		FiltersForAnyParty: filtersToProto(format.FiltersForAnyParty),
+		FiltersByParty:     filtersByParty,
+		Verbose:            format.Verbose,
 	}
 }
 

@@ -212,8 +212,10 @@ const (
 
 // State Service types
 type GetActiveContractsRequest struct {
-	Filter  *TransactionFilter
-	Verbose bool
+	Filter         *TransactionFilter
+	Verbose        bool
+	ActiveAtOffset int64
+	EventFormat    *EventFormat
 }
 
 type GetActiveContractsResponse struct {
@@ -254,6 +256,12 @@ type AssignedEvent struct {
 	Submitter           string
 	ReassignmentCounter uint64
 	CreatedEvent        *CreatedEvent
+}
+
+type EventFormat struct {
+	FiltersByParty     map[string]*Filters
+	FiltersForAnyParty *Filters
+	Verbose            bool
 }
 
 type TransactionFilter struct {

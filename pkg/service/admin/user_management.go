@@ -13,7 +13,7 @@ type UserManagement interface {
 	CreateUser(ctx context.Context, user *model.User, rights []*model.Right) (*model.User, error)
 	GetUser(ctx context.Context, userID string) (*model.User, error)
 	DeleteUser(ctx context.Context, userID string) error
-	GrantUserRights(ctx context.Context, userID string, rights []*model.Right) ([]*model.Right, error)
+	GrantUserRights(ctx context.Context, userID, identityProviderID string, rights []*model.Right) ([]*model.Right, error)
 	RevokeUserRights(ctx context.Context, userID string, rights []*model.Right) ([]*model.Right, error)
 	ListUserRights(ctx context.Context, userID string) ([]*model.Right, error)
 	ListUsers(ctx context.Context) ([]*model.User, error)
@@ -81,10 +81,11 @@ func (c *userManagement) DeleteUser(ctx context.Context, userID string) error {
 	return nil
 }
 
-func (c *userManagement) GrantUserRights(ctx context.Context, userID string, rights []*model.Right) ([]*model.Right, error) {
+func (c *userManagement) GrantUserRights(ctx context.Context, userID, identityProviderID string, rights []*model.Right) ([]*model.Right, error) {
 	req := &adminv2.GrantUserRightsRequest{
-		UserId: userID,
-		Rights: rightsToProto(rights),
+		UserId:             userID,
+		IdentityProviderId: identityProviderID,
+		Rights:             rightsToProto(rights),
 	}
 
 	resp, err := c.client.GrantUserRights(ctx, req)

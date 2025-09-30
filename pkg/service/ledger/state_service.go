@@ -31,8 +31,10 @@ func NewStateServiceClient(conn *grpc.ClientConn) *stateService {
 
 func (c *stateService) GetActiveContracts(ctx context.Context, req *model.GetActiveContractsRequest) (<-chan *model.GetActiveContractsResponse, <-chan error) {
 	protoReq := &v2.GetActiveContractsRequest{
-		Filter:  transactionFilterToProto(req.Filter),
-		Verbose: req.Verbose,
+		Filter:         transactionFilterToProto(req.Filter),
+		Verbose:        req.Verbose,
+		ActiveAtOffset: req.ActiveAtOffset,
+		EventFormat:    eventFormatToProto(req.EventFormat),
 	}
 
 	stream, err := c.client.GetActiveContracts(ctx, protoReq)

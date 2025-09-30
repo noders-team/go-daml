@@ -35,7 +35,7 @@ func RunUsersManagement(cl *client.DamlBindingClient) {
 	newRights := make([]*model.Right, 0)
 	newRights = append(newRights, &model.Right{Type: model.CanReadAs{Party: "app_provider_localnet-localparty-1"}})
 
-	updatedRights, err := cl.UserMng.GrantUserRights(context.Background(), user.ID, newRights)
+	updatedRights, err := cl.UserMng.GrantUserRights(context.Background(), user.ID, "", newRights)
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to grant user rights")
 	}
