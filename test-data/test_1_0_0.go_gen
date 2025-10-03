@@ -1,0 +1,342 @@
+package main
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"math/big"
+	"strings"
+	"time"
+
+	"github.com/noders-team/go-daml/pkg/model"
+	. "github.com/noders-team/go-daml/pkg/types"
+)
+
+var (
+	_ = errors.New
+	_ = big.NewInt
+	_ = strings.NewReader
+)
+
+const PackageID = "e2d906db3930143bfa53f43c7a69c218c8b499c03556485f312523090684ff34"
+
+func argsToMap(args interface{}) map[string]interface{} {
+	if args == nil {
+		return map[string]interface{}{}
+	}
+
+	if m, ok := args.(map[string]interface{}); ok {
+		return m
+	}
+
+	return map[string]interface{}{
+		"args": args,
+	}
+}
+
+// Address is a variant/union type
+type Address struct {
+	Us *USAddress `json:"US,omitempty"`
+	Uk *UKAddress `json:"UK,omitempty"`
+}
+
+// MarshalJSON implements custom JSON marshaling for Address
+func (v Address) MarshalJSON() ([]byte, error) {
+
+	if v.Us != nil {
+		return json.Marshal(map[string]interface{}{
+			"tag":   "US",
+			"value": v.Us,
+		})
+	}
+
+	if v.Uk != nil {
+		return json.Marshal(map[string]interface{}{
+			"tag":   "UK",
+			"value": v.Uk,
+		})
+	}
+
+	return json.Marshal(map[string]interface{}{})
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for Address
+func (v *Address) UnmarshalJSON(data []byte) error {
+	var tagged struct {
+		Tag   string          `json:"tag"`
+		Value json.RawMessage `json:"value"`
+	}
+
+	if err := json.Unmarshal(data, &tagged); err != nil {
+		return err
+	}
+
+	switch tagged.Tag {
+
+	case "US":
+		var value USAddress
+		if err := json.Unmarshal(tagged.Value, &value); err != nil {
+			return err
+		}
+		v.Us = &value
+
+	case "UK":
+		var value UKAddress
+		if err := json.Unmarshal(tagged.Value, &value); err != nil {
+			return err
+		}
+		v.Uk = &value
+
+	default:
+		return fmt.Errorf("unknown tag: %s", tagged.Tag)
+	}
+
+	return nil
+}
+
+// American is a Template type
+type American struct {
+	Person  PARTY     `json:"person"`
+	Address USAddress `json:"address"`
+}
+
+// GetTemplateID returns the template ID for this template
+func (t American) GetTemplateID() string {
+	return fmt.Sprintf("%s:%s:%s", PackageID, "Address", "American")
+}
+
+// CreateCommand returns a CreateCommand for this template
+func (t American) CreateCommand() *model.CreateCommand {
+	args := make(map[string]interface{})
+
+	args["person"] = map[string]interface{}{"_type": "party", "value": string(t.Person)}
+
+	args["address"] = t.Address
+
+	return &model.CreateCommand{
+		TemplateID: t.GetTemplateID(),
+		Arguments:  args,
+	}
+}
+
+// Choice methods for American
+
+// Archive exercises the Archive choice on this American contract
+func (t American) Archive(contractID string) *model.ExerciseCommand {
+	return &model.ExerciseCommand{
+		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Address", "American"),
+		ContractID: contractID,
+		Choice:     "Archive",
+		Arguments:  map[string]interface{}{},
+	}
+}
+
+// Briton is a Template type
+type Briton struct {
+	Person  PARTY     `json:"person"`
+	Address UKAddress `json:"address"`
+}
+
+// GetTemplateID returns the template ID for this template
+func (t Briton) GetTemplateID() string {
+	return fmt.Sprintf("%s:%s:%s", PackageID, "Address", "Briton")
+}
+
+// CreateCommand returns a CreateCommand for this template
+func (t Briton) CreateCommand() *model.CreateCommand {
+	args := make(map[string]interface{})
+
+	args["person"] = map[string]interface{}{"_type": "party", "value": string(t.Person)}
+
+	args["address"] = t.Address
+
+	return &model.CreateCommand{
+		TemplateID: t.GetTemplateID(),
+		Arguments:  args,
+	}
+}
+
+// Choice methods for Briton
+
+// Archive exercises the Archive choice on this Briton contract
+func (t Briton) Archive(contractID string) *model.ExerciseCommand {
+	return &model.ExerciseCommand{
+		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Address", "Briton"),
+		ContractID: contractID,
+		Choice:     "Archive",
+		Arguments:  map[string]interface{}{},
+	}
+}
+
+// OptionalFields is a Template type
+type OptionalFields struct {
+	Party  PARTY    `json:"party"`
+	AMaybe OPTIONAL `json:"aMaybe"`
+}
+
+// GetTemplateID returns the template ID for this template
+func (t OptionalFields) GetTemplateID() string {
+	return fmt.Sprintf("%s:%s:%s", PackageID, "Primitives", "OptionalFields")
+}
+
+// CreateCommand returns a CreateCommand for this template
+func (t OptionalFields) CreateCommand() *model.CreateCommand {
+	args := make(map[string]interface{})
+
+	args["party"] = map[string]interface{}{"_type": "party", "value": string(t.Party)}
+
+	if t.AMaybe != nil {
+		args["aMaybe"] = t.AMaybe
+	}
+
+	return &model.CreateCommand{
+		TemplateID: t.GetTemplateID(),
+		Arguments:  args,
+	}
+}
+
+// Choice methods for OptionalFields
+
+// Archive exercises the Archive choice on this OptionalFields contract
+func (t OptionalFields) Archive(contractID string) *model.ExerciseCommand {
+	return &model.ExerciseCommand{
+		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Primitives", "OptionalFields"),
+		ContractID: contractID,
+		Choice:     "Archive",
+		Arguments:  map[string]interface{}{},
+	}
+}
+
+// OptionalFieldsCleanUp exercises the OptionalFieldsCleanUp choice on this OptionalFields contract
+func (t OptionalFields) OptionalFieldsCleanUp(contractID string, args OptionalFieldsCleanUp) *model.ExerciseCommand {
+	return &model.ExerciseCommand{
+		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Primitives", "OptionalFields"),
+		ContractID: contractID,
+		Choice:     "OptionalFieldsCleanUp",
+		Arguments:  argsToMap(args),
+	}
+}
+
+// OptionalFieldsCleanUp is a Record type
+type OptionalFieldsCleanUp struct {
+}
+
+// Person is a Template type
+type Person struct {
+	Person  PARTY   `json:"person"`
+	Address Address `json:"address"`
+}
+
+// GetTemplateID returns the template ID for this template
+func (t Person) GetTemplateID() string {
+	return fmt.Sprintf("%s:%s:%s", PackageID, "Address", "Person")
+}
+
+// CreateCommand returns a CreateCommand for this template
+func (t Person) CreateCommand() *model.CreateCommand {
+	args := make(map[string]interface{})
+
+	args["person"] = map[string]interface{}{"_type": "party", "value": string(t.Person)}
+
+	args["address"] = t.Address
+
+	return &model.CreateCommand{
+		TemplateID: t.GetTemplateID(),
+		Arguments:  args,
+	}
+}
+
+// Choice methods for Person
+
+// Archive exercises the Archive choice on this Person contract
+func (t Person) Archive(contractID string) *model.ExerciseCommand {
+	return &model.ExerciseCommand{
+		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Address", "Person"),
+		ContractID: contractID,
+		Choice:     "Archive",
+		Arguments:  map[string]interface{}{},
+	}
+}
+
+// SimpleFields is a Template type
+type SimpleFields struct {
+	Party     PARTY     `json:"party"`
+	ABool     BOOL      `json:"aBool"`
+	AInt      INT64     `json:"aInt"`
+	ADecimal  NUMERIC   `json:"aDecimal"`
+	AText     TEXT      `json:"aText"`
+	ADate     DATE      `json:"aDate"`
+	ADatetime TIMESTAMP `json:"aDatetime"`
+}
+
+// GetTemplateID returns the template ID for this template
+func (t SimpleFields) GetTemplateID() string {
+	return fmt.Sprintf("%s:%s:%s", PackageID, "Primitives", "SimpleFields")
+}
+
+// CreateCommand returns a CreateCommand for this template
+func (t SimpleFields) CreateCommand() *model.CreateCommand {
+	args := make(map[string]interface{})
+
+	args["party"] = map[string]interface{}{"_type": "party", "value": string(t.Party)}
+
+	args["aBool"] = bool(t.ABool)
+
+	args["aInt"] = int64(t.AInt)
+
+	args["aDecimal"] = t.ADecimal
+
+	args["aText"] = string(t.AText)
+
+	args["aDate"] = t.ADate
+
+	args["aDatetime"] = t.ADatetime
+
+	return &model.CreateCommand{
+		TemplateID: t.GetTemplateID(),
+		Arguments:  args,
+	}
+}
+
+// Choice methods for SimpleFields
+
+// SimpleFieldsCleanUp exercises the SimpleFieldsCleanUp choice on this SimpleFields contract
+func (t SimpleFields) SimpleFieldsCleanUp(contractID string, args SimpleFieldsCleanUp) *model.ExerciseCommand {
+	return &model.ExerciseCommand{
+		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Primitives", "SimpleFields"),
+		ContractID: contractID,
+		Choice:     "SimpleFieldsCleanUp",
+		Arguments:  argsToMap(args),
+	}
+}
+
+// Archive exercises the Archive choice on this SimpleFields contract
+func (t SimpleFields) Archive(contractID string) *model.ExerciseCommand {
+	return &model.ExerciseCommand{
+		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Primitives", "SimpleFields"),
+		ContractID: contractID,
+		Choice:     "Archive",
+		Arguments:  map[string]interface{}{},
+	}
+}
+
+// SimpleFieldsCleanUp is a Record type
+type SimpleFieldsCleanUp struct {
+}
+
+// UKAddress is a Record type
+type UKAddress struct {
+	Address  LIST     `json:"address"`
+	Locality OPTIONAL `json:"locality"`
+	City     TEXT     `json:"city"`
+	State    TEXT     `json:"state"`
+	Postcode TEXT     `json:"postcode"`
+}
+
+// USAddress is a Record type
+type USAddress struct {
+	Address LIST  `json:"address"`
+	City    TEXT  `json:"city"`
+	State   TEXT  `json:"state"`
+	Zip     INT64 `json:"zip"`
+}

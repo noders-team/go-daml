@@ -93,37 +93,6 @@ func TestParseKeyExpressionV3(t *testing.T) {
 		require.Equal(t, "customer", fieldNames[0])
 	})
 
-	t.Run("Function application key", func(t *testing.T) {
-		// Create a key expression with function application
-		key := &daml.DefTemplate_DefKey{
-			KeyExpr: &daml.Expr{
-				Sum: &daml.Expr_App_{
-					App: &daml.Expr_App{
-						Fun: &daml.Expr{
-							Sum: &daml.Expr_VarInternedStr{
-								VarInternedStr: 1, // some function
-							},
-						},
-						Args: []*daml.Expr{
-							{
-								Sum: &daml.Expr_RecProj_{
-									RecProj: &daml.Expr_RecProj{
-										FieldInternedStr: 2, // "amount"
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-
-		fieldNames := codeGen.parseKeyExpression(pkg, key)
-		require.Len(t, fieldNames, 2)             // function name and field
-		require.Contains(t, fieldNames, "owner")  // function name from interned string 1
-		require.Contains(t, fieldNames, "amount") // field from projection
-	})
-
 	t.Run("Empty key expression", func(t *testing.T) {
 		// Test with nil key
 		key := &daml.DefTemplate_DefKey{

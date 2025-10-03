@@ -360,7 +360,7 @@ func (c *codeGenAst) extractType(pkg *daml.Package, typ *daml.Type) string {
 	case *daml.Type_Interned:
 		prim := pkg.InternedTypes[v.Interned]
 		if prim == nil {
-			return "unknown_internet_type"
+			return "unknown_interned_type"
 		}
 		isConType := prim.GetCon()
 		if isConType != nil {
