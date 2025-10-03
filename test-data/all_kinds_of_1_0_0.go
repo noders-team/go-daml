@@ -1,4 +1,4 @@
-package codegen_test
+package main
 
 import (
 	"encoding/json"
@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/noders-team/go-daml/pkg/model"
-	. "github.com/noders-team/go-daml/pkg/types"
 )
 
 var (
@@ -17,7 +17,23 @@ var (
 	_ = strings.NewReader
 )
 
-const PackageID = "ddf0d6396a862eaa7f8d647e39d090a6b04c4a3fd6736aa1730ebc9fca6be664"
+const PackageID = "6d7e83e81a0a7960eec37340f5b11e7a61606bd9161f413684bc345c3f387948"
+
+type (
+	PARTY     string
+	TEXT      string
+	INT64     int64
+	BOOL      bool
+	DECIMAL   *big.Int
+	NUMERIC   *big.Int
+	DATE      time.Time
+	TIMESTAMP time.Time
+	UNIT      struct{}
+	LIST      []string
+	MAP       map[string]interface{}
+	OPTIONAL  *interface{}
+	GENMAP    map[string]interface{}
+)
 
 // argsToMap converts typed arguments to map for ExerciseCommand
 func argsToMap(args interface{}) map[string]interface{} {
@@ -62,22 +78,6 @@ func (t MappyContract) GetTemplateID() string {
 	return fmt.Sprintf("%s:%s:%s", PackageID, "AllKindsOf", "MappyContract")
 }
 
-// CreateCommand returns a CreateCommand for this template
-func (t MappyContract) CreateCommand() *model.CreateCommand {
-	args := make(map[string]interface{})
-
-	args["operator"] = map[string]interface{}{"_type": "party", "value": string(t.Operator)}
-
-	if t.Value != nil && len(t.Value) > 0 {
-		args["value"] = map[string]interface{}{"_type": "genmap", "value": t.Value}
-	}
-
-	return &model.CreateCommand{
-		TemplateID: t.GetTemplateID(),
-		Arguments:  args,
-	}
-}
-
 // Choice methods for MappyContract
 
 // Archive exercises the Archive choice on this MappyContract contract
@@ -119,54 +119,6 @@ type OneOfEverything struct {
 // GetTemplateID returns the template ID for this template
 func (t OneOfEverything) GetTemplateID() string {
 	return fmt.Sprintf("%s:%s:%s", PackageID, "AllKindsOf", "OneOfEverything")
-}
-
-// CreateCommand returns a CreateCommand for this template
-func (t OneOfEverything) CreateCommand() *model.CreateCommand {
-	args := make(map[string]interface{})
-
-	args["operator"] = map[string]interface{}{"_type": "party", "value": string(t.Operator)}
-
-	args["someBoolean"] = bool(t.SomeBoolean)
-
-	args["someInteger"] = int64(t.SomeInteger)
-
-	args["someDecimal"] = t.SomeDecimal
-
-	if t.SomeMaybe != nil {
-		args["someMaybe"] = t.SomeMaybe
-	}
-
-	if t.SomeMaybeNot != nil {
-		args["someMaybeNot"] = t.SomeMaybeNot
-	}
-
-	args["someText"] = string(t.SomeText)
-
-	args["someDate"] = t.SomeDate
-
-	args["someDatetime"] = t.SomeDatetime
-
-	if len(t.SomeSimpleList) > 0 {
-		args["someSimpleList"] = t.SomeSimpleList
-	}
-
-	args["someSimplePair"] = t.SomeSimplePair
-
-	args["someNestedPair"] = t.SomeNestedPair
-
-	args["someUglyNesting"] = t.SomeUglyNesting
-
-	args["someMeasurement"] = t.SomeMeasurement
-
-	args["someEnum"] = t.SomeEnum
-
-	args["theUnit"] = map[string]interface{}{"_type": "unit"}
-
-	return &model.CreateCommand{
-		TemplateID: t.GetTemplateID(),
-		Arguments:  args,
-	}
 }
 
 // Choice methods for OneOfEverything

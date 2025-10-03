@@ -1,6 +1,9 @@
 package client
 
 import (
+	"context"
+
+	"github.com/noders-team/go-daml/pkg/model"
 	"github.com/noders-team/go-daml/pkg/service/admin"
 	"github.com/noders-team/go-daml/pkg/service/ledger"
 	"github.com/noders-team/go-daml/pkg/service/testing"
@@ -53,4 +56,9 @@ func NewDamlBindingClient(client *DamlClient, grpc *grpc.ClientConn) *DamlBindin
 
 func (c *DamlBindingClient) Close() {
 	c.grpcCl.Close()
+}
+
+func (c *DamlBindingClient) Ping(ctx context.Context) error {
+	_, err := c.VersionService.GetLedgerAPIVersion(ctx, &model.GetLedgerAPIVersionRequest{})
+	return err
 }

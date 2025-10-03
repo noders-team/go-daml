@@ -12,6 +12,7 @@ import (
 	v2 "github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2"
 	"github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2/interactive"
 	"github.com/noders-team/go-daml/pkg/model"
+	"github.com/noders-team/go-daml/pkg/types"
 )
 
 func parseTemplateID(templateID string) (packageID, moduleName, entityName string) {
@@ -317,6 +318,21 @@ func mapToValue(data interface{}) *v2.Value {
 			if mapValue, ok := v["value"].(map[string]interface{}); ok {
 				entries := make([]*v2.TextMap_Entry, 0, len(mapValue))
 				for key, val := range mapValue {
+					entries = append(entries, &v2.TextMap_Entry{
+						Key:   key,
+						Value: mapToValue(val),
+					})
+				}
+				return &v2.Value{
+					Sum: &v2.Value_TextMap{
+						TextMap: &v2.TextMap{
+							Entries: entries,
+						},
+					},
+				}
+			} else if genMapValue, ok := v["value"].(types.GENMAP); ok {
+				entries := make([]*v2.TextMap_Entry, 0, len(genMapValue))
+				for key, val := range genMapValue {
 					entries = append(entries, &v2.TextMap_Entry{
 						Key:   key,
 						Value: mapToValue(val),

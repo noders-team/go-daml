@@ -1,46 +1,51 @@
-package main
+package codegen_test
 
 import (
 	"context"
 	"fmt"
 	"os"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/noders-team/go-daml/pkg/client"
 	"github.com/noders-team/go-daml/pkg/model"
+	. "github.com/noders-team/go-daml/pkg/types"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-func main() {
+const (
+	grpcAddress = "localhost:3901"
+	bearerToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL2NhbnRvbi5uZXR3b3JrLmdsb2JhbCIsInN1YiI6ImxlZGdlci1hcGktdXNlciJ9.A0VZW69lWWNVsjZmDDpVvr1iQ_dJLga3f-K2bicdtsc"
+	darFilePath = "../../test-data/all-kinds-of-1.0.0.dar"
+	user        = "app-provider"
+)
+
+func TestCodegenIntegration(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 	log.Info().Str("generatedPackageID", PackageID).Msg("Using package ID from generated code")
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	grpcAddress := os.Getenv("GRPC_ADDRESS")
-	if grpcAddress == "" {
-		grpcAddress = "localhost:8080"
+	builder := client.NewDamlClient(bearerToken, grpcAddress)
+	if strings.HasSuffix(grpcAddress, ":443") {
+		tlsConfig := client.TlsConfig{}
+		builder = builder.WithTLSConfig(tlsConfig)
 	}
 
-	bearerToken := os.Getenv("BEARER_TOKEN")
-	if bearerToken == "" {
-		log.Warn().Msg("BEARER_TOKEN environment variable not set")
-	}
-
-	tlsConfig := client.TlsConfig{}
-
-	cl, err := client.NewDamlClient(bearerToken, grpcAddress).
-		WithTLSConfig(tlsConfig).
+	cl, err := builder.
 		Build(context.Background())
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to build DAML client")
 	}
 
-	darFilePath := "./test-data/all-kinds-of-1.0.0.dar"
+	if err = cl.Ping(ctx); err != nil {
+		log.Fatal().Err(err).Msg("failed to ping DAML client")
+	}
+
 	darContent, err := os.ReadFile(darFilePath)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to read DAR file")
@@ -79,167 +84,6 @@ func main() {
 
 	party := "app_provider_localnet-localparty-1::1220716cdae4d7884d468f02b30eb826a7ef54e98f3eb5f875b52a0ef8728ed98c3a"
 
-	contractIDs, err := createContract(ctx, party, cl)
-	if err != nil {
-		log.Fatal().Err(err).Msgf("failed to create contract")
-	}
-
-	// Create MappyContract
-	mappyContract := MappyContract{
-		Operator: PARTY(party),
-		Value: GENMAP{
-			"key1": "value1",
-			"key2": "value2",
-		},
-	}
-
-	/*
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		oneOfEverythingTemplateID := fmt.Sprintf("%s:%s:%s", PackageID, "AllKindsOf", "OneOfEverything")
-		mappyContractTemplateID := fmt.Sprintf("%s:%s:%s", PackageID, "AllKindsOf", "MappyContract")
-
-		log.Info().Msg("searching for ALL active contracts for the party...")
-		contractsCh, errCh := cl.StateService.GetActiveContracts(ctx,
-			&model.GetActiveContractsRequest{
-				Filter: &model.TransactionFilter{
-					FiltersByParty: map[string]*model.Filters{
-						party: {
-							Inclusive: &model.InclusiveFilters{
-								TemplateFilters: []*model.TemplateFilter{
-									{
-										TemplateID:              oneOfEverythingTemplateID,
-										IncludeCreatedEventBlob: true,
-									},
-									{
-										TemplateID:              mappyContractTemplateID,
-										IncludeCreatedEventBlob: true,
-									},
-								},
-							},
-						},
-					},
-				},
-				Verbose: true,
-			})
-
-		contractCount := 0
-		var firstContractID string
-		done := false
-		for !done {
-			select {
-			case response, ok := <-contractsCh:
-				if !ok {
-					log.Info().Int("totalContracts", contractCount).Msg("active contracts stream completed")
-					cancel()
-					done = true
-					break
-				}
-				if response != nil && len(response.ActiveContracts) > 0 {
-					contractCount += len(response.ActiveContracts)
-					log.Info().
-						Int("activeContracts", len(response.ActiveContracts)).
-						Int64("offset", response.Offset).
-						Msg("received active contracts batch")
-
-					// Log details of each contract found
-					for i, contract := range response.ActiveContracts {
-						log.Info().
-							Int("contractIndex", i).
-							Str("contractID", contract.ContractID).
-							Str("templateID", contract.TemplateID).
-							Msg("Found active contract")
-
-						if firstContractID == "" {
-							firstContractID = contract.ContractID
-							log.Info().Str("contractID", firstContractID).Msg("captured first contract ID for archive example")
-						}
-					}
-				} else if response != nil {
-					log.Info().
-						Int64("offset", response.Offset).
-						Msg("received empty contracts batch")
-				}
-			case err := <-errCh:
-				if err != nil {
-					log.Error().Err(err).Msg("active contracts stream error")
-					cancel()
-					done = true
-					break
-				}
-			case <-ctx.Done():
-				log.Info().Int("totalContracts", contractCount).Msg("active contracts stream timeout")
-				done = true
-				break
-			}
-		}
-
-		log.Info().Msg("finished reading active contracts")
-		if contractCount == 0 {
-			log.Warn().Msgf("no active contracts found for party %s with our specific template filters", party)
-
-			// Try searching for ANY active contracts for this party
-			log.Info().Msg("Searching for ANY active contracts for the party...")
-			ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel2()
-
-			allContractsCh, allErrCh := cl.StateService.GetActiveContracts(ctx2,
-				&model.GetActiveContractsRequest{
-					Filter: &model.TransactionFilter{
-						FiltersByParty: map[string]*model.Filters{
-							party: {
-								Inclusive: &model.InclusiveFilters{},
-							},
-						},
-					},
-					Verbose: true,
-				})
-
-			allContractCount := 0
-			allDone := false
-			for !allDone {
-				select {
-				case response, ok := <-allContractsCh:
-					if !ok {
-						log.Info().Int("totalContracts", allContractCount).Msg("all contracts search completed")
-						cancel2()
-						allDone = true
-						break
-					}
-					if response != nil && len(response.ActiveContracts) > 0 {
-						allContractCount += len(response.ActiveContracts)
-						for i, contract := range response.ActiveContracts {
-							log.Info().
-								Int("contractIndex", i).
-								Str("contractID", contract.ContractID).
-								Str("templateID", contract.TemplateID).
-								Msg("Found ANY active contract")
-						}
-					}
-				case err := <-allErrCh:
-					if err != nil {
-						log.Error().Err(err).Msg("all contracts search error")
-						cancel2()
-						allDone = true
-						break
-					}
-				case <-ctx2.Done():
-					log.Info().Msg("all contracts search timeout")
-					allDone = true
-					break
-				}
-			}
-
-			if allContractCount == 0 {
-				log.Error().Msgf("no active contracts found at all for party %s", party)
-				return
-			} else {
-				log.Info().Msgf("found %d contracts total, but none match our templates", allContractCount)
-				return
-			}
-		}*/
-
 	participantID, err := cl.PartyMng.GetParticipantID(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to get participant ID")
@@ -251,10 +95,13 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to list users")
 	}
 	for _, u := range users {
-		log.Info().Msgf("user: %+v", u)
+		if u.ID == user {
+			party = u.PrimaryParty
+			log.Info().Msgf("user %s has primary party %s, using it", u.ID, u.PrimaryParty)
+		}
 	}
 
-	rights, err := cl.UserMng.ListUserRights(ctx, "app-provider")
+	rights, err := cl.UserMng.ListUserRights(ctx, user)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to list user rights")
 	}
@@ -270,15 +117,26 @@ func main() {
 		log.Info().Msg("grant rights")
 		newRights := make([]*model.Right, 0)
 		newRights = append(newRights, &model.Right{Type: model.CanReadAs{Party: party}})
-		_, err = cl.UserMng.GrantUserRights(context.Background(), "app-provider", "", newRights)
+		_, err = cl.UserMng.GrantUserRights(context.Background(), user, "", newRights)
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to grant user rights")
 		}
 	}
 
-	// mappyContract already created above for contract creation
+	mappyContract := MappyContract{
+		Operator: PARTY(party),
+		Value: GENMAP{
+			"key1": "value1",
+			"key2": "value2",
+		},
+	}
 
-	// Create Archive command using contract IDs from creation
+	contractIDs, err := createContract(ctx, party, cl, mappyContract)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("failed to create contract")
+	}
+
+	log.Info().Str("templateID", mappyContract.GetTemplateID()).Msg("Using GetTemplateID method")
 	if len(contractIDs) == 0 {
 		log.Warn().Msg("No contracts were created, cannot demonstrate Archive command")
 		return
@@ -357,51 +215,12 @@ func packageExists(pkgName string, cl *client.DamlBindingClient) bool {
 	return false
 }
 
-func createContract(ctx context.Context, party string, cl *client.DamlBindingClient) ([]string, error) {
-	log.Info().Msg("Creating sample contracts...")
+func createContract(ctx context.Context, party string, cl *client.DamlBindingClient, template MappyContract) ([]string, error) {
+	log.Info().Msg("creating sample contracts...")
 
-	// Create OneOfEverything contract (commented out for now to focus on MappyContract)
-	/*
-		now := time.Now()
-		oneOfEverythingContract := OneOfEverything{
-			Operator:        PARTY(party),
-			SomeBoolean:     true,
-			SomeInteger:     42,
-			SomeDecimal:     nil, // NUMERIC can be nil
-			SomeMaybe:       nil, // OPTIONAL can be nil
-			SomeMaybeNot:    nil,
-			SomeText:        "Hello World",
-			SomeDate:        DATE(now),
-			SomeDatetime:    TIMESTAMP(now),
-			SomeSimpleList:  LIST{"item1", "item2"},
-			SomeSimplePair:  MyPair{Left: "left", Right: "right"},
-			SomeNestedPair:  MyPair{Left: "nested-left", Right: "nested-right"},
-			SomeUglyNesting: VPair{Left: func() *interface{} { var v interface{} = "ugly"; return &v }()},
-			SomeMeasurement: nil,
-			SomeEnum:        ColorRed,
-			TheUnit:         UNIT{},
-		}
-	*/
-
-	// Submit contract creation commands - start with just MappyContract to debug the issue
 	createCommands := []*model.Command{
 		{
-			Command: &model.CreateCommand{
-				TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "AllKindsOf", "MappyContract"),
-				Arguments: map[string]interface{}{
-					"operator": map[string]interface{}{
-						"_type": "party",
-						"value": party,
-					},
-					"value": map[string]interface{}{
-						"_type": "genmap",
-						"value": map[string]interface{}{
-							"key1": "value1",
-							"key2": "value2",
-						},
-					},
-				},
-			},
+			Command: template.CreateCommand(),
 		},
 	}
 

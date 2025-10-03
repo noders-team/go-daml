@@ -126,9 +126,10 @@ func (c *codeGenAst) getTemplates(pkg *daml.Package, module *daml.Module, module
 					return nil, err
 				}
 				tmplStruct.Fields = append(tmplStruct.Fields, &model.TmplField{
-					Name:    fieldExtracted,
-					Type:    typeExtracted,
-					RawType: field.String(),
+					Name:       fieldExtracted,
+					Type:       typeExtracted,
+					RawType:    field.String(),
+					IsOptional: typeExtracted == "OPTIONAL",
 				})
 			}
 		default:
