@@ -131,7 +131,7 @@ func (t OneOfEverything) CreateCommand() *model.CreateCommand {
 	args["someInteger"] = int64(t.SomeInteger)
 
 	if t.SomeDecimal != nil {
-		args["someDecimal"] = (*big.Int)(t.SomeDecimal).String()
+		args["someDecimal"] = (*big.Int)(t.SomeDecimal)
 	}
 
 	if t.SomeMaybe != nil {
@@ -152,14 +152,20 @@ func (t OneOfEverything) CreateCommand() *model.CreateCommand {
 		args["someSimpleList"] = t.SomeSimpleList
 	}
 
-	args["someSimplePair"] = t.SomeSimplePair
+	if t.SomeSimplePair.Left != nil && t.SomeSimplePair.Right != nil {
+		args["someSimplePair"] = t.SomeSimplePair
+	}
 
-	args["someNestedPair"] = t.SomeNestedPair
+	if t.SomeNestedPair.Left != nil && t.SomeNestedPair.Right != nil {
+		args["someNestedPair"] = t.SomeNestedPair
+	}
 
-	args["someUglyNesting"] = t.SomeUglyNesting
+	if t.SomeUglyNesting.Both != nil || t.SomeUglyNesting.Left != nil || t.SomeUglyNesting.Right != nil {
+		args["someUglyNesting"] = t.SomeUglyNesting
+	}
 
 	if t.SomeMeasurement != nil {
-		args["someMeasurement"] = (*big.Int)(t.SomeMeasurement).String()
+		args["someMeasurement"] = (*big.Int)(t.SomeMeasurement)
 	}
 
 	args["someEnum"] = t.SomeEnum

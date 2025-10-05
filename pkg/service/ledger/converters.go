@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"encoding/json"
 	"math/big"
 	"reflect"
 	"strings"
@@ -226,6 +227,11 @@ func archivedEventFromProto(pb *v2.ArchivedEvent) *model.ArchivedEvent {
 	}
 }
 
+func convertBigIntToNumeric(i *big.Int, scale int) *big.Rat {
+	den := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(scale)), nil)
+	return new(big.Rat).SetFrac(i, den)
+}
+
 func valueFromProto(pb *v2.Value) interface{} {
 	if pb == nil {
 		return nil
@@ -365,9 +371,9 @@ func mapToValue(data interface{}) *v2.Value {
 			},
 		}
 	case *big.Int:
-		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: v.String()}}
+		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: strings.ReplaceAll(convertBigIntToNumeric(v, 10).String(), "/", ".")}}
 	case types.NUMERIC:
-		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: (*big.Int)(v).String()}}
+		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: strings.ReplaceAll(convertBigIntToNumeric((*big.Int)(v), 10).String(), "/", ".")}}
 	case types.DATE:
 		return &v2.Value{Sum: &v2.Value_Date{Date: int32((time.Time)(v).Unix() / 86400)}}
 	case time.Time:
@@ -376,9 +382,18 @@ func mapToValue(data interface{}) *v2.Value {
 		return &v2.Value{Sum: &v2.Value_Timestamp{Timestamp: int64((time.Time)(v).Unix())}}
 	case types.LIST:
 		return &v2.Value{Sum: &v2.Value_List{List: &v2.List{Elements: mapValues(v)}}}
+	case interface{}:
+		return mapToValue(structToMap(v))
 	default:
 		return nil
 	}
+}
+
+func structToMap(v interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	b, _ := json.Marshal(v)
+	json.Unmarshal(b, &result)
+	return result
 }
 
 func mapValues(values []string) []*v2.Value {

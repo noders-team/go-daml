@@ -235,16 +235,23 @@ func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
 	}
 
 	someList := []string{"a", "b", "c"}
+	left := interface{}("a")
+	right := interface{}("b")
+	leftInterface := left
+	rightInterface := right
 	mappyContract := OneOfEverything{
 		Operator:        PARTY(party),
 		SomeBoolean:     true,
 		SomeInteger:     190,
 		SomeDecimal:     NUMERIC(big.NewInt(200)),
-		SomeMeasurement: nil, // This demonstrates the NUMERIC nil handling fix
+		SomeMeasurement: NUMERIC(big.NewInt(300)), // This demonstrates the NUMERIC nil handling fix
 		SomeDate:        DATE(time.Now().UTC()),
 		SomeDatetime:    TIMESTAMP(time.Now().UTC()),
 		SomeSimpleList:  LIST(someList),
-		SomeSimplePair:  MyPair{Left: "a", Right: "b"},
+		SomeSimplePair:  MyPair{Left: INT64(100), Right: INT64(200)},
+		SomeNestedPair:  MyPair{Left: MyPair{Left: INT64(10), Right: INT64(20)}, Right: INT64(30)},
+		SomeUglyNesting: VPair{Both: &VPair{Left: &leftInterface, Right: &rightInterface}, Left: &leftInterface, Right: &rightInterface},
+		SomeText:        "some text",
 	}
 
 	contractIDs, err := createContract(ctx, party, cl, mappyContract)
