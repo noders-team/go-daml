@@ -235,7 +235,7 @@ func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
 		}
 	}
 
-	someListInt := []types.INT64{1, 2, 3}
+	someListInt := []types.INT64{1, 2, 3} // TODO codegen giving list of strings, need to update it.
 	left := interface{}(INT64(100))
 	right := interface{}(INT64(200))
 	leftInterface := left
