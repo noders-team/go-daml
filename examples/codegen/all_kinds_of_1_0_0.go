@@ -39,8 +39,7 @@ func argsToMap(args interface{}) map[string]interface{} {
 }
 
 // Accept is a Record type
-type Accept struct {
-}
+type Accept struct{}
 
 // Color is an enum type
 type Color string
@@ -50,6 +49,19 @@ const (
 	ColorGreen Color = "Green"
 	ColorBlue  Color = "Blue"
 )
+
+// GetEnumConstructor implements types.ENUM interface
+func (e Color) GetEnumConstructor() string {
+	return string(e)
+}
+
+// GetEnumTypeID implements types.ENUM interface
+func (e Color) GetEnumTypeID() string {
+	return fmt.Sprintf("%s:%s:%s", PackageID, "AllKindsOf", "Color")
+}
+
+// Verify interface implementation
+var _ ENUM = Color("")
 
 // MappyContract is a Template type
 type MappyContract struct {
@@ -161,7 +173,9 @@ func (t OneOfEverything) CreateCommand() *model.CreateCommand {
 		args["someMeasurement"] = (*big.Int)(t.SomeMeasurement)
 	}
 
-	args["someEnum"] = t.SomeEnum
+	if t.SomeEnum != "" {
+		args["someEnum"] = t.SomeEnum
+	}
 
 	args["theUnit"] = map[string]interface{}{"_type": "unit"}
 
@@ -202,7 +216,6 @@ type VPair struct {
 
 // MarshalJSON implements custom JSON marshaling for VPair
 func (v VPair) MarshalJSON() ([]byte, error) {
-
 	if v.Left != nil {
 		return json.Marshal(map[string]interface{}{
 			"tag":   "Left",
@@ -270,7 +283,6 @@ func (v *VPair) UnmarshalJSON(data []byte) error {
 
 // GetVariantTag implements types.VARIANT interface
 func (v VPair) GetVariantTag() string {
-
 	if v.Left != nil {
 		return "Left"
 	}
@@ -288,7 +300,6 @@ func (v VPair) GetVariantTag() string {
 
 // GetVariantValue implements types.VARIANT interface
 func (v VPair) GetVariantValue() interface{} {
-
 	if v.Left != nil {
 		return v.Left
 	}

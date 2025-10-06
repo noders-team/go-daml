@@ -26,3 +26,9 @@ type VARIANT interface {
 	GetVariantTag() string
 	GetVariantValue() interface{}
 }
+
+// ENUM represents a DAML enum type
+type ENUM interface {
+	GetEnumConstructor() string
+	GetEnumTypeID() string
+}

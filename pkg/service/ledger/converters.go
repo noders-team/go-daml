@@ -355,6 +355,14 @@ func mapToValue(data interface{}) *v2.Value {
 				},
 			},
 		}
+	case types.ENUM:
+		return &v2.Value{
+			Sum: &v2.Value_Enum{
+				Enum: &v2.Enum{
+					Constructor: v.GetEnumConstructor(),
+				},
+			},
+		}
 	}
 
 	// Handle pointers by dereferencing them

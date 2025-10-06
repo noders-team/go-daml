@@ -28,6 +28,24 @@ func NewCodegenAst(payload []byte) *codeGenAst {
 	return &codeGenAst{payload: payload}
 }
 
+func (c *codeGenAst) isEnumType(typeName string, pkg *daml.Package) bool {
+	for _, module := range pkg.Modules {
+		for _, dataType := range module.GetDataTypes() {
+			if !dataType.Serializable {
+				continue
+			}
+
+			name := c.getName(pkg, dataType.GetNameInternedDname())
+			if name == typeName {
+				if _, isEnum := dataType.DataCons.(*daml.DefDataType_Enum); isEnum {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 func (c *codeGenAst) GetTemplateStructs() (map[string]*model.TmplStruct, error) {
 	structs := make(map[string]*model.TmplStruct)
 
@@ -57,6 +75,14 @@ func (c *codeGenAst) GetTemplateStructs() (map[string]*model.TmplStruct, error) 
 		moduleName := damlLf.InternedStrings[idx[len(idx)-1]]
 		log.Info().Msgf("processing module %s", moduleName)
 
+		dataTypes, err := c.getDataTypes(damlLf, module, moduleName)
+		if err != nil {
+			return nil, err
+		}
+		for key, val := range dataTypes {
+			structs[key] = val
+		}
+
 		templates, err := c.getTemplates(damlLf, module, moduleName)
 		if err != nil {
 			return nil, err
@@ -73,15 +99,6 @@ func (c *codeGenAst) GetTemplateStructs() (map[string]*model.TmplStruct, error) 
 			structs[key] = val
 		}
 
-		dataTypes, err := c.getDataTypes(damlLf, module, moduleName)
-		if err != nil {
-			return nil, err
-		}
-		for key, val := range dataTypes {
-			if _, exists := structs[key]; !exists {
-				structs[key] = val
-			}
-		}
 	}
 
 	return structs, nil
@@ -133,6 +150,7 @@ func (c *codeGenAst) getTemplates(pkg *daml.Package, module *daml.Module, module
 					Type:       typeExtracted,
 					RawType:    field.String(),
 					IsOptional: typeExtracted == RawTypeOptional || strings.HasPrefix(typeExtracted, "*"),
+					IsEnum:     c.isEnumType(typeExtracted, pkg),
 				})
 			}
 		default:

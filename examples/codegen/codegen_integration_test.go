@@ -225,7 +225,7 @@ func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
 	}
 
 	if !rightsGranded {
-		log.Info().Msg("grant rights")
+		log.Info().Msg("granting rights")
 		newRights := make([]*model.Right, 0)
 		newRights = append(newRights, &model.Right{Type: model.CanReadAs{Party: party}})
 		_, err = cl.UserMng.GrantUserRights(context.Background(), user, "", newRights)
@@ -261,6 +261,7 @@ func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
 			},
 		},
 		SomeText: "some text",
+		SomeEnum: ColorRed,
 	}
 
 	contractIDs, err := createContract(ctx, party, cl, mappyContract)

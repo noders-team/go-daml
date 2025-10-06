@@ -26,6 +26,7 @@ type TmplField struct {
 	Name       string
 	RawType    string
 	IsOptional bool
+	IsEnum     bool
 }
 
 type TmplChoice struct {
