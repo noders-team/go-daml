@@ -3,6 +3,7 @@ package v3
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	daml "github.com/digital-asset/dazl-client/v8/go/api/com/daml/daml_lf_2_1"
 	"github.com/noders-team/go-daml/internal/codegen/model"
@@ -131,7 +132,7 @@ func (c *codeGenAst) getTemplates(pkg *daml.Package, module *daml.Module, module
 					Name:       fieldExtracted,
 					Type:       typeExtracted,
 					RawType:    field.String(),
-					IsOptional: typeExtracted == RawTypeOptional,
+					IsOptional: typeExtracted == RawTypeOptional || strings.HasPrefix(typeExtracted, "*"),
 				})
 			}
 		default:
@@ -376,7 +377,7 @@ func (c *codeGenAst) extractType(pkg *daml.Package, typ *daml.Type) string {
 			tyconName := c.getName(pkg, isConType.Tycon.GetNameInternedDname())
 			fieldType = tyconName
 		} else if builtinType := prim.GetBuiltin(); builtinType != nil {
-			fieldType = builtinType.Builtin.String()
+			fieldType = c.handleBuiltinType(pkg, builtinType)
 		} else {
 			fieldType = prim.String()
 		}
@@ -404,6 +405,31 @@ func (c *codeGenAst) extractType(pkg *daml.Package, typ *daml.Type) string {
 	}
 
 	return model.NormalizeDAMLType(fieldType)
+}
+
+func (c *codeGenAst) handleBuiltinType(pkg *daml.Package, builtinType *daml.Type_Builtin) string {
+	builtinName := builtinType.Builtin.String()
+	log.Debug().Msgf("handleBuiltinType: builtin=%s, args=%d", builtinName, len(builtinType.Args))
+
+	// Handle parameterized types like LIST
+	switch builtinType.Builtin {
+	case daml.BuiltinType_LIST:
+		if len(builtinType.Args) > 0 {
+			elementType := c.extractType(pkg, builtinType.Args[0])
+			normalizedElementType := model.NormalizeDAMLType(elementType)
+			return "[]" + normalizedElementType
+		}
+		return "LIST" // fallback to generic LIST
+	case daml.BuiltinType_OPTIONAL:
+		if len(builtinType.Args) > 0 {
+			elementType := c.extractType(pkg, builtinType.Args[0])
+			normalizedElementType := model.NormalizeDAMLType(elementType)
+			return "*" + normalizedElementType
+		}
+		return "OPTIONAL" // fallback to generic OPTIONAL
+	default:
+		return builtinName
+	}
 }
 
 func (c *codeGenAst) extractField(pkg *daml.Package, field *daml.FieldWithType) (string, string, error) {
@@ -434,7 +460,7 @@ func (c *codeGenAst) extractField(pkg *daml.Package, field *daml.FieldWithType) 
 				tyconName := c.getName(pkg, isConType.Tycon.GetNameInternedDname())
 				fieldType = tyconName
 			} else if builtinType := prim.GetBuiltin(); builtinType != nil {
-				fieldType = builtinType.Builtin.String()
+				fieldType = c.handleBuiltinType(pkg, builtinType)
 			} else {
 				fieldType = prim.String()
 			}

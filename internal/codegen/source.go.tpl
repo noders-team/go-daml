@@ -87,6 +87,29 @@ func argsToMap(args interface{}) map[string]interface{} {
 		
 		return nil
 	}
+	
+	// GetVariantTag implements types.VARIANT interface
+	func (v {{capitalise .Name}}) GetVariantTag() string {
+		{{range $field := .Fields}}
+		if v.{{capitalise $field.Name}} != nil {
+			return "{{$field.Name}}"
+		}
+		{{end}}
+		return ""
+	}
+	
+	// GetVariantValue implements types.VARIANT interface
+	func (v {{capitalise .Name}}) GetVariantValue() interface{} {
+		{{range $field := .Fields}}
+		if v.{{capitalise $field.Name}} != nil {
+			return v.{{capitalise $field.Name}}
+		}
+		{{end}}
+		return nil
+	}
+	
+	// Verify interface implementation
+	var _ VARIANT = (*{{capitalise .Name}})(nil)
 	{{else if eq .RawType "Enum"}}
 	// {{capitalise .Name}} is an enum type
 	type {{capitalise .Name}} string
@@ -160,4 +183,4 @@ func argsToMap(args interface{}) map[string]interface{} {
 
 {{define "fieldToDAMLValue"}}{{if eq .Type "PARTY"}}map[string]interface{}{"_type": "party", "value": string(t.{{capitalise .Name}})}{{else if eq .Type "TEXT"}}string(t.{{capitalise .Name}}){{else if eq .Type "INT64"}}int64(t.{{capitalise .Name}}){{else if eq .Type "BOOL"}}bool(t.{{capitalise .Name}}){{else if eq .Type "NUMERIC"}}(*big.Int)(t.{{capitalise .Name}}){{else if eq .Type "DECIMAL"}}(*big.Int)(t.{{capitalise .Name}}){{else if eq .Type "DATE"}}t.{{capitalise .Name}}{{else if eq .Type "TIMESTAMP"}}t.{{capitalise .Name}}{{else if eq .Type "UNIT"}}map[string]interface{}{"_type": "unit"}{{else if eq .Type "LIST"}}t.{{capitalise .Name}}{{else if eq .Type "GENMAP"}}map[string]interface{}{"_type": "genmap", "value": t.{{capitalise .Name}}}{{else if eq .Type "MAP"}}t.{{capitalise .Name}}{{else if eq .Type "OPTIONAL"}}t.{{capitalise .Name}}{{else if eq .Type "string"}}string(t.{{capitalise .Name}}){{else}}t.{{capitalise .Name}}{{end}}{{end}}
 
-{{define "fieldIsNotEmpty"}}{{if eq .Type "PARTY"}}t.{{capitalise .Name}} != ""{{else if eq .Type "TEXT"}}t.{{capitalise .Name}} != ""{{else if eq .Type "INT64"}}t.{{capitalise .Name}} != 0{{else if eq .Type "BOOL"}}true{{else if eq .Type "NUMERIC"}}t.{{capitalise .Name}} != nil{{else if eq .Type "DECIMAL"}}t.{{capitalise .Name}} != nil{{else if eq .Type "DATE"}}!t.{{capitalise .Name}}.IsZero(){{else if eq .Type "TIMESTAMP"}}!t.{{capitalise .Name}}.IsZero(){{else if eq .Type "LIST"}}len(t.{{capitalise .Name}}) > 0{{else if eq .Type "GENMAP"}}t.{{capitalise .Name}} != nil && len(t.{{capitalise .Name}}) > 0{{else if eq .Type "MAP"}}t.{{capitalise .Name}} != nil && len(t.{{capitalise .Name}}) > 0{{else if eq .Type "OPTIONAL"}}t.{{capitalise .Name}} != nil{{else}}t.{{capitalise .Name}} != nil{{end}}{{end}}
+{{define "fieldIsNotEmpty"}}{{if eq .Type "PARTY"}}t.{{capitalise .Name}} != ""{{else if eq .Type "TEXT"}}t.{{capitalise .Name}} != ""{{else if eq .Type "INT64"}}t.{{capitalise .Name}} != 0{{else if eq .Type "BOOL"}}true{{else if eq .Type "NUMERIC"}}t.{{capitalise .Name}} != nil{{else if eq .Type "DECIMAL"}}t.{{capitalise .Name}} != nil{{else if eq .Type "DATE"}}!t.{{capitalise .Name}}.IsZero(){{else if eq .Type "TIMESTAMP"}}!t.{{capitalise .Name}}.IsZero(){{else if eq .Type "LIST"}}len(t.{{capitalise .Name}}) > 0{{else if eq .Type "GENMAP"}}t.{{capitalise .Name}} != nil && len(t.{{capitalise .Name}}) > 0{{else if eq .Type "MAP"}}t.{{capitalise .Name}} != nil && len(t.{{capitalise .Name}}) > 0{{else if eq .Type "OPTIONAL"}}t.{{capitalise .Name}} != nil{{else if .IsOptional}}t.{{capitalise .Name}} != nil{{else}}t.{{capitalise .Name}} != nil{{end}}{{end}}

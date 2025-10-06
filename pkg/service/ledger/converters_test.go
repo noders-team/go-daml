@@ -84,7 +84,7 @@ func TestConvertToRecord(t *testing.T) {
 		right := interface{}("b")
 		leftInterface := left
 		rightInterface := right
-		
+
 		oneOfEverything := OneOfEverything{
 			Operator:        types.PARTY("test-party"),
 			SomeBoolean:     true,
@@ -108,20 +108,20 @@ func TestConvertToRecord(t *testing.T) {
 		// Convert the arguments to a record (this is what happens in the ledger)
 		record := convertToRecord(createCmd.Arguments)
 		require.NotNil(t, record)
-		
+
 		// Check that someDecimal and someMeasurement are properly converted
 		fieldMap := make(map[string]*v2.RecordField)
 		for _, field := range record.Fields {
 			fieldMap[field.Label] = field
 		}
-		
+
 		require.NotNil(t, fieldMap["someDecimal"])
 		require.NotNil(t, fieldMap["someMeasurement"])
-		
+
 		// Check the types - these should be Numeric, not Record
 		require.IsType(t, &v2.Value_Numeric{}, fieldMap["someDecimal"].Value.Sum)
 		require.IsType(t, &v2.Value_Numeric{}, fieldMap["someMeasurement"].Value.Sum)
-		
+
 		require.Equal(t, "1.50000000", fieldMap["someDecimal"].Value.GetNumeric())
 		require.Equal(t, "3.100000000", fieldMap["someMeasurement"].Value.GetNumeric())
 	})

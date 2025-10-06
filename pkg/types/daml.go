@@ -20,3 +20,9 @@ type (
 	OPTIONAL  *interface{}
 	GENMAP    map[string]interface{}
 )
+
+// VARIANT represents a DAML variant/union type
+type VARIANT interface {
+	GetVariantTag() string
+	GetVariantValue() interface{}
+}

@@ -295,6 +295,19 @@ func mapToValue(data interface{}) *v2.Value {
 		return nil
 	}
 
+	// Check if it implements VARIANT interface first
+	if variant, ok := data.(types.VARIANT); ok {
+		log.Debug().Msgf("Converting VARIANT with tag: %s", variant.GetVariantTag())
+		return &v2.Value{
+			Sum: &v2.Value_Variant{
+				Variant: &v2.Variant{
+					Constructor: variant.GetVariantTag(),
+					Value:       mapToValue(variant.GetVariantValue()),
+				},
+			},
+		}
+	}
+
 	// Handle custom pointer types first before dereferencing
 	switch v := data.(type) {
 	case types.NUMERIC:
@@ -311,6 +324,35 @@ func mapToValue(data interface{}) *v2.Value {
 		return &v2.Value{
 			Sum: &v2.Value_List{
 				List: &v2.List{Elements: elements},
+			},
+		}
+	case []types.TEXT:
+		elements := make([]*v2.Value, len(v))
+		for i, elem := range v {
+			elements[i] = mapToValue(elem)
+		}
+		return &v2.Value{
+			Sum: &v2.Value_List{
+				List: &v2.List{Elements: elements},
+			},
+		}
+	case []types.BOOL:
+		elements := make([]*v2.Value, len(v))
+		for i, elem := range v {
+			elements[i] = mapToValue(elem)
+		}
+		return &v2.Value{
+			Sum: &v2.Value_List{
+				List: &v2.List{Elements: elements},
+			},
+		}
+	case types.VARIANT:
+		return &v2.Value{
+			Sum: &v2.Value_Variant{
+				Variant: &v2.Variant{
+					Constructor: v.GetVariantTag(),
+					Value:       mapToValue(v.GetVariantValue()),
+				},
 			},
 		}
 	}
@@ -422,6 +464,17 @@ func mapToValue(data interface{}) *v2.Value {
 	case time.Time:
 		return &v2.Value{Sum: &v2.Value_Date{Date: int32(v.Unix() / 86400)}}
 	case interface{}:
+		// Check if it implements VARIANT interface
+		if variant, ok := v.(types.VARIANT); ok {
+			return &v2.Value{
+				Sum: &v2.Value_Variant{
+					Variant: &v2.Variant{
+						Constructor: variant.GetVariantTag(),
+						Value:       mapToValue(variant.GetVariantValue()),
+					},
+				},
+			}
+		}
 		return mapToValue(structToMap(v))
 	default:
 		return nil

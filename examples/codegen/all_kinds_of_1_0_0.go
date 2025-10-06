@@ -39,7 +39,8 @@ func argsToMap(args interface{}) map[string]interface{} {
 }
 
 // Accept is a Record type
-type Accept struct{}
+type Accept struct {
+}
 
 // Color is an enum type
 type Color string
@@ -101,8 +102,8 @@ type OneOfEverything struct {
 	SomeBoolean     BOOL      `json:"someBoolean"`
 	SomeInteger     INT64     `json:"someInteger"`
 	SomeDecimal     NUMERIC   `json:"someDecimal"`
-	SomeMaybe       OPTIONAL  `json:"someMaybe"`
-	SomeMaybeNot    OPTIONAL  `json:"someMaybeNot"`
+	SomeMaybe       *INT64    `json:"someMaybe"`
+	SomeMaybeNot    *INT64    `json:"someMaybeNot"`
 	SomeText        TEXT      `json:"someText"`
 	SomeDate        DATE      `json:"someDate"`
 	SomeDatetime    TIMESTAMP `json:"someDatetime"`
@@ -148,21 +149,13 @@ func (t OneOfEverything) CreateCommand() *model.CreateCommand {
 
 	args["someDatetime"] = t.SomeDatetime
 
-	if len(t.SomeSimpleList) > 0 {
-		args["someSimpleList"] = t.SomeSimpleList
-	}
+	args["someSimpleList"] = t.SomeSimpleList
 
-	if t.SomeSimplePair.Left != nil && t.SomeSimplePair.Right != nil {
-		args["someSimplePair"] = t.SomeSimplePair
-	}
+	args["someSimplePair"] = t.SomeSimplePair
 
-	if t.SomeNestedPair.Left != nil && t.SomeNestedPair.Right != nil {
-		args["someNestedPair"] = t.SomeNestedPair
-	}
+	args["someNestedPair"] = t.SomeNestedPair
 
-	if t.SomeUglyNesting.Both != nil || t.SomeUglyNesting.Left != nil || t.SomeUglyNesting.Right != nil {
-		args["someUglyNesting"] = t.SomeUglyNesting
-	}
+	args["someUglyNesting"] = t.SomeUglyNesting
 
 	if t.SomeMeasurement != nil {
 		args["someMeasurement"] = (*big.Int)(t.SomeMeasurement)
@@ -202,13 +195,14 @@ func (t OneOfEverything) Accept(contractID string, args Accept) *model.ExerciseC
 
 // VPair is a variant/union type
 type VPair struct {
-	Left  interface{} `json:"Left,omitempty"`
-	Right interface{} `json:"Right,omitempty"`
-	Both  *VPair      `json:"Both,omitempty"`
+	Left  *interface{} `json:"Left,omitempty"`
+	Right *interface{} `json:"Right,omitempty"`
+	Both  *VPair       `json:"Both,omitempty"`
 }
 
 // MarshalJSON implements custom JSON marshaling for VPair
 func (v VPair) MarshalJSON() ([]byte, error) {
+
 	if v.Left != nil {
 		return json.Marshal(map[string]interface{}{
 			"tag":   "Left",
@@ -273,3 +267,42 @@ func (v *VPair) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
+
+// GetVariantTag implements types.VARIANT interface
+func (v VPair) GetVariantTag() string {
+
+	if v.Left != nil {
+		return "Left"
+	}
+
+	if v.Right != nil {
+		return "Right"
+	}
+
+	if v.Both != nil {
+		return "Both"
+	}
+
+	return ""
+}
+
+// GetVariantValue implements types.VARIANT interface
+func (v VPair) GetVariantValue() interface{} {
+
+	if v.Left != nil {
+		return v.Left
+	}
+
+	if v.Right != nil {
+		return v.Right
+	}
+
+	if v.Both != nil {
+		return v.Both
+	}
+
+	return nil
+}
+
+// Verify interface implementation
+var _ VARIANT = (*VPair)(nil)

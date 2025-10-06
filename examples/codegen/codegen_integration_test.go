@@ -11,7 +11,6 @@ import (
 
 	"github.com/noders-team/go-daml/pkg/client"
 	"github.com/noders-team/go-daml/pkg/model"
-	"github.com/noders-team/go-daml/pkg/types"
 	. "github.com/noders-team/go-daml/pkg/types"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -165,7 +164,7 @@ func TestCodegenIntegration(t *testing.T) {
 }
 
 func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 	log.Info().Str("generatedPackageID", PackageID).Msg("Using package ID from generated code")
@@ -235,11 +234,7 @@ func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
 		}
 	}
 
-	someListInt := []types.INT64{1, 2, 3} // TODO codegen giving list of strings, need to update it.
-	left := interface{}(INT64(100))
-	right := interface{}(INT64(200))
-	leftInterface := left
-	rightInterface := right
+	someListInt := []INT64{1, 2, 3}
 	mappyContract := OneOfEverything{
 		Operator:        PARTY(party),
 		SomeBoolean:     true,
@@ -255,10 +250,16 @@ func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
 			Right: MyPair{Left: INT64(30), Right: INT64(40)},
 		},
 		SomeUglyNesting: VPair{
-			Both: &VPair{ // TODO not working here
-				Left: &leftInterface, Right: &rightInterface},
-			Left:  &leftInterface,
-			Right: &rightInterface},
+			Both: &VPair{
+				Left: func() *interface{} {
+					val := interface{}(MyPair{
+						Left:  MyPair{Left: INT64(10), Right: INT64(20)},
+						Right: MyPair{Left: INT64(30), Right: INT64(40)},
+					})
+					return &val
+				}(),
+			},
+		},
 		SomeText: "some text",
 	}
 
