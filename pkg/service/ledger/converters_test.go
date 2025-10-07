@@ -72,13 +72,10 @@ func TestConvertToRecord(t *testing.T) {
 		numericStr := record.Fields[0].Value.GetNumeric()
 		require.NotEmpty(t, numericStr)
 
-		// DAML expects the fraction format with "/" replaced by "."
-		// big.NewInt(200) with scale 10 becomes 1/50000000 -> "1.50000000"
-		require.Equal(t, "1.50000000", numericStr)
+		require.Equal(t, "0.0000000200", numericStr)
 	})
 
 	t.Run("Integration test scenario", func(t *testing.T) {
-		// Simulate the exact scenario from the integration test
 		someListInt := []types.INT64{1, 2, 3}
 		left := interface{}("a")
 		right := interface{}("b")
@@ -100,16 +97,13 @@ func TestConvertToRecord(t *testing.T) {
 			SomeText:        "some text",
 		}
 
-		// Get the CreateCommand that would be sent to DAML
 		createCmd := oneOfEverything.CreateCommand()
 		require.NotNil(t, createCmd)
 		require.NotNil(t, createCmd.Arguments)
 
-		// Convert the arguments to a record (this is what happens in the ledger)
 		record := convertToRecord(createCmd.Arguments)
 		require.NotNil(t, record)
 
-		// Check that someDecimal and someMeasurement are properly converted
 		fieldMap := make(map[string]*v2.RecordField)
 		for _, field := range record.Fields {
 			fieldMap[field.Label] = field
@@ -118,12 +112,11 @@ func TestConvertToRecord(t *testing.T) {
 		require.NotNil(t, fieldMap["someDecimal"])
 		require.NotNil(t, fieldMap["someMeasurement"])
 
-		// Check the types - these should be Numeric, not Record
 		require.IsType(t, &v2.Value_Numeric{}, fieldMap["someDecimal"].Value.Sum)
 		require.IsType(t, &v2.Value_Numeric{}, fieldMap["someMeasurement"].Value.Sum)
 
-		require.Equal(t, "1.50000000", fieldMap["someDecimal"].Value.GetNumeric())
-		require.Equal(t, "3.100000000", fieldMap["someMeasurement"].Value.GetNumeric())
+		require.Equal(t, "0.0000000200", fieldMap["someDecimal"].Value.GetNumeric())
+		require.Equal(t, "0.0000000300", fieldMap["someMeasurement"].Value.GetNumeric())
 	})
 
 	t.Run("Nested with empty values", func(t *testing.T) {

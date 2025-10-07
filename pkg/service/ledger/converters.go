@@ -311,11 +311,11 @@ func mapToValue(data interface{}) *v2.Value {
 	// Handle custom pointer types first before dereferencing
 	switch v := data.(type) {
 	case types.NUMERIC:
-		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: strings.ReplaceAll(convertBigIntToNumeric((*big.Int)(v), 10).String(), "/", ".")}}
+		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: convertBigIntToNumeric((*big.Int)(v), 10).FloatString(10)}}
 	case types.DECIMAL:
-		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: strings.ReplaceAll(convertBigIntToNumeric((*big.Int)(v), 10).String(), "/", ".")}}
+		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: convertBigIntToNumeric((*big.Int)(v), 10).FloatString(10)}}
 	case *big.Int:
-		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: strings.ReplaceAll(convertBigIntToNumeric(v, 10).String(), "/", ".")}}
+		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: convertBigIntToNumeric(v, 10).FloatString(10)}}
 	case []types.INT64:
 		elements := make([]*v2.Value, len(v))
 		for i, elem := range v {
