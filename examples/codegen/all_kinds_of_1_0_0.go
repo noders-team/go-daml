@@ -19,21 +19,20 @@ var (
 
 const PackageID = "ddf0d6396a862eaa7f8d647e39d090a6b04c4a3fd6736aa1730ebc9fca6be664"
 
-// argsToMap converts typed arguments to map for ExerciseCommand
+type Template interface {
+	CreateCommand() *model.CreateCommand
+	GetTemplateID() string
+}
+
 func argsToMap(args interface{}) map[string]interface{} {
-	// For now, we'll use a simple approach
-	// In practice, you might want to implement proper struct-to-map conversion
 	if args == nil {
 		return map[string]interface{}{}
 	}
 
-	// If args is already a map, return it directly
 	if m, ok := args.(map[string]interface{}); ok {
 		return m
 	}
 
-	// For structs, you would typically use reflection or JSON marshaling
-	// For simplicity, we'll return the args in a generic wrapper
 	return map[string]interface{}{
 		"args": args,
 	}
@@ -50,6 +49,19 @@ const (
 	ColorGreen Color = "Green"
 	ColorBlue  Color = "Blue"
 )
+
+// GetEnumConstructor implements types.ENUM interface
+func (e Color) GetEnumConstructor() string {
+	return string(e)
+}
+
+// GetEnumTypeID implements types.ENUM interface
+func (e Color) GetEnumTypeID() string {
+	return fmt.Sprintf("%s:%s:%s", PackageID, "AllKindsOf", "Color")
+}
+
+// Verify interface implementation
+var _ ENUM = Color("")
 
 // MappyContract is a Template type
 type MappyContract struct {
@@ -102,12 +114,12 @@ type OneOfEverything struct {
 	SomeBoolean     BOOL      `json:"someBoolean"`
 	SomeInteger     INT64     `json:"someInteger"`
 	SomeDecimal     NUMERIC   `json:"someDecimal"`
-	SomeMaybe       OPTIONAL  `json:"someMaybe"`
-	SomeMaybeNot    OPTIONAL  `json:"someMaybeNot"`
+	SomeMaybe       *INT64    `json:"someMaybe"`
+	SomeMaybeNot    *INT64    `json:"someMaybeNot"`
 	SomeText        TEXT      `json:"someText"`
 	SomeDate        DATE      `json:"someDate"`
 	SomeDatetime    TIMESTAMP `json:"someDatetime"`
-	SomeSimpleList  LIST      `json:"someSimpleList"`
+	SomeSimpleList  []INT64   `json:"someSimpleList"`
 	SomeSimplePair  MyPair    `json:"someSimplePair"`
 	SomeNestedPair  MyPair    `json:"someNestedPair"`
 	SomeUglyNesting VPair     `json:"someUglyNesting"`
@@ -131,7 +143,9 @@ func (t OneOfEverything) CreateCommand() *model.CreateCommand {
 
 	args["someInteger"] = int64(t.SomeInteger)
 
-	args["someDecimal"] = t.SomeDecimal
+	if t.SomeDecimal != nil {
+		args["someDecimal"] = (*big.Int)(t.SomeDecimal)
+	}
 
 	if t.SomeMaybe != nil {
 		args["someMaybe"] = t.SomeMaybe
@@ -147,9 +161,7 @@ func (t OneOfEverything) CreateCommand() *model.CreateCommand {
 
 	args["someDatetime"] = t.SomeDatetime
 
-	if len(t.SomeSimpleList) > 0 {
-		args["someSimpleList"] = t.SomeSimpleList
-	}
+	args["someSimpleList"] = t.SomeSimpleList
 
 	args["someSimplePair"] = t.SomeSimplePair
 
@@ -157,9 +169,13 @@ func (t OneOfEverything) CreateCommand() *model.CreateCommand {
 
 	args["someUglyNesting"] = t.SomeUglyNesting
 
-	args["someMeasurement"] = t.SomeMeasurement
+	if t.SomeMeasurement != nil {
+		args["someMeasurement"] = (*big.Int)(t.SomeMeasurement)
+	}
 
-	args["someEnum"] = t.SomeEnum
+	if t.SomeEnum != "" {
+		args["someEnum"] = t.SomeEnum
+	}
 
 	args["theUnit"] = map[string]interface{}{"_type": "unit"}
 
@@ -264,3 +280,40 @@ func (v *VPair) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
+
+// GetVariantTag implements types.VARIANT interface
+func (v VPair) GetVariantTag() string {
+	if v.Left != nil {
+		return "Left"
+	}
+
+	if v.Right != nil {
+		return "Right"
+	}
+
+	if v.Both != nil {
+		return "Both"
+	}
+
+	return ""
+}
+
+// GetVariantValue implements types.VARIANT interface
+func (v VPair) GetVariantValue() interface{} {
+	if v.Left != nil {
+		return v.Left
+	}
+
+	if v.Right != nil {
+		return v.Right
+	}
+
+	if v.Both != nil {
+		return v.Both
+	}
+
+	return nil
+}
+
+// Verify interface implementation
+var _ VARIANT = (*VPair)(nil)

@@ -1,0 +1,135 @@
+package main
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"math/big"
+	"strings"
+
+	"github.com/noders-team/go-daml/pkg/model"
+	. "github.com/noders-team/go-daml/pkg/types"
+)
+
+var (
+	_ = errors.New
+	_ = big.NewInt
+	_ = strings.NewReader
+)
+
+const PackageID = "20a17897a6664ecb8a4dd3e10b384c8cc41181d26ecbb446c2d65ae0928686c9"
+
+type Template interface {
+	CreateCommand() *model.CreateCommand
+	GetTemplateID() string
+}
+
+func argsToMap(args interface{}) map[string]interface{} {
+	if args == nil {
+		return map[string]interface{}{}
+	}
+
+	if m, ok := args.(map[string]interface{}); ok {
+		return m
+	}
+
+	return map[string]interface{}{
+		"args": args,
+	}
+}
+
+// Accept is a Record type
+type Accept struct {
+	Foo TEXT  `json:"foo"`
+	Bar INT64 `json:"bar"`
+}
+
+// RentalAgreement is a Template type
+type RentalAgreement struct {
+	Landlord PARTY `json:"landlord"`
+	Tenant   PARTY `json:"tenant"`
+	Terms    TEXT  `json:"terms"`
+}
+
+// GetTemplateID returns the template ID for this template
+func (t RentalAgreement) GetTemplateID() string {
+	return fmt.Sprintf("%s:%s:%s", PackageID, "Rental", "RentalAgreement")
+}
+
+// CreateCommand returns a CreateCommand for this template
+func (t RentalAgreement) CreateCommand() *model.CreateCommand {
+	args := make(map[string]interface{})
+
+	args["landlord"] = map[string]interface{}{"_type": "party", "value": string(t.Landlord)}
+
+	args["tenant"] = map[string]interface{}{"_type": "party", "value": string(t.Tenant)}
+
+	args["terms"] = string(t.Terms)
+
+	return &model.CreateCommand{
+		TemplateID: t.GetTemplateID(),
+		Arguments:  args,
+	}
+}
+
+// Choice methods for RentalAgreement
+
+// Archive exercises the Archive choice on this RentalAgreement contract
+func (t RentalAgreement) Archive(contractID string) *model.ExerciseCommand {
+	return &model.ExerciseCommand{
+		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Rental", "RentalAgreement"),
+		ContractID: contractID,
+		Choice:     "Archive",
+		Arguments:  map[string]interface{}{},
+	}
+}
+
+// RentalProposal is a Template type
+type RentalProposal struct {
+	Landlord PARTY `json:"landlord"`
+	Tenant   PARTY `json:"tenant"`
+	Terms    TEXT  `json:"terms"`
+}
+
+// GetTemplateID returns the template ID for this template
+func (t RentalProposal) GetTemplateID() string {
+	return fmt.Sprintf("%s:%s:%s", PackageID, "Rental", "RentalProposal")
+}
+
+// CreateCommand returns a CreateCommand for this template
+func (t RentalProposal) CreateCommand() *model.CreateCommand {
+	args := make(map[string]interface{})
+
+	args["landlord"] = map[string]interface{}{"_type": "party", "value": string(t.Landlord)}
+
+	args["tenant"] = map[string]interface{}{"_type": "party", "value": string(t.Tenant)}
+
+	args["terms"] = string(t.Terms)
+
+	return &model.CreateCommand{
+		TemplateID: t.GetTemplateID(),
+		Arguments:  args,
+	}
+}
+
+// Choice methods for RentalProposal
+
+// Archive exercises the Archive choice on this RentalProposal contract
+func (t RentalProposal) Archive(contractID string) *model.ExerciseCommand {
+	return &model.ExerciseCommand{
+		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Rental", "RentalProposal"),
+		ContractID: contractID,
+		Choice:     "Archive",
+		Arguments:  map[string]interface{}{},
+	}
+}
+
+// Accept exercises the Accept choice on this RentalProposal contract
+func (t RentalProposal) Accept(contractID string, args Accept) *model.ExerciseCommand {
+	return &model.ExerciseCommand{
+		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Rental", "RentalProposal"),
+		ContractID: contractID,
+		Choice:     "Accept",
+		Arguments:  argsToMap(args),
+	}
+}

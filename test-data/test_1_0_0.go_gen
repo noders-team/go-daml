@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-	"time"
 
 	"github.com/noders-team/go-daml/pkg/model"
 	. "github.com/noders-team/go-daml/pkg/types"
@@ -19,6 +18,11 @@ var (
 )
 
 const PackageID = "e2d906db3930143bfa53f43c7a69c218c8b499c03556485f312523090684ff34"
+
+type Template interface {
+	CreateCommand() *model.CreateCommand
+	GetTemplateID() string
+}
 
 func argsToMap(args interface{}) map[string]interface{} {
 	if args == nil {
@@ -93,6 +97,37 @@ func (v *Address) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
+
+// GetVariantTag implements types.VARIANT interface
+func (v Address) GetVariantTag() string {
+
+	if v.Us != nil {
+		return "US"
+	}
+
+	if v.Uk != nil {
+		return "UK"
+	}
+
+	return ""
+}
+
+// GetVariantValue implements types.VARIANT interface
+func (v Address) GetVariantValue() interface{} {
+
+	if v.Us != nil {
+		return v.Us
+	}
+
+	if v.Uk != nil {
+		return v.Uk
+	}
+
+	return nil
+}
+
+// Verify interface implementation
+var _ VARIANT = (*Address)(nil)
 
 // American is a Template type
 type American struct {
@@ -284,7 +319,9 @@ func (t SimpleFields) CreateCommand() *model.CreateCommand {
 
 	args["aInt"] = int64(t.AInt)
 
-	args["aDecimal"] = t.ADecimal
+	if t.ADecimal != nil {
+		args["aDecimal"] = (*big.Int)(t.ADecimal)
+	}
 
 	args["aText"] = string(t.AText)
 

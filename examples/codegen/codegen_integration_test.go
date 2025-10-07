@@ -3,6 +3,7 @@ package codegen_test
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"os"
 	"strings"
 	"testing"
@@ -47,43 +48,13 @@ func TestCodegenIntegration(t *testing.T) {
 		log.Fatal().Err(err).Msg("failed to ping DAML client")
 	}
 
-	darContent, err := os.ReadFile(darFilePath)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to read DAR file")
-	}
-
 	uploadedPackageName := "all-kinds-of"
-	if !packageExists(uploadedPackageName, cl) {
-		log.Info().Msg("package not found, uploading")
-
-		submissionID := "validate-" + time.Now().Format("20060102150405")
-		log.Info().Str("submissionID", submissionID).Msg("validating DAR file")
-
-		err = cl.PackageMng.ValidateDarFile(ctx, darContent, submissionID)
-		if err != nil {
-			log.Fatal().Err(err).Msgf("DAR validation failed for %s", darFilePath)
-		}
-
-		uploadSubmissionID := "upload-" + time.Now().Format("20060102150405")
-		log.Info().Str("submissionID", uploadSubmissionID).Msg("uploading DAR file")
-
-		err = cl.PackageMng.UploadDarFile(ctx, darContent, uploadSubmissionID)
-		if err != nil {
-			log.Fatal().Err(err).Msg("DAR upload failed")
-		}
-
-		if !packageExists(uploadedPackageName, cl) {
-			log.Fatal().Msg("package not found")
-		}
-	}
-	status, err := cl.PackageService.GetPackageStatus(ctx,
-		&model.GetPackageStatusRequest{PackageID: PackageID})
+	err = packageUpload(ctx, uploadedPackageName, cl)
 	if err != nil {
-		log.Fatal().Err(err).Str("packageId", PackageID).Msg("failed to get package status")
+		log.Panic().Msgf("error: %v", err)
 	}
-	log.Info().Msgf("package status: %v", status.PackageStatus)
 
-	party := "app_provider_localnet-localparty-1::1220716cdae4d7884d468f02b30eb826a7ef54e98f3eb5f875b52a0ef8728ed98c3a"
+	party := ""
 
 	participantID, err := cl.PartyMng.GetParticipantID(ctx)
 	if err != nil {
@@ -171,7 +142,6 @@ func TestCodegenIntegration(t *testing.T) {
 	}
 	log.Info().Msgf("response.UpdateID: %s", response.UpdateID)
 
-	// time.Sleep(5 * time.Second)
 	respUpd, err := cl.UpdateService.GetTransactionByID(ctx, &model.GetTransactionByIDRequest{
 		UpdateID:          response.UpdateID,
 		RequestingParties: []string{party},
@@ -191,6 +161,206 @@ func TestCodegenIntegration(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
+	log.Info().Str("generatedPackageID", PackageID).Msg("Using package ID from generated code")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	builder := client.NewDamlClient(bearerToken, grpcAddress)
+	if strings.HasSuffix(grpcAddress, ":443") {
+		tlsConfig := client.TlsConfig{}
+		builder = builder.WithTLSConfig(tlsConfig)
+	}
+
+	cl, err := builder.
+		Build(context.Background())
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to build DAML client")
+	}
+
+	if err = cl.Ping(ctx); err != nil {
+		log.Fatal().Err(err).Msg("failed to ping DAML client")
+	}
+
+	uploadedPackageName := "all-kinds-of"
+	err = packageUpload(ctx, uploadedPackageName, cl)
+	if err != nil {
+		log.Panic().Msgf("error: %v", err)
+	}
+
+	party := ""
+
+	participantID, err := cl.PartyMng.GetParticipantID(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to get participant ID")
+	}
+	log.Info().Msgf("participantID: %s", participantID)
+
+	users, err := cl.UserMng.ListUsers(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to list users")
+	}
+	for _, u := range users {
+		if u.ID == user {
+			party = u.PrimaryParty
+			log.Info().Msgf("user %s has primary party %s, using it", u.ID, u.PrimaryParty)
+		}
+	}
+
+	rights, err := cl.UserMng.ListUserRights(ctx, user)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to list user rights")
+	}
+	rightsGranded := false
+	for _, r := range rights {
+		canAct, ok := r.Type.(model.RightType).(model.CanActAs)
+		if ok && canAct.Party == party {
+			rightsGranded = true
+		}
+	}
+
+	if !rightsGranded {
+		log.Info().Msg("granting rights")
+		newRights := make([]*model.Right, 0)
+		newRights = append(newRights, &model.Right{Type: model.CanReadAs{Party: party}})
+		_, err = cl.UserMng.GrantUserRights(context.Background(), user, "", newRights)
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to grant user rights")
+		}
+	}
+
+	someListInt := []INT64{1, 2, 3}
+	mappyContract := OneOfEverything{
+		Operator:        PARTY(party),
+		SomeBoolean:     true,
+		SomeInteger:     190,
+		SomeDecimal:     NUMERIC(big.NewInt(200)),
+		SomeMeasurement: NUMERIC(big.NewInt(300)),
+		SomeDate:        DATE(time.Now().UTC()),
+		SomeDatetime:    TIMESTAMP(time.Now().UTC()),
+		SomeSimpleList:  someListInt,
+		SomeSimplePair:  MyPair{Left: INT64(100), Right: INT64(200)},
+		SomeNestedPair: MyPair{
+			Left:  MyPair{Left: INT64(10), Right: INT64(20)},
+			Right: MyPair{Left: INT64(30), Right: INT64(40)},
+		},
+		SomeUglyNesting: VPair{
+			Both: &VPair{
+				Left: func() *interface{} {
+					val := interface{}(MyPair{
+						Left:  MyPair{Left: INT64(10), Right: INT64(20)},
+						Right: MyPair{Left: INT64(30), Right: INT64(40)},
+					})
+					return &val
+				}(),
+			},
+		},
+		SomeText: "some text",
+		SomeEnum: ColorRed,
+	}
+
+	contractIDs, err := createContract(ctx, party, cl, mappyContract)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("failed to create contract")
+	}
+
+	log.Info().Str("templateID", mappyContract.GetTemplateID()).Msg("Using GetTemplateID method")
+	if len(contractIDs) == 0 {
+		log.Warn().Msg("No contracts were created, cannot demonstrate Archive command")
+		return
+	}
+
+	var firstContractID string
+	if len(contractIDs) > 0 {
+		firstContractID = contractIDs[0]
+	}
+	log.Info().Str("contractID", firstContractID).Msg("Using contract ID from creation for Archive command")
+	archiveCmd := mappyContract.Archive(firstContractID)
+
+	// Submit the Archive command
+	commandID := "archive-" + time.Now().Format("20060102150405")
+	submissionReq := &model.SubmitAndWaitRequest{
+		Commands: &model.Commands{
+			WorkflowID:   "archive-workflow-" + time.Now().Format("20060102150405"),
+			CommandID:    commandID,
+			ActAs:        []string{party},
+			SubmissionID: "sub-" + time.Now().Format("20060102150405"),
+			DeduplicationPeriod: model.DeduplicationDuration{
+				Duration: 60 * time.Second,
+			},
+			Commands: []*model.Command{{Command: archiveCmd}},
+		},
+	}
+
+	response, err := cl.CommandService.SubmitAndWait(ctx, submissionReq)
+	if err != nil {
+		log.Fatal().Err(err).Str("packageId", PackageID).Msg("failed to submit and wait")
+	}
+	log.Info().Msgf("response.UpdateID: %s", response.UpdateID)
+
+	respUpd, err := cl.UpdateService.GetTransactionByID(ctx, &model.GetTransactionByIDRequest{
+		UpdateID:          response.UpdateID,
+		RequestingParties: []string{party},
+	})
+	if err != nil {
+		log.Fatal().Err(err).Str("packageId", PackageID).Msg("failed to GetTransactionByID")
+	}
+	require.NotNil(t, respUpd.Transaction, "expected transaction")
+	if respUpd.Transaction != nil {
+		for _, event := range respUpd.Transaction.Events {
+			if exercisedEvent := event.Exercised; exercisedEvent != nil {
+				contractIDs = append(contractIDs, exercisedEvent.ContractID)
+				log.Info().
+					Str("contractID", exercisedEvent.ContractID).
+					Str("templateID", exercisedEvent.TemplateID).
+					Msg("found created contract in transaction")
+			}
+		}
+	}
+}
+
+func packageUpload(ctx context.Context, uploadedPackageName string, cl *client.DamlBindingClient) error {
+	darContent, err := os.ReadFile(darFilePath)
+	if err != nil {
+		return fmt.Errorf("error reading darFilePath")
+	}
+
+	if !packageExists(uploadedPackageName, cl) {
+		log.Info().Msg("package not found, uploading")
+
+		submissionID := "validate-" + time.Now().Format("20060102150405")
+		log.Info().Str("submissionID", submissionID).Msg("validating DAR file")
+
+		err = cl.PackageMng.ValidateDarFile(ctx, darContent, submissionID)
+		if err != nil {
+			return fmt.Errorf("DAR validation failed for %s %v", darFilePath, err)
+		}
+
+		uploadSubmissionID := "upload-" + time.Now().Format("20060102150405")
+		log.Info().Str("submissionID", uploadSubmissionID).Msg("uploading DAR file")
+
+		err = cl.PackageMng.UploadDarFile(ctx, darContent, uploadSubmissionID)
+		if err != nil {
+			return fmt.Errorf("DAR upload failed %v", err)
+		}
+
+		if !packageExists(uploadedPackageName, cl) {
+			return fmt.Errorf("package not found")
+		}
+	}
+	status, err := cl.PackageService.GetPackageStatus(ctx,
+		&model.GetPackageStatusRequest{PackageID: PackageID})
+	if err != nil {
+		return fmt.Errorf("failed to get package status %v", err)
+	}
+	log.Info().Msgf("package status: %v", status.PackageStatus)
+
+	return nil
 }
 
 func packageExists(pkgName string, cl *client.DamlBindingClient) bool {
@@ -217,7 +387,7 @@ func packageExists(pkgName string, cl *client.DamlBindingClient) bool {
 	return false
 }
 
-func createContract(ctx context.Context, party string, cl *client.DamlBindingClient, template MappyContract) ([]string, error) {
+func createContract(ctx context.Context, party string, cl *client.DamlBindingClient, template Template) ([]string, error) {
 	log.Info().Msg("creating sample contracts...")
 
 	createCommands := []*model.Command{

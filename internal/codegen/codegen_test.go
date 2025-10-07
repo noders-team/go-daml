@@ -33,11 +33,11 @@ func TestGetMainDalf(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, dalfContent)
 
-	pkg, err := GetAST(dalfContent, manifest)
+	ast, err := GetAST(dalfContent, manifest)
 	require.Nil(t, err)
-	require.NotEmpty(t, pkg.Structs)
+	require.NotEmpty(t, ast.Structs)
 
-	pkg1, exists := pkg.Structs["RentalAgreement"]
+	pkg1, exists := ast.Structs["RentalAgreement"]
 	require.True(t, exists)
 	require.Len(t, pkg1.Fields, 3)
 	require.Equal(t, pkg1.Name, "RentalAgreement")
@@ -45,160 +45,30 @@ func TestGetMainDalf(t *testing.T) {
 	require.Equal(t, pkg1.Fields[1].Name, "tenant")
 	require.Equal(t, pkg1.Fields[2].Name, "terms")
 
-	pkg2, exists := pkg.Structs["Accept"]
+	pkgAccept, exists := ast.Structs["Accept"]
 	require.True(t, exists)
-	require.Len(t, pkg2.Fields, 2)
-	require.Equal(t, pkg2.Name, "Accept")
-	require.Equal(t, pkg2.Fields[0].Name, "foo")
-	require.Equal(t, pkg2.Fields[1].Name, "bar")
+	require.Len(t, pkgAccept.Fields, 2)
+	require.Equal(t, pkgAccept.Name, "Accept")
+	require.Equal(t, pkgAccept.Fields[0].Name, "foo")
+	require.Equal(t, pkgAccept.Fields[1].Name, "bar")
 
-	pkg3, exists := pkg.Structs["RentalProposal"]
+	pkgRentalProposal, exists := ast.Structs["RentalProposal"]
 	require.True(t, exists)
-	require.Len(t, pkg3.Fields, 3)
-	require.Equal(t, pkg3.Name, "RentalProposal")
-	require.Equal(t, pkg3.Fields[0].Name, "landlord")
-	require.Equal(t, pkg3.Fields[1].Name, "tenant")
-	require.Equal(t, pkg3.Fields[2].Name, "terms")
+	require.Len(t, pkgRentalProposal.Fields, 3)
+	require.Equal(t, pkgRentalProposal.Name, "RentalProposal")
+	require.Equal(t, pkgRentalProposal.Fields[0].Name, "landlord")
+	require.Equal(t, pkgRentalProposal.Fields[1].Name, "tenant")
+	require.Equal(t, pkgRentalProposal.Fields[2].Name, "terms")
 
-	res, err := Bind("main", pkg.PackageID, pkg.Structs)
+	res, err := Bind("main", ast.PackageID, ast.Structs)
 	require.NoError(t, err)
 	require.NotEmpty(t, res)
 
-	// Validate the full generated code
-	expectedCode := `package main
+	expected := "../../test-data/rental_0_1_0.go_gen"
+	expectedMainCode, err := os.ReadFile(expected)
+	require.NoError(t, err)
 
-import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"math/big"
-	"strings"
-	"time"
-
-	"github.com/noders-team/go-daml/pkg/model"
-	. "github.com/noders-team/go-daml/pkg/types"
-)
-
-var (
-	_ = errors.New
-	_ = big.NewInt
-	_ = strings.NewReader
-)
-
-const PackageID = "20a17897a6664ecb8a4dd3e10b384c8cc41181d26ecbb446c2d65ae0928686c9"
-
-func argsToMap(args interface{}) map[string]interface{} {
-	if args == nil {
-		return map[string]interface{}{}
-	}
-
-	if m, ok := args.(map[string]interface{}); ok {
-		return m
-	}
-
-	return map[string]interface{}{
-		"args": args,
-	}
-}
-
-// Accept is a Record type
-type Accept struct {
-	Foo TEXT  ` + "`json:\"foo\"`" + `
-	Bar INT64 ` + "`json:\"bar\"`" + `
-}
-
-// RentalAgreement is a Template type
-type RentalAgreement struct {
-	Landlord PARTY ` + "`json:\"landlord\"`" + `
-	Tenant   PARTY ` + "`json:\"tenant\"`" + `
-	Terms    TEXT  ` + "`json:\"terms\"`" + `
-}
-
-// GetTemplateID returns the template ID for this template
-func (t RentalAgreement) GetTemplateID() string {
-	return fmt.Sprintf("%s:%s:%s", PackageID, "Rental", "RentalAgreement")
-}
-
-// CreateCommand returns a CreateCommand for this template
-func (t RentalAgreement) CreateCommand() *model.CreateCommand {
-	args := make(map[string]interface{})
-
-	args["landlord"] = map[string]interface{}{"_type": "party", "value": string(t.Landlord)}
-
-	args["tenant"] = map[string]interface{}{"_type": "party", "value": string(t.Tenant)}
-
-	args["terms"] = string(t.Terms)
-
-	return &model.CreateCommand{
-		TemplateID: t.GetTemplateID(),
-		Arguments:  args,
-	}
-}
-
-// Choice methods for RentalAgreement
-
-// Archive exercises the Archive choice on this RentalAgreement contract
-func (t RentalAgreement) Archive(contractID string) *model.ExerciseCommand {
-	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Rental", "RentalAgreement"),
-		ContractID: contractID,
-		Choice:     "Archive",
-		Arguments:  map[string]interface{}{},
-	}
-}
-
-// RentalProposal is a Template type
-type RentalProposal struct {
-	Landlord PARTY ` + "`json:\"landlord\"`" + `
-	Tenant   PARTY ` + "`json:\"tenant\"`" + `
-	Terms    TEXT  ` + "`json:\"terms\"`" + `
-}
-
-// GetTemplateID returns the template ID for this template
-func (t RentalProposal) GetTemplateID() string {
-	return fmt.Sprintf("%s:%s:%s", PackageID, "Rental", "RentalProposal")
-}
-
-// CreateCommand returns a CreateCommand for this template
-func (t RentalProposal) CreateCommand() *model.CreateCommand {
-	args := make(map[string]interface{})
-
-	args["landlord"] = map[string]interface{}{"_type": "party", "value": string(t.Landlord)}
-
-	args["tenant"] = map[string]interface{}{"_type": "party", "value": string(t.Tenant)}
-
-	args["terms"] = string(t.Terms)
-
-	return &model.CreateCommand{
-		TemplateID: t.GetTemplateID(),
-		Arguments:  args,
-	}
-}
-
-// Choice methods for RentalProposal
-
-// Archive exercises the Archive choice on this RentalProposal contract
-func (t RentalProposal) Archive(contractID string) *model.ExerciseCommand {
-	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Rental", "RentalProposal"),
-		ContractID: contractID,
-		Choice:     "Archive",
-		Arguments:  map[string]interface{}{},
-	}
-}
-
-// Accept exercises the Accept choice on this RentalProposal contract
-func (t RentalProposal) Accept(contractID string, args Accept) *model.ExerciseCommand {
-	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Rental", "RentalProposal"),
-		ContractID: contractID,
-		Choice:     "Accept",
-		Arguments:  argsToMap(args),
-	}
-}
-`
-
-	require.Equal(t, expectedCode, res, "generated code should match expected output")
+	require.Equal(t, string(expectedMainCode), res, "generated main package code should match expected output")
 }
 
 func TestGetMainDalfAllTypes(t *testing.T) {
@@ -227,12 +97,12 @@ func TestGetMainDalfAllTypes(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, dalfContent)
 
-	pkg, err := GetAST(dalfContent, manifest)
+	ast, err := GetAST(dalfContent, manifest)
 	require.Nil(t, err)
-	require.NotEmpty(t, pkg.Structs)
+	require.NotEmpty(t, ast.Structs)
 
 	// Test Address struct (variant/union type)
-	addressStruct, exists := pkg.Structs["Address"]
+	addressStruct, exists := ast.Structs["Address"]
 	require.True(t, exists)
 	require.Len(t, addressStruct.Fields, 2)
 	require.Equal(t, addressStruct.Name, "Address")
@@ -242,7 +112,7 @@ func TestGetMainDalfAllTypes(t *testing.T) {
 	require.Equal(t, addressStruct.Fields[1].Type, "UKAddress")
 
 	// Test USAddress struct
-	usAddressStruct, exists := pkg.Structs["USAddress"]
+	usAddressStruct, exists := ast.Structs["USAddress"]
 	require.True(t, exists)
 	require.Len(t, usAddressStruct.Fields, 4)
 	require.Equal(t, usAddressStruct.Name, "USAddress")
@@ -252,7 +122,7 @@ func TestGetMainDalfAllTypes(t *testing.T) {
 	require.Equal(t, usAddressStruct.Fields[3].Name, "zip")
 
 	// Test UKAddress struct
-	ukAddressStruct, exists := pkg.Structs["UKAddress"]
+	ukAddressStruct, exists := ast.Structs["UKAddress"]
 	require.True(t, exists)
 	require.Len(t, ukAddressStruct.Fields, 5)
 	require.Equal(t, ukAddressStruct.Name, "UKAddress")
@@ -263,7 +133,7 @@ func TestGetMainDalfAllTypes(t *testing.T) {
 	require.Equal(t, ukAddressStruct.Fields[4].Name, "postcode")
 
 	// Test Person struct (uses Address)
-	personStruct, exists := pkg.Structs["Person"]
+	personStruct, exists := ast.Structs["Person"]
 	require.True(t, exists)
 	require.Len(t, personStruct.Fields, 2)
 	require.Equal(t, personStruct.Name, "Person")
@@ -272,7 +142,7 @@ func TestGetMainDalfAllTypes(t *testing.T) {
 	require.Equal(t, personStruct.Fields[1].Type, "Address")
 
 	// Test American struct (uses USAddress)
-	americanStruct, exists := pkg.Structs["American"]
+	americanStruct, exists := ast.Structs["American"]
 	require.True(t, exists)
 	require.Len(t, americanStruct.Fields, 2)
 	require.Equal(t, americanStruct.Name, "American")
@@ -281,7 +151,7 @@ func TestGetMainDalfAllTypes(t *testing.T) {
 	require.Equal(t, americanStruct.Fields[1].Type, "USAddress")
 
 	// Test Briton struct (uses UKAddress)
-	britonStruct, exists := pkg.Structs["Briton"]
+	britonStruct, exists := ast.Structs["Briton"]
 	require.True(t, exists)
 	require.Len(t, britonStruct.Fields, 2)
 	require.Equal(t, britonStruct.Name, "Briton")
@@ -290,7 +160,7 @@ func TestGetMainDalfAllTypes(t *testing.T) {
 	require.Equal(t, britonStruct.Fields[1].Type, "UKAddress")
 
 	// Test SimpleFields struct (various primitive types)
-	simpleFieldsStruct, exists := pkg.Structs["SimpleFields"]
+	simpleFieldsStruct, exists := ast.Structs["SimpleFields"]
 	require.True(t, exists)
 	require.Len(t, simpleFieldsStruct.Fields, 7)
 	require.Equal(t, simpleFieldsStruct.Name, "SimpleFields")
@@ -303,7 +173,7 @@ func TestGetMainDalfAllTypes(t *testing.T) {
 	require.Equal(t, simpleFieldsStruct.Fields[6].Name, "aDatetime")
 
 	// Test OptionalFields struct
-	optionalFieldsStruct, exists := pkg.Structs["OptionalFields"]
+	optionalFieldsStruct, exists := ast.Structs["OptionalFields"]
 	require.True(t, exists)
 	require.Len(t, optionalFieldsStruct.Fields, 2)
 	require.Equal(t, optionalFieldsStruct.Name, "OptionalFields")
@@ -335,7 +205,7 @@ func TestGetMainDalfAllTypes(t *testing.T) {
 		require.Fail(t, "OptionalFields should be either Record or Template type, got: %s", optionalFieldsStruct.RawType)
 	}
 
-	res, err := Bind("main", pkg.PackageID, pkg.Structs)
+	res, err := Bind("main", ast.PackageID, ast.Structs)
 	require.NoError(t, err)
 	require.NotEmpty(t, res)
 
@@ -372,37 +242,37 @@ func TestGetMainDalfV3(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, dalfContent)
 
-	pkg, err := GetAST(dalfContent, manifest)
+	ast, err := GetAST(dalfContent, manifest)
 	require.Nil(t, err)
-	require.NotEmpty(t, pkg.Structs)
+	require.NotEmpty(t, ast.Structs)
 
 	// Test MappyContract template
-	pkg1, exists := pkg.Structs["MappyContract"]
+	pkgMappy, exists := ast.Structs["MappyContract"]
 	require.True(t, exists)
-	require.Equal(t, pkg1.Name, "MappyContract")
-	require.Equal(t, "Template", pkg1.RawType)
-	require.Len(t, pkg1.Fields, 2)
-	require.Equal(t, pkg1.Fields[0].Name, "operator")
-	require.Equal(t, pkg1.Fields[1].Name, "value")
+	require.Equal(t, pkgMappy.Name, "MappyContract")
+	require.Equal(t, "Template", pkgMappy.RawType)
+	require.Len(t, pkgMappy.Fields, 2)
+	require.Equal(t, pkgMappy.Fields[0].Name, "operator")
+	require.Equal(t, pkgMappy.Fields[1].Name, "value")
 
 	// Test OneOfEverything template
-	pkg2, exists := pkg.Structs["OneOfEverything"]
+	pkgEverything, exists := ast.Structs["OneOfEverything"]
 	require.True(t, exists)
-	require.Equal(t, pkg2.Name, "OneOfEverything")
-	require.Equal(t, "Template", pkg2.RawType)
-	require.Len(t, pkg2.Fields, 16) // Based on the generated output
-	require.Equal(t, pkg2.Fields[0].Name, "operator")
-	require.Equal(t, pkg2.Fields[1].Name, "someBoolean")
-	require.Equal(t, pkg2.Fields[2].Name, "someInteger")
+	require.Equal(t, pkgEverything.Name, "OneOfEverything")
+	require.Equal(t, "Template", pkgEverything.RawType)
+	require.Len(t, pkgEverything.Fields, 16) // Based on the generated output
+	require.Equal(t, pkgEverything.Fields[0].Name, "operator")
+	require.Equal(t, pkgEverything.Fields[1].Name, "someBoolean")
+	require.Equal(t, pkgEverything.Fields[2].Name, "someInteger")
 
 	// Test Accept struct
-	pkg3, exists := pkg.Structs["Accept"]
+	pkgAccept, exists := ast.Structs["Accept"]
 	require.True(t, exists)
-	require.Equal(t, pkg3.Name, "Accept")
-	require.Equal(t, "Record", pkg3.RawType)
+	require.Equal(t, pkgAccept.Name, "Accept")
+	require.Equal(t, "Record", pkgAccept.RawType)
 
 	// Test Color enum
-	colorStruct, exists := pkg.Structs["Color"]
+	colorStruct, exists := ast.Structs["Color"]
 	require.True(t, exists)
 	require.Equal(t, "Enum", colorStruct.RawType)
 	require.Len(t, colorStruct.Fields, 3)
@@ -410,7 +280,7 @@ func TestGetMainDalfV3(t *testing.T) {
 	require.Equal(t, colorStruct.Fields[1].Name, "Green")
 	require.Equal(t, colorStruct.Fields[2].Name, "Blue")
 
-	res, err := Bind("main", pkg.PackageID, pkg.Structs)
+	res, err := Bind("main", ast.PackageID, ast.Structs)
 	require.NoError(t, err)
 	require.NotEmpty(t, res)
 

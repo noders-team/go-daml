@@ -3,6 +3,7 @@ package v3
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	daml "github.com/digital-asset/dazl-client/v8/go/api/com/daml/daml_lf_2_1"
 	"github.com/noders-team/go-daml/internal/codegen/model"
@@ -11,12 +12,14 @@ import (
 )
 
 const (
-	RawTypeTemplate  = "Template"
-	RawTypeOptional  = "OPTIONAL"
-	RawTypeInterface = "Interface"
-	RawTypeRecord    = "Record"
-	RawTypeVariant   = "Variant"
-	RawTypeEnum      = "Enum"
+	RawTypeTemplate   = "Template"
+	RawTypeOptional   = "OPTIONAL"
+	RawTypeInterface  = "Interface"
+	RawTypeRecord     = "Record"
+	RawTypeVariant    = "Variant"
+	RawTypeEnum       = "Enum"
+	RawTypeContractID = "CONTRACT_ID"
+	RawTypeList       = "LIST"
 )
 
 type codeGenAst struct {
@@ -25,6 +28,24 @@ type codeGenAst struct {
 
 func NewCodegenAst(payload []byte) *codeGenAst {
 	return &codeGenAst{payload: payload}
+}
+
+func (c *codeGenAst) isEnumType(typeName string, pkg *daml.Package) bool {
+	for _, module := range pkg.Modules {
+		for _, dataType := range module.GetDataTypes() {
+			if !dataType.Serializable {
+				continue
+			}
+
+			name := c.getName(pkg, dataType.GetNameInternedDname())
+			if name == typeName {
+				if _, isEnum := dataType.DataCons.(*daml.DefDataType_Enum); isEnum {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func (c *codeGenAst) GetTemplateStructs() (map[string]*model.TmplStruct, error) {
@@ -56,6 +77,14 @@ func (c *codeGenAst) GetTemplateStructs() (map[string]*model.TmplStruct, error) 
 		moduleName := damlLf.InternedStrings[idx[len(idx)-1]]
 		log.Info().Msgf("processing module %s", moduleName)
 
+		dataTypes, err := c.getDataTypes(damlLf, module, moduleName)
+		if err != nil {
+			return nil, err
+		}
+		for key, val := range dataTypes {
+			structs[key] = val
+		}
+
 		templates, err := c.getTemplates(damlLf, module, moduleName)
 		if err != nil {
 			return nil, err
@@ -72,15 +101,6 @@ func (c *codeGenAst) GetTemplateStructs() (map[string]*model.TmplStruct, error) 
 			structs[key] = val
 		}
 
-		dataTypes, err := c.getDataTypes(damlLf, module, moduleName)
-		if err != nil {
-			return nil, err
-		}
-		for key, val := range dataTypes {
-			if _, exists := structs[key]; !exists {
-				structs[key] = val
-			}
-		}
 	}
 
 	return structs, nil
@@ -131,7 +151,8 @@ func (c *codeGenAst) getTemplates(pkg *daml.Package, module *daml.Module, module
 					Name:       fieldExtracted,
 					Type:       typeExtracted,
 					RawType:    field.String(),
-					IsOptional: typeExtracted == RawTypeOptional,
+					IsOptional: typeExtracted == RawTypeOptional || strings.HasPrefix(typeExtracted, "*"),
+					IsEnum:     c.isEnumType(typeExtracted, pkg),
 				})
 			}
 		default:
@@ -376,7 +397,7 @@ func (c *codeGenAst) extractType(pkg *daml.Package, typ *daml.Type) string {
 			tyconName := c.getName(pkg, isConType.Tycon.GetNameInternedDname())
 			fieldType = tyconName
 		} else if builtinType := prim.GetBuiltin(); builtinType != nil {
-			fieldType = builtinType.Builtin.String()
+			fieldType = c.handleBuiltinType(pkg, builtinType)
 		} else {
 			fieldType = prim.String()
 		}
@@ -404,6 +425,32 @@ func (c *codeGenAst) extractType(pkg *daml.Package, typ *daml.Type) string {
 	}
 
 	return model.NormalizeDAMLType(fieldType)
+}
+
+func (c *codeGenAst) handleBuiltinType(pkg *daml.Package, builtinType *daml.Type_Builtin) string {
+	builtinName := builtinType.Builtin.String()
+	log.Debug().Msgf("handleBuiltinType: builtin=%s, args=%d", builtinName, len(builtinType.Args))
+
+	switch builtinType.Builtin {
+	case daml.BuiltinType_LIST:
+		if len(builtinType.Args) > 0 {
+			elementType := c.extractType(pkg, builtinType.Args[0])
+			normalizedElementType := model.NormalizeDAMLType(elementType)
+			return "[]" + normalizedElementType
+		}
+		return RawTypeList // fallback to generic LIST
+	case daml.BuiltinType_OPTIONAL:
+		if len(builtinType.Args) > 0 {
+			elementType := c.extractType(pkg, builtinType.Args[0])
+			normalizedElementType := model.NormalizeDAMLType(elementType)
+			return "*" + normalizedElementType
+		}
+		return RawTypeOptional // fallback to generic OPTIONAL
+	case daml.BuiltinType_CONTRACT_ID:
+		return RawTypeContractID
+	default:
+		return builtinName
+	}
 }
 
 func (c *codeGenAst) extractField(pkg *daml.Package, field *daml.FieldWithType) (string, string, error) {
@@ -434,7 +481,7 @@ func (c *codeGenAst) extractField(pkg *daml.Package, field *daml.FieldWithType) 
 				tyconName := c.getName(pkg, isConType.Tycon.GetNameInternedDname())
 				fieldType = tyconName
 			} else if builtinType := prim.GetBuiltin(); builtinType != nil {
-				fieldType = builtinType.Builtin.String()
+				fieldType = c.handleBuiltinType(pkg, builtinType)
 			} else {
 				fieldType = prim.String()
 			}

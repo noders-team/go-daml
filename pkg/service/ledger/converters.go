@@ -1,6 +1,9 @@
 package ledger
 
 import (
+	"encoding/json"
+	"math/big"
+	"reflect"
 	"strings"
 	"time"
 
@@ -13,6 +16,7 @@ import (
 	"github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2/interactive"
 	"github.com/noders-team/go-daml/pkg/model"
 	"github.com/noders-team/go-daml/pkg/types"
+	"github.com/rs/zerolog/log"
 )
 
 func parseTemplateID(templateID string) (packageID, moduleName, entityName string) {
@@ -223,6 +227,11 @@ func archivedEventFromProto(pb *v2.ArchivedEvent) *model.ArchivedEvent {
 	}
 }
 
+func convertBigIntToNumeric(i *big.Int, scale int) *big.Rat {
+	den := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(scale)), nil)
+	return new(big.Rat).SetFrac(i, den)
+}
+
 func valueFromProto(pb *v2.Value) interface{} {
 	if pb == nil {
 		return nil
@@ -284,6 +293,105 @@ func valueFromProto(pb *v2.Value) interface{} {
 func mapToValue(data interface{}) *v2.Value {
 	if data == nil {
 		return nil
+	}
+
+	// Check if it implements VARIANT interface first
+	if variant, ok := data.(types.VARIANT); ok {
+		log.Debug().Msgf("Converting VARIANT with tag: %s", variant.GetVariantTag())
+		return &v2.Value{
+			Sum: &v2.Value_Variant{
+				Variant: &v2.Variant{
+					Constructor: variant.GetVariantTag(),
+					Value:       mapToValue(variant.GetVariantValue()),
+				},
+			},
+		}
+	}
+
+	// Handle custom pointer types first before dereferencing
+	switch v := data.(type) {
+	case types.NUMERIC:
+		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: convertBigIntToNumeric((*big.Int)(v), 10).FloatString(10)}}
+	case types.DECIMAL:
+		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: convertBigIntToNumeric((*big.Int)(v), 10).FloatString(10)}}
+	case *big.Int:
+		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: convertBigIntToNumeric(v, 10).FloatString(10)}}
+	case []types.INT64:
+		elements := make([]*v2.Value, len(v))
+		for i, elem := range v {
+			elements[i] = mapToValue(elem)
+		}
+		return &v2.Value{
+			Sum: &v2.Value_List{
+				List: &v2.List{Elements: elements},
+			},
+		}
+	case []types.TEXT:
+		elements := make([]*v2.Value, len(v))
+		for i, elem := range v {
+			elements[i] = mapToValue(elem)
+		}
+		return &v2.Value{
+			Sum: &v2.Value_List{
+				List: &v2.List{Elements: elements},
+			},
+		}
+	case []types.BOOL:
+		elements := make([]*v2.Value, len(v))
+		for i, elem := range v {
+			elements[i] = mapToValue(elem)
+		}
+		return &v2.Value{
+			Sum: &v2.Value_List{
+				List: &v2.List{Elements: elements},
+			},
+		}
+	case types.VARIANT:
+		return &v2.Value{
+			Sum: &v2.Value_Variant{
+				Variant: &v2.Variant{
+					Constructor: v.GetVariantTag(),
+					Value:       mapToValue(v.GetVariantValue()),
+				},
+			},
+		}
+	case types.ENUM:
+		return &v2.Value{
+			Sum: &v2.Value_Enum{
+				Enum: &v2.Enum{
+					Constructor: v.GetEnumConstructor(),
+				},
+			},
+		}
+	}
+
+	// Handle pointers by dereferencing them
+	if reflect.TypeOf(data).Kind() == reflect.Ptr {
+		val := reflect.ValueOf(data)
+		if val.IsNil() {
+			return nil
+		}
+		return mapToValue(val.Elem().Interface())
+	}
+
+	// Handle custom types before other type checking
+	switch v := data.(type) {
+	case types.INT64:
+		return &v2.Value{Sum: &v2.Value_Int64{Int64: int64(v)}}
+	case types.TEXT:
+		return &v2.Value{Sum: &v2.Value_Text{Text: string(v)}}
+	case types.BOOL:
+		return &v2.Value{Sum: &v2.Value_Bool{Bool: bool(v)}}
+	case types.PARTY:
+		return &v2.Value{Sum: &v2.Value_Party{Party: string(v)}}
+	case types.CONTRACT_ID:
+		return &v2.Value{Sum: &v2.Value_ContractId{ContractId: string(v)}}
+	case types.DATE:
+		return &v2.Value{Sum: &v2.Value_Date{Date: int32((time.Time)(v).Unix() / 86400)}}
+	case types.TIMESTAMP:
+		return &v2.Value{Sum: &v2.Value_Timestamp{Timestamp: int64((time.Time)(v).Unix())}}
+	case types.LIST:
+		return &v2.Value{Sum: &v2.Value_List{List: &v2.List{Elements: mapValues(v)}}}
 	}
 
 	switch v := data.(type) {
@@ -361,9 +469,93 @@ func mapToValue(data interface{}) *v2.Value {
 				Record: &v2.Record{Fields: fields},
 			},
 		}
+	case *big.Int:
+		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: strings.ReplaceAll(convertBigIntToNumeric(v, 10).String(), "/", ".")}}
+	case time.Time:
+		return &v2.Value{Sum: &v2.Value_Date{Date: int32(v.Unix() / 86400)}}
+	case interface{}:
+		// Check if it implements VARIANT interface
+		if variant, ok := v.(types.VARIANT); ok {
+			return &v2.Value{
+				Sum: &v2.Value_Variant{
+					Variant: &v2.Variant{
+						Constructor: variant.GetVariantTag(),
+						Value:       mapToValue(variant.GetVariantValue()),
+					},
+				},
+			}
+		}
+		return mapToValue(structToMap(v))
 	default:
 		return nil
 	}
+}
+
+func structToMap(v interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	val := reflect.ValueOf(v)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	if val.Kind() != reflect.Struct {
+		b, _ := json.Marshal(v)
+		json.Unmarshal(b, &result)
+		return result
+	}
+
+	typ := val.Type()
+	for i := 0; i < val.NumField(); i++ {
+		field := typ.Field(i)
+		fieldValue := val.Field(i)
+
+		if !fieldValue.CanInterface() {
+			continue
+		}
+
+		jsonTag := field.Tag.Get("json")
+		if jsonTag == "" || jsonTag == "-" {
+			continue
+		}
+
+		tagName := jsonTag
+		hasOmitEmpty := false
+		if idx := strings.Index(jsonTag, ","); idx != -1 {
+			tagName = jsonTag[:idx]
+			options := jsonTag[idx+1:]
+			hasOmitEmpty = strings.Contains(options, "omitempty")
+		}
+
+		if tagName == "" {
+			tagName = strings.ToLower(field.Name)
+		}
+
+		actualValue := fieldValue.Interface()
+		if hasOmitEmpty && actualValue == nil {
+			continue
+		}
+
+		if hasOmitEmpty && fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+			continue
+		}
+
+		if hasOmitEmpty && fieldValue.IsZero() && fieldValue.Kind() != reflect.Ptr {
+			continue
+		}
+
+		result[tagName] = actualValue
+	}
+
+	return result
+}
+
+func mapValues(values []string) []*v2.Value {
+	result := make([]*v2.Value, len(values))
+	for i, v := range values {
+		result[i] = mapToValue(v)
+	}
+	return result
 }
 
 func convertToRecord(data map[string]interface{}) *v2.Record {
@@ -373,9 +565,14 @@ func convertToRecord(data map[string]interface{}) *v2.Record {
 
 	fields := make([]*v2.RecordField, 0, len(data))
 	for key, val := range data {
+		val := mapToValue(val)
+		if val == nil {
+			log.Warn().Msgf("unsupported type %s for field %s, ignoring", reflect.TypeOf(val), key)
+			continue
+		}
 		fields = append(fields, &v2.RecordField{
 			Label: key,
-			Value: mapToValue(val),
+			Value: val,
 		})
 	}
 
