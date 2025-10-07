@@ -295,19 +295,6 @@ func mapToValue(data interface{}) *v2.Value {
 		return nil
 	}
 
-	// Check if it implements VARIANT interface first
-	if variant, ok := data.(types.VARIANT); ok {
-		log.Debug().Msgf("Converting VARIANT with tag: %s", variant.GetVariantTag())
-		return &v2.Value{
-			Sum: &v2.Value_Variant{
-				Variant: &v2.Variant{
-					Constructor: variant.GetVariantTag(),
-					Value:       mapToValue(variant.GetVariantValue()),
-				},
-			},
-		}
-	}
-
 	// Handle custom pointer types first before dereferencing
 	switch v := data.(type) {
 	case types.NUMERIC:
@@ -316,36 +303,19 @@ func mapToValue(data interface{}) *v2.Value {
 		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: convertBigIntToNumeric((*big.Int)(v), 10).FloatString(10)}}
 	case *big.Int:
 		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: convertBigIntToNumeric(v, 10).FloatString(10)}}
-	case []types.INT64:
-		elements := make([]*v2.Value, len(v))
-		for i, elem := range v {
-			elements[i] = mapToValue(elem)
+	case []types.INT64, []types.TEXT, []types.BOOL, []int64, []string:
+		rv := reflect.ValueOf(v)
+		elements := make([]*v2.Value, rv.Len())
+		for i := 0; i < rv.Len(); i++ {
+			elements[i] = mapToValue(rv.Index(i).Interface())
 		}
 		return &v2.Value{
 			Sum: &v2.Value_List{
 				List: &v2.List{Elements: elements},
 			},
 		}
-	case []types.TEXT:
-		elements := make([]*v2.Value, len(v))
-		for i, elem := range v {
-			elements[i] = mapToValue(elem)
-		}
-		return &v2.Value{
-			Sum: &v2.Value_List{
-				List: &v2.List{Elements: elements},
-			},
-		}
-	case []types.BOOL:
-		elements := make([]*v2.Value, len(v))
-		for i, elem := range v {
-			elements[i] = mapToValue(elem)
-		}
-		return &v2.Value{
-			Sum: &v2.Value_List{
-				List: &v2.List{Elements: elements},
-			},
-		}
+	case types.LIST:
+		return &v2.Value{Sum: &v2.Value_List{List: &v2.List{Elements: mapValues(v)}}}
 	case types.VARIANT:
 		return &v2.Value{
 			Sum: &v2.Value_Variant{
@@ -390,11 +360,6 @@ func mapToValue(data interface{}) *v2.Value {
 		return &v2.Value{Sum: &v2.Value_Date{Date: int32((time.Time)(v).Unix() / 86400)}}
 	case types.TIMESTAMP:
 		return &v2.Value{Sum: &v2.Value_Timestamp{Timestamp: int64((time.Time)(v).Unix())}}
-	case types.LIST:
-		return &v2.Value{Sum: &v2.Value_List{List: &v2.List{Elements: mapValues(v)}}}
-	}
-
-	switch v := data.(type) {
 	case bool:
 		return &v2.Value{Sum: &v2.Value_Bool{Bool: v}}
 	case int64:
@@ -469,8 +434,6 @@ func mapToValue(data interface{}) *v2.Value {
 				Record: &v2.Record{Fields: fields},
 			},
 		}
-	case *big.Int:
-		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: strings.ReplaceAll(convertBigIntToNumeric(v, 10).String(), "/", ".")}}
 	case time.Time:
 		return &v2.Value{Sum: &v2.Value_Date{Date: int32(v.Unix() / 86400)}}
 	case interface{}:
