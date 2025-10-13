@@ -29,8 +29,9 @@ func Bind(pkg string, packageID string, structs map[string]*model.TmplStruct) (s
 	buffer := new(bytes.Buffer)
 
 	funcs := map[string]interface{}{
-		"capitalise":   capitalize,
-		"decapitalise": decapitalize,
+		"capitalise":        capitalize,
+		"decapitalize":      decapitalize,
+		"stringsTrimPrefix": strings.TrimPrefix,
 	}
 	tmpl := template.Must(template.New("").Funcs(funcs).Parse(tmplSource))
 	if err := tmpl.Execute(buffer, data); err != nil {

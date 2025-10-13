@@ -147,11 +147,12 @@ func (c *codeGenAst) getTemplates(pkg *daml.Package, module *daml.Module, module
 				if err != nil {
 					return nil, err
 				}
+				isOptional := typeExtracted == RawTypeOptional || strings.HasPrefix(typeExtracted, "*")
 				tmplStruct.Fields = append(tmplStruct.Fields, &model.TmplField{
 					Name:       fieldExtracted,
 					Type:       typeExtracted,
 					RawType:    field.String(),
-					IsOptional: typeExtracted == RawTypeOptional || strings.HasPrefix(typeExtracted, "*"),
+					IsOptional: isOptional,
 					IsEnum:     c.isEnumType(typeExtracted, pkg),
 				})
 			}
@@ -272,10 +273,12 @@ func (c *codeGenAst) getDataTypes(pkg *daml.Package, module *daml.Module, module
 				if err != nil {
 					return nil, err
 				}
+				isOptional := typeExtracted == RawTypeOptional || strings.HasPrefix(typeExtracted, "*")
 				tmplStruct.Fields = append(tmplStruct.Fields, &model.TmplField{
-					Name:    fieldExtracted,
-					Type:    typeExtracted,
-					RawType: field.String(),
+					Name:       fieldExtracted,
+					Type:       typeExtracted,
+					RawType:    field.String(),
+					IsOptional: isOptional,
 				})
 			}
 		case *daml.DefDataType_Variant:
@@ -291,7 +294,6 @@ func (c *codeGenAst) getDataTypes(pkg *daml.Package, module *daml.Module, module
 					RawType:    field.String(),
 					IsOptional: true,
 				})
-				log.Debug().Msgf("variant constructor: %s, type: %s", fieldExtracted, typeExtracted)
 			}
 		case *daml.DefDataType_Enum:
 			tmplStruct.RawType = RawTypeEnum
@@ -302,7 +304,6 @@ func (c *codeGenAst) getDataTypes(pkg *daml.Package, module *daml.Module, module
 						Name: constructorName,
 						Type: "enum",
 					})
-					log.Debug().Msgf("enum constructor: %s", constructorName)
 				}
 			}
 		case *daml.DefDataType_Interface:
@@ -429,7 +430,6 @@ func (c *codeGenAst) extractType(pkg *daml.Package, typ *daml.Type) string {
 
 func (c *codeGenAst) handleBuiltinType(pkg *daml.Package, builtinType *daml.Type_Builtin) string {
 	builtinName := builtinType.Builtin.String()
-	log.Debug().Msgf("handleBuiltinType: builtin=%s, args=%d", builtinName, len(builtinType.Args))
 
 	switch builtinType.Builtin {
 	case daml.BuiltinType_LIST:

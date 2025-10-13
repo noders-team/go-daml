@@ -295,7 +295,7 @@ func mapToValue(data interface{}) *v2.Value {
 		return nil
 	}
 
-	// Handle custom pointer types first before dereferencing
+	// handle custom pointer types first before dereferencing
 	switch v := data.(type) {
 	case types.NUMERIC:
 		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: convertBigIntToNumeric((*big.Int)(v), 10).FloatString(10)}}
@@ -335,7 +335,7 @@ func mapToValue(data interface{}) *v2.Value {
 		}
 	}
 
-	// Handle pointers by dereferencing them
+	// handle pointers by dereferencing them
 	if reflect.TypeOf(data).Kind() == reflect.Ptr {
 		val := reflect.ValueOf(data)
 		if val.IsNil() {
@@ -379,14 +379,36 @@ func mapToValue(data interface{}) *v2.Value {
 			},
 		}
 	case map[string]interface{}:
+		if typeVal, hasType := v["_type"]; hasType && typeVal == "optional" {
+			if val, hasValue := v["value"]; hasValue {
+				return &v2.Value{
+					Sum: &v2.Value_Optional{
+						Optional: &v2.Optional{
+							Value: mapToValue(val),
+						},
+					},
+				}
+			} else {
+				return &v2.Value{
+					Sum: &v2.Value_Optional{
+						Optional: &v2.Optional{
+							Value: nil,
+						},
+					},
+				}
+			}
+		}
+
 		if typeStr, ok := v["_type"].(string); ok && typeStr == "unit" {
 			return &v2.Value{Sum: &v2.Value_Unit{Unit: &emptypb.Empty{}}}
 		}
+
 		if typeStr, ok := v["_type"].(string); ok && typeStr == "party" {
 			if partyValue, ok := v["value"].(string); ok {
 				return &v2.Value{Sum: &v2.Value_Party{Party: partyValue}}
 			}
 		}
+
 		if typeStr, ok := v["_type"].(string); ok && typeStr == "genmap" {
 			if mapValue, ok := v["value"].(map[string]interface{}); ok {
 				entries := make([]*v2.TextMap_Entry, 0, len(mapValue))

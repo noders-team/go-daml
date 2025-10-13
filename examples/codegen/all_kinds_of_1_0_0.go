@@ -148,11 +148,25 @@ func (t OneOfEverything) CreateCommand() *model.CreateCommand {
 	}
 
 	if t.SomeMaybe != nil {
-		args["someMaybe"] = t.SomeMaybe
+		args["someMaybe"] = map[string]interface{}{
+			"_type": "optional",
+			"value": int64(*t.SomeMaybe),
+		}
+	} else {
+		args["someMaybe"] = map[string]interface{}{
+			"_type": "optional",
+		}
 	}
 
 	if t.SomeMaybeNot != nil {
-		args["someMaybeNot"] = t.SomeMaybeNot
+		args["someMaybeNot"] = map[string]interface{}{
+			"_type": "optional",
+			"value": int64(*t.SomeMaybeNot),
+		}
+	} else {
+		args["someMaybeNot"] = map[string]interface{}{
+			"_type": "optional",
+		}
 	}
 
 	args["someText"] = string(t.SomeText)

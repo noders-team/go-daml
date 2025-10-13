@@ -283,7 +283,6 @@ func (c *codeGenAst) getDataTypes(pkg *daml.Package, module *daml.Module, module
 					RawType:    field.String(),
 					IsOptional: true,
 				})
-				log.Debug().Msgf("variant constructor: %s, type: %s", fieldExtracted, typeExtracted)
 			}
 		case *daml.DefDataType_Enum:
 			tmplStruct.RawType = RawTypeEnum
@@ -293,7 +292,6 @@ func (c *codeGenAst) getDataTypes(pkg *daml.Package, module *daml.Module, module
 					Name: constructorName,
 					Type: "enum",
 				})
-				log.Debug().Msgf("enum constructor: %s", constructorName)
 			}
 		case *daml.DefDataType_Interface:
 			tmplStruct.RawType = "Interface"

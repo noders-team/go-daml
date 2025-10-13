@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/noders-team/go-daml/pkg/client"
+	"github.com/noders-team/go-daml/pkg/errors"
 	"github.com/noders-team/go-daml/pkg/model"
 	. "github.com/noders-team/go-daml/pkg/types"
 	"github.com/rs/zerolog"
@@ -235,12 +236,15 @@ func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
 	}
 
 	someListInt := []INT64{1, 2, 3}
+	someMaybe := INT64(42)
 	mappyContract := OneOfEverything{
 		Operator:        PARTY(party),
 		SomeBoolean:     true,
 		SomeInteger:     190,
 		SomeDecimal:     NUMERIC(big.NewInt(200)),
 		SomeMeasurement: NUMERIC(big.NewInt(300)),
+		SomeMaybe:       &someMaybe,
+		SomeMaybeNot:    nil, // Testing optional None case
 		SomeDate:        DATE(time.Now().UTC()),
 		SomeDatetime:    TIMESTAMP(time.Now().UTC()),
 		SomeSimpleList:  someListInt,
@@ -267,6 +271,10 @@ func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
 	contractIDs, err := createContract(ctx, party, cl, mappyContract)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("failed to create contract")
+		damlErr := errors.AsDamlError(err)
+		if strings.EqualFold(damlErr.ErrorCode, "COMMAND_PREPROCESSING_FAILED") {
+			log.Fatal().Msgf("failed to create contract: %s", damlErr.Message)
+		}
 	}
 
 	log.Info().Str("templateID", mappyContract.GetTemplateID()).Msg("Using GetTemplateID method")

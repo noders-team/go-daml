@@ -762,6 +762,97 @@ func TestConvertToRecordIntegration(t *testing.T) {
 	})
 }
 
+func TestConvertToRecordOptional(t *testing.T) {
+	t.Run("Optional with value", func(t *testing.T) {
+		optionalData := map[string]interface{}{
+			"_type": "optional",
+			"value": int64(42),
+		}
+
+		data := make(map[string]interface{})
+		data["optionalField"] = optionalData
+
+		record := convertToRecord(data)
+
+		require.NotNil(t, record)
+		require.Len(t, record.Fields, 1)
+		require.Equal(t, "optionalField", record.Fields[0].Label)
+
+		optionalValue := record.Fields[0].Value.GetOptional()
+		require.NotNil(t, optionalValue)
+		require.NotNil(t, optionalValue.Value)
+		require.Equal(t, int64(42), optionalValue.Value.GetInt64())
+	})
+
+	t.Run("Optional without value (None)", func(t *testing.T) {
+		optionalData := map[string]interface{}{
+			"_type": "optional",
+		}
+
+		data := make(map[string]interface{})
+		data["optionalField"] = optionalData
+
+		record := convertToRecord(data)
+
+		require.NotNil(t, record)
+		require.Len(t, record.Fields, 1)
+		require.Equal(t, "optionalField", record.Fields[0].Label)
+
+		optionalValue := record.Fields[0].Value.GetOptional()
+		require.NotNil(t, optionalValue)
+		require.Nil(t, optionalValue.Value)
+	})
+
+	t.Run("Multiple optional fields in struct", func(t *testing.T) {
+		type TestOptionalStruct struct {
+			Name      types.TEXT   `json:"name"`
+			MaybeInt  *types.INT64 `json:"maybeInt"`
+			MaybeText *types.TEXT  `json:"maybeText"`
+			MaybeBool *types.BOOL  `json:"maybeBool"`
+		}
+
+		data := make(map[string]interface{})
+		data["name"] = types.TEXT("test")
+		data["maybeInt"] = map[string]interface{}{
+			"_type": "optional",
+			"value": int64(100),
+		}
+		data["maybeText"] = map[string]interface{}{
+			"_type": "optional",
+			"value": "optional text",
+		}
+		data["maybeBool"] = map[string]interface{}{
+			"_type": "optional",
+		}
+
+		record := convertToRecord(data)
+
+		require.NotNil(t, record)
+		require.Len(t, record.Fields, 4)
+
+		fieldMap := make(map[string]*v2.RecordField)
+		for _, field := range record.Fields {
+			fieldMap[field.Label] = field
+		}
+
+		require.Equal(t, "test", fieldMap["name"].Value.GetText())
+
+		optInt := fieldMap["maybeInt"].Value.GetOptional()
+		require.NotNil(t, optInt)
+		require.NotNil(t, optInt.Value)
+		require.Equal(t, int64(100), optInt.Value.GetInt64())
+
+		optText := fieldMap["maybeText"].Value.GetOptional()
+		require.NotNil(t, optText)
+		require.NotNil(t, optText.Value)
+		require.Equal(t, "optional text", optText.Value.GetText())
+
+		optBool := fieldMap["maybeBool"].Value.GetOptional()
+		require.NotNil(t, optBool)
+		require.Nil(t, optBool.Value)
+	})
+}
+
 func TestConvertToRecordSlices(t *testing.T) {
 	t.Run("[]types.INT64 conversion", func(t *testing.T) {
 		sliceData := []types.INT64{1, 2, 3, 42, 100}

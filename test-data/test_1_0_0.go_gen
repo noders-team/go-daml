@@ -221,7 +221,14 @@ func (t OptionalFields) CreateCommand() *model.CreateCommand {
 	args["party"] = map[string]interface{}{"_type": "party", "value": string(t.Party)}
 
 	if t.AMaybe != nil {
-		args["aMaybe"] = t.AMaybe
+		args["aMaybe"] = map[string]interface{}{
+			"_type": "optional",
+			"value": *t.AMaybe,
+		}
+	} else {
+		args["aMaybe"] = map[string]interface{}{
+			"_type": "optional",
+		}
 	}
 
 	return &model.CreateCommand{
