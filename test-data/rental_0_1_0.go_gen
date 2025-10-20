@@ -18,6 +18,7 @@ var (
 )
 
 const PackageID = "20a17897a6664ecb8a4dd3e10b384c8cc41181d26ecbb446c2d65ae0928686c9"
+const SDKVersion = "1.18.1"
 
 type Template interface {
 	CreateCommand() *model.CreateCommand

@@ -62,3 +62,23 @@ func (c *DamlBindingClient) Ping(ctx context.Context) error {
 	_, err := c.VersionService.GetLedgerAPIVersion(ctx, &model.GetLedgerAPIVersionRequest{})
 	return err
 }
+
+func (c *DamlBindingClient) ValidateSDKVersion(ctx context.Context, contractSDKVersion string) error {
+	if contractSDKVersion == "" {
+		return nil
+	}
+
+	resp, err := c.VersionService.GetLedgerAPIVersion(ctx, &model.GetLedgerAPIVersionRequest{})
+	if err != nil {
+		return err
+	}
+
+	if resp.Version != contractSDKVersion {
+		return &model.SDKVersionMismatchError{
+			NodeVersion:     resp.Version,
+			ContractVersion: contractSDKVersion,
+		}
+	}
+
+	return nil
+}

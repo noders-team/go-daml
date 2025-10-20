@@ -12,19 +12,21 @@ import (
 )
 
 type tmplData struct {
-	Package   string
-	PackageID string
-	Structs   map[string]*model.TmplStruct
+	Package    string
+	PackageID  string
+	SdkVersion string
+	Structs    map[string]*model.TmplStruct
 }
 
 //go:embed source.go.tpl
 var tmplSource string
 
-func Bind(pkg string, packageID string, structs map[string]*model.TmplStruct) (string, error) {
+func Bind(pkg string, packageID string, sdkVersion string, structs map[string]*model.TmplStruct) (string, error) {
 	data := &tmplData{
-		Package:   pkg,
-		PackageID: packageID,
-		Structs:   structs,
+		Package:    pkg,
+		PackageID:  packageID,
+		SdkVersion: sdkVersion,
+		Structs:    structs,
 	}
 	buffer := new(bytes.Buffer)
 

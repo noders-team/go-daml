@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -533,4 +534,13 @@ type PackageReference struct {
 	PackageID      string
 	PackageName    string
 	PackageVersion string
+}
+
+type SDKVersionMismatchError struct {
+	NodeVersion     string
+	ContractVersion string
+}
+
+func (e *SDKVersionMismatchError) Error() string {
+	return fmt.Sprintf("SDK version mismatch: node version %s, contract compiled with %s", e.NodeVersion, e.ContractVersion)
 }

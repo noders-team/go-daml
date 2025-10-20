@@ -29,7 +29,7 @@ func TestBind(t *testing.T) {
 		},
 	}
 
-	result, err := Bind("main", "test-package-id", structs)
+	result, err := Bind("main", "test-package-id", "2.0.0", structs)
 	if err != nil {
 		t.Fatalf("Bind failed: %v", err)
 	}
@@ -57,6 +57,10 @@ func TestBind(t *testing.T) {
 
 	if !strings.Contains(result, `json:"landlord"`) {
 		t.Error("Generated code does not contain JSON tags with original field names")
+	}
+
+	if !strings.Contains(result, `const SDKVersion = "2.0.0"`) {
+		t.Error("Generated code does not contain SDKVersion constant")
 	}
 }
 

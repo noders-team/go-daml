@@ -52,6 +52,10 @@ func TestCodegenIntegration(t *testing.T) {
 		log.Fatal().Err(err).Msg("failed to ping DAML client")
 	}
 
+	if err = cl.ValidateSDKVersion(ctx, SDKVersion); err != nil {
+		log.Warn().Err(err).Msg("failed to validate SDK version, ignoring")
+	}
+
 	uploadedPackageName := "all-kinds-of"
 	err = packageUpload(ctx, uploadedPackageName, cl)
 	if err != nil {

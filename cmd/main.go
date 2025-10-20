@@ -85,7 +85,7 @@ func runCodeGen(dar, outputDir, pkgFile string, debugMode bool) error {
 		return fmt.Errorf("failed to generate AST: %w", err)
 	}
 
-	res, err := codegen.Bind(pkgFile, pkg.PackageID, pkg.Structs)
+	res, err := codegen.Bind(pkgFile, pkg.PackageID, manifest.SdkVersion, pkg.Structs)
 	if err != nil {
 		return fmt.Errorf("failed to generate Go code: %w", err)
 	}

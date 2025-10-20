@@ -17,7 +17,10 @@ var (
 	_ = strings.NewReader
 )
 
-const PackageID = "ddf0d6396a862eaa7f8d647e39d090a6b04c4a3fd6736aa1730ebc9fca6be664"
+const (
+	PackageID  = "ddf0d6396a862eaa7f8d647e39d090a6b04c4a3fd6736aa1730ebc9fca6be664"
+	SDKVersion = "3.3.0-snapshot.20250417.0"
+)
 
 type Template interface {
 	CreateCommand() *model.CreateCommand
@@ -56,15 +59,15 @@ func (t Accept) toMap() map[string]interface{} {
 }
 
 // MarshalJSON implements custom JSON marshaling for Accept using JsonCodec
-func (a Accept) MarshalJSON() ([]byte, error) {
+func (t Accept) MarshalJSON() ([]byte, error) {
 	jsonCodec := codec.NewJsonCodec()
-	return jsonCodec.Marshall(a)
+	return jsonCodec.Marshall(t)
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for Accept using JsonCodec
-func (a *Accept) UnmarshalJSON(data []byte) error {
+func (t *Accept) UnmarshalJSON(data []byte) error {
 	jsonCodec := codec.NewJsonCodec()
-	return jsonCodec.Unmarshall(data, a)
+	return jsonCodec.Unmarshall(data, t)
 }
 
 // Color is an enum type
@@ -87,15 +90,15 @@ func (e Color) GetEnumTypeID() string {
 }
 
 // MarshalJSON implements custom JSON marshaling for Color using JsonCodec
-func (c Color) MarshalJSON() ([]byte, error) {
+func (e Color) MarshalJSON() ([]byte, error) {
 	jsonCodec := codec.NewJsonCodec()
-	return jsonCodec.Marshall(c)
+	return jsonCodec.Marshall(e)
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for Color using JsonCodec
-func (c *Color) UnmarshalJSON(data []byte) error {
+func (e *Color) UnmarshalJSON(data []byte) error {
 	jsonCodec := codec.NewJsonCodec()
-	return jsonCodec.Unmarshall(data, c)
+	return jsonCodec.Unmarshall(data, e)
 }
 
 // Verify interface implementation
@@ -128,6 +131,18 @@ func (t MappyContract) CreateCommand() *model.CreateCommand {
 	}
 }
 
+// MarshalJSON implements custom JSON marshaling for MappyContract using JsonCodec
+func (t MappyContract) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(t)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for MappyContract using JsonCodec
+func (t *MappyContract) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, t)
+}
+
 // Choice methods for MappyContract
 
 // Archive exercises the Archive choice on this MappyContract contract
@@ -138,18 +153,6 @@ func (t MappyContract) Archive(contractID string) *model.ExerciseCommand {
 		Choice:     "Archive",
 		Arguments:  map[string]interface{}{},
 	}
-}
-
-// MarshalJSON implements custom JSON marshaling for MappyContract using JsonCodec
-func (m MappyContract) MarshalJSON() ([]byte, error) {
-	jsonCodec := codec.NewJsonCodec()
-	return jsonCodec.Marshall(m)
-}
-
-// UnmarshalJSON implements custom JSON unmarshaling for MappyContract using JsonCodec
-func (m *MappyContract) UnmarshalJSON(data []byte) error {
-	jsonCodec := codec.NewJsonCodec()
-	return jsonCodec.Unmarshall(data, m)
 }
 
 // MyPair is a Record type
@@ -167,15 +170,15 @@ func (t MyPair) toMap() map[string]interface{} {
 }
 
 // MarshalJSON implements custom JSON marshaling for MyPair using JsonCodec
-func (p MyPair) MarshalJSON() ([]byte, error) {
+func (t MyPair) MarshalJSON() ([]byte, error) {
 	jsonCodec := codec.NewJsonCodec()
-	return jsonCodec.Marshall(p)
+	return jsonCodec.Marshall(t)
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for MyPair using JsonCodec
-func (p *MyPair) UnmarshalJSON(data []byte) error {
+func (t *MyPair) UnmarshalJSON(data []byte) error {
 	jsonCodec := codec.NewJsonCodec()
-	return jsonCodec.Unmarshall(data, p)
+	return jsonCodec.Unmarshall(data, t)
 }
 
 // OneOfEverything is a Template type
@@ -269,6 +272,18 @@ func (t OneOfEverything) CreateCommand() *model.CreateCommand {
 	}
 }
 
+// MarshalJSON implements custom JSON marshaling for OneOfEverything using JsonCodec
+func (t OneOfEverything) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(t)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for OneOfEverything using JsonCodec
+func (t *OneOfEverything) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, t)
+}
+
 // Choice methods for OneOfEverything
 
 // Archive exercises the Archive choice on this OneOfEverything contract
@@ -291,18 +306,6 @@ func (t OneOfEverything) Accept(contractID string, args Accept) *model.ExerciseC
 	}
 }
 
-// MarshalJSON implements custom JSON marshaling for OneOfEverything using JsonCodec
-func (o OneOfEverything) MarshalJSON() ([]byte, error) {
-	jsonCodec := codec.NewJsonCodec()
-	return jsonCodec.Marshall(o)
-}
-
-// UnmarshalJSON implements custom JSON unmarshaling for OneOfEverything using JsonCodec
-func (o *OneOfEverything) UnmarshalJSON(data []byte) error {
-	jsonCodec := codec.NewJsonCodec()
-	return jsonCodec.Unmarshall(data, o)
-}
-
 // VPair is a variant/union type
 type VPair struct {
 	Left  *interface{} `json:"Left,omitempty"`
@@ -310,13 +313,13 @@ type VPair struct {
 	Both  *VPair       `json:"Both,omitempty"`
 }
 
-// MarshalJSON implements custom JSON marshaling for VPair using JsonCodec
+// MarshalJSON implements custom JSON marshaling for VPair
 func (v VPair) MarshalJSON() ([]byte, error) {
 	jsonCodec := codec.NewJsonCodec()
 	return jsonCodec.Marshall(v)
 }
 
-// UnmarshalJSON implements custom JSON unmarshaling for VPair using JsonCodec
+// UnmarshalJSON implements custom JSON unmarshaling for VPair
 func (v *VPair) UnmarshalJSON(data []byte) error {
 	jsonCodec := codec.NewJsonCodec()
 	return jsonCodec.Unmarshall(data, v)

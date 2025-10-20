@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -19,6 +18,7 @@ var (
 )
 
 const PackageID = "e2d906db3930143bfa53f43c7a69c218c8b499c03556485f312523090684ff34"
+const SDKVersion = "2.9.1"
 
 type Template interface {
 	CreateCommand() *model.CreateCommand
@@ -63,7 +63,7 @@ func (v Address) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON implements custom JSON unmarshaling for Address
 func (v *Address) UnmarshalJSON(data []byte) error {
 	jsonCodec := codec.NewJsonCodec()
-	return jsonCodec.Unmarshall(data, a)
+	return jsonCodec.Unmarshall(data, v)
 }
 
 // GetVariantTag implements types.VARIANT interface

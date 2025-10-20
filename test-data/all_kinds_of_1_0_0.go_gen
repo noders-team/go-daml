@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -19,6 +18,7 @@ var (
 )
 
 const PackageID = "6d7e83e81a0a7960eec37340f5b11e7a61606bd9161f413684bc345c3f387948"
+const SDKVersion = "3.3.0-snapshot.20250417.0"
 
 type Template interface {
 	CreateCommand() *model.CreateCommand
@@ -322,7 +322,7 @@ func (v VPair) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON implements custom JSON unmarshaling for VPair
 func (v *VPair) UnmarshalJSON(data []byte) error {
 	jsonCodec := codec.NewJsonCodec()
-	return jsonCodec.Unmarshall(data, a)
+	return jsonCodec.Unmarshall(data, v)
 }
 
 // GetVariantTag implements types.VARIANT interface

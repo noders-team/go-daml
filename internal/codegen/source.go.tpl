@@ -1,7 +1,6 @@
 package {{.Package}}
 
 import (
-	{{$hasVariant := false}}{{range .Structs}}{{if eq .RawType "Variant"}}{{$hasVariant = true}}{{end}}{{end}}{{if $hasVariant}}"encoding/json"{{end}}
 	"fmt"
 	"math/big"
 	"strings"
@@ -19,6 +18,7 @@ var (
 )
 
 const PackageID = "{{.PackageID}}"
+const SDKVersion = "{{.SdkVersion}}"
 
 type Template interface {
 	CreateCommand() *model.CreateCommand
@@ -81,7 +81,7 @@ func argsToMap(args interface{}) map[string]interface{} {
 	// UnmarshalJSON implements custom JSON unmarshaling for {{capitalise .Name}}
 	func (v *{{capitalise .Name}}) UnmarshalJSON(data []byte) error {
 		jsonCodec := codec.NewJsonCodec()
-		return jsonCodec.Unmarshall(data, a)
+		return jsonCodec.Unmarshall(data, v)
 	}
 	
 	// GetVariantTag implements types.VARIANT interface
