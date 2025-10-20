@@ -3,7 +3,6 @@ package ledger
 import (
 	"context"
 	"io"
-	"time"
 
 	"google.golang.org/grpc"
 
@@ -15,41 +14,6 @@ type UpdateService interface {
 	GetUpdates(ctx context.Context, req *model.GetUpdatesRequest) (<-chan *model.GetUpdatesResponse, <-chan error)
 	GetTransactionByID(ctx context.Context, req *model.GetTransactionByIDRequest) (*model.GetTransactionResponse, error)
 	GetTransactionByOffset(ctx context.Context, req *model.GetTransactionByOffsetRequest) (*model.GetTransactionResponse, error)
-}
-
-type GetTransactionResponseTyped[T any] struct {
-	Transaction *TransactionTyped[T]
-}
-
-type TransactionTyped[T any] struct {
-	UpdateID    string
-	CommandID   string
-	WorkflowID  string
-	EffectiveAt *time.Time
-	Events      []*EventTyped[T]
-	Offset      int64
-}
-
-type EventTyped[T any] struct {
-	Created   *CreatedEventTyped[T]
-	Archived  *model.ArchivedEvent
-	Exercised *model.ExercisedEvent
-}
-
-type CreatedEventTyped[T any] struct {
-	Offset           int64
-	NodeID           int32
-	ContractID       string
-	TemplateID       string
-	ContractKey      map[string]interface{}
-	CreateArguments  *T
-	CreatedEventBlob []byte
-	InterfaceViews   []*model.InterfaceView
-	WitnessParties   []string
-	Signatories      []string
-	Observers        []string
-	CreatedAt        *time.Time
-	PackageName      string
 }
 
 type updateService struct {
@@ -129,20 +93,6 @@ func (c *updateService) GetTransactionByID(ctx context.Context, req *model.GetTr
 	}
 
 	return getTransactionResponseFromProto(resp), nil
-}
-
-func GetTransactionByIDTyped[T any](ctx context.Context, client v2.UpdateServiceClient, req *model.GetTransactionByIDRequest) (*GetTransactionResponseTyped[T], error) {
-	protoReq := &v2.GetTransactionByIdRequest{
-		UpdateId:          req.UpdateID,
-		RequestingParties: req.RequestingParties,
-	}
-
-	resp, err := client.GetTransactionById(ctx, protoReq)
-	if err != nil {
-		return nil, err
-	}
-
-	return getTransactionResponseTypedFromProto[T](resp)
 }
 
 func (c *updateService) GetTransactionByOffset(ctx context.Context, req *model.GetTransactionByOffsetRequest) (*model.GetTransactionResponse, error) {
@@ -287,121 +237,4 @@ func reassignmentFromProto(pb *v2.Reassignment) *model.Reassignment {
 	}
 
 	return r
-}
-
-func getTransactionResponseTypedFromProto[T any](pb *v2.GetTransactionResponse) (*GetTransactionResponseTyped[T], error) {
-	if pb == nil {
-		return nil, nil
-	}
-
-	tx, err := transactionTypedFromProto[T](pb.Transaction)
-	if err != nil {
-		return nil, err
-	}
-
-	return &GetTransactionResponseTyped[T]{
-		Transaction: tx,
-	}, nil
-}
-
-func transactionTypedFromProto[T any](pb *v2.Transaction) (*TransactionTyped[T], error) {
-	if pb == nil {
-		return nil, nil
-	}
-
-	tx := &TransactionTyped[T]{
-		UpdateID:   pb.UpdateId,
-		CommandID:  pb.CommandId,
-		WorkflowID: pb.WorkflowId,
-		Offset:     pb.Offset,
-	}
-
-	if pb.EffectiveAt != nil {
-		t := pb.EffectiveAt.AsTime()
-		tx.EffectiveAt = &t
-	}
-
-	for _, event := range pb.Events {
-		typedEvent, err := eventTypedFromProto[T](event)
-		if err != nil {
-			return nil, err
-		}
-		tx.Events = append(tx.Events, typedEvent)
-	}
-
-	return tx, nil
-}
-
-func eventTypedFromProto[T any](pb *v2.Event) (*EventTyped[T], error) {
-	if pb == nil {
-		return nil, nil
-	}
-
-	event := &EventTyped[T]{}
-
-	switch e := pb.Event.(type) {
-	case *v2.Event_Created:
-		typedCreated, err := createdEventTypedFromProto[T](e.Created)
-		if err != nil {
-			return nil, err
-		}
-		event.Created = typedCreated
-	case *v2.Event_Archived:
-		event.Archived = archivedEventFromProto(e.Archived)
-	case *v2.Event_Exercised:
-		event.Exercised = exercisedEventFromProto(e.Exercised)
-	}
-
-	return event, nil
-}
-
-func createdEventTypedFromProto[T any](pb *v2.CreatedEvent) (*CreatedEventTyped[T], error) {
-	if pb == nil {
-		return nil, nil
-	}
-
-	event := &CreatedEventTyped[T]{
-		Offset:           pb.Offset,
-		NodeID:           pb.NodeId,
-		ContractID:       pb.ContractId,
-		CreatedEventBlob: pb.CreatedEventBlob,
-		WitnessParties:   pb.WitnessParties,
-		Signatories:      pb.Signatories,
-		Observers:        pb.Observers,
-		PackageName:      pb.PackageName,
-	}
-
-	if pb.TemplateId != nil {
-		event.TemplateID = identifierToString(pb.TemplateId)
-	}
-
-	if pb.CreateArguments != nil {
-		var createArgs T
-		if err := recordToStruct(pb.CreateArguments, &createArgs); err != nil {
-			return nil, err
-		}
-		event.CreateArguments = &createArgs
-	}
-
-	if pb.ContractKey != nil {
-		if key := valueFromProto(pb.ContractKey); key != nil {
-			if m, ok := key.(map[string]interface{}); ok {
-				event.ContractKey = m
-			}
-		}
-	}
-
-	if pb.CreatedAt != nil {
-		t := pb.CreatedAt.AsTime()
-		event.CreatedAt = &t
-	}
-
-	if len(pb.InterfaceViews) > 0 {
-		event.InterfaceViews = make([]*model.InterfaceView, len(pb.InterfaceViews))
-		for i, iv := range pb.InterfaceViews {
-			event.InterfaceViews[i] = interfaceViewFromProto(iv)
-		}
-	}
-
-	return event, nil
 }

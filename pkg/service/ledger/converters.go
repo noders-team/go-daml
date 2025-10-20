@@ -214,15 +214,11 @@ func createdEventFromProto(pb *v2.CreatedEvent) *model.CreatedEvent {
 	}
 
 	if pb.CreateArguments != nil {
-		event.CreateArguments = valueFromRecord(pb.CreateArguments)
+		event.CreateArguments = pb.CreateArguments
 	}
 
 	if pb.ContractKey != nil {
-		if key := valueFromProto(pb.ContractKey); key != nil {
-			if m, ok := key.(map[string]interface{}); ok {
-				event.ContractKey = m
-			}
-		}
+		event.ContractKey = pb.ContractKey
 	}
 
 	if pb.CreatedAt != nil {
@@ -259,7 +255,7 @@ func interfaceViewFromProto(pb *v2.InterfaceView) *model.InterfaceView {
 	}
 
 	if pb.ViewValue != nil {
-		view.ViewValue = valueFromRecord(pb.ViewValue)
+		view.ViewValue = pb.ViewValue
 	}
 
 	return view
@@ -683,6 +679,49 @@ func recordToStruct(record *v2.Record, target interface{}) error {
 	return nil
 }
 
+func RecordToStruct(data interface{}, target interface{}) error {
+	if data == nil {
+		return nil
+	}
+
+	record, ok := data.(*v2.Record)
+	if !ok {
+		return fmt.Errorf("expected *v2.Record, got %T", data)
+	}
+
+	return recordToStruct(record, target)
+}
+
+func MapToStruct(data map[string]interface{}, target interface{}) error {
+	if data == nil {
+		return nil
+	}
+
+	if target == nil {
+		return fmt.Errorf("target cannot be nil")
+	}
+
+	rv := reflect.ValueOf(target)
+	if rv.Kind() != reflect.Ptr {
+		return fmt.Errorf("target must be a pointer, got %T", target)
+	}
+
+	if rv.IsNil() {
+		return fmt.Errorf("target pointer cannot be nil")
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal map to JSON: %w", err)
+	}
+
+	if err := defaultJsonCodec.Unmarshall(jsonData, target); err != nil {
+		return fmt.Errorf("failed to unmarshal JSON to struct (target type: %T): %w", target, err)
+	}
+
+	return nil
+}
+
 func prepareSubmissionRequestToProto(req *model.PrepareSubmissionRequest) *interactive.PrepareSubmissionRequest {
 	if req == nil {
 		return nil
@@ -964,11 +1003,7 @@ func exercisedEventFromProto(pb *v2.ExercisedEvent) *model.ExercisedEvent {
 	}
 
 	if pb.ChoiceArgument != nil {
-		if arg := valueFromProto(pb.ChoiceArgument); arg != nil {
-			if m, ok := arg.(map[string]interface{}); ok {
-				event.ChoiceArgument = m
-			}
-		}
+		event.ChoiceArgument = pb.ChoiceArgument
 	}
 
 	if pb.ExerciseResult != nil {

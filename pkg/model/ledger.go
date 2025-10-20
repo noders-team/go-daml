@@ -144,8 +144,8 @@ type CreatedEvent struct {
 	NodeID           int32
 	ContractID       string
 	TemplateID       string
-	ContractKey      map[string]interface{}
-	CreateArguments  map[string]interface{}
+	ContractKey      interface{}
+	CreateArguments  interface{}
 	CreatedEventBlob []byte
 	InterfaceViews   []*InterfaceView
 	WitnessParties   []string
@@ -158,7 +158,7 @@ type CreatedEvent struct {
 type InterfaceView struct {
 	InterfaceID string
 	ViewStatus  *ViewStatus
-	ViewValue   map[string]interface{}
+	ViewValue   interface{}
 }
 
 type ViewStatus struct {
@@ -183,7 +183,7 @@ type ExercisedEvent struct {
 	TemplateID            string
 	InterfaceID           string
 	Choice                string
-	ChoiceArgument        map[string]interface{}
+	ChoiceArgument        interface{}
 	ActingParties         []string
 	Consuming             bool
 	WitnessParties        []string

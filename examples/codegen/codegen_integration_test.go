@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	v2 "github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2"
 	interfaces "github.com/noders-team/go-daml/examples/codegen/interfaces"
 	"github.com/noders-team/go-daml/pkg/client"
 	"github.com/noders-team/go-daml/pkg/errors"
@@ -221,30 +220,31 @@ func TestCodegenIntegration(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, createUpdateID, "should have a valid create updateID")
 
-	updateServiceConcrete, ok := cl.UpdateService.(interface{ Client() v2.UpdateServiceClient })
-	require.True(t, ok, "UpdateService should implement Client() method")
-
-	typedResp, err := ledger.GetTransactionByIDTyped[MappyContract](ctx, updateServiceConcrete.Client(), &model.GetTransactionByIDRequest{
+	txResp, err := cl.UpdateService.GetTransactionByID(ctx, &model.GetTransactionByIDRequest{
 		UpdateID:          createUpdateID,
 		RequestingParties: []string{party},
 	})
-	require.NoError(t, err, "GetTransactionByIDTyped should succeed")
-	require.NotNil(t, typedResp, "typed response should not be nil")
-	require.NotNil(t, typedResp.Transaction, "typed transaction should not be nil")
+	require.NoError(t, err, "GetTransactionByID should succeed")
+	require.NotNil(t, txResp, "response should not be nil")
+	require.NotNil(t, txResp.Transaction, "transaction should not be nil")
 
 	var foundTypedContract bool
-	for _, event := range typedResp.Transaction.Events {
+	for _, event := range txResp.Transaction.Events {
 		if event.Created != nil && event.Created.CreateArguments != nil {
 			foundTypedContract = true
+			var contract MappyContract
+			err = ledger.RecordToStruct(event.Created.CreateArguments, &contract)
+			require.NoError(t, err, "RecordToStruct should succeed")
+
 			log.Info().
-				Str("operator", string(event.Created.CreateArguments.Operator)).
-				Interface("value", event.Created.CreateArguments.Value).
+				Str("operator", string(contract.Operator)).
+				Interface("value", contract.Value).
 				Msg("successfully retrieved typed MappyContract")
 
-			require.Equal(t, PARTY(party), event.Created.CreateArguments.Operator, "operator should match")
-			require.NotNil(t, event.Created.CreateArguments.Value, "value should not be nil")
-			require.Equal(t, "value1", event.Created.CreateArguments.Value["key1"], "key1 should have correct value")
-			require.Equal(t, "value2", event.Created.CreateArguments.Value["key2"], "key2 should have correct value")
+			require.Equal(t, PARTY(party), contract.Operator, "operator should match")
+			require.NotNil(t, contract.Value, "value should not be nil")
+			require.Equal(t, "value1", contract.Value["key1"], "key1 should have correct value")
+			require.Equal(t, "value2", contract.Value["key2"], "key2 should have correct value")
 		}
 	}
 	require.True(t, foundTypedContract, "should find at least one typed created event")
@@ -443,22 +443,22 @@ func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, createUpdateID, "should have a valid create updateID")
 
-	updateServiceConcrete, ok := cl.UpdateService.(interface{ Client() v2.UpdateServiceClient })
-	require.True(t, ok, "UpdateService should implement Client() method")
-
-	typedResp, err := ledger.GetTransactionByIDTyped[OneOfEverything](ctx, updateServiceConcrete.Client(), &model.GetTransactionByIDRequest{
+	txResp, err := cl.UpdateService.GetTransactionByID(ctx, &model.GetTransactionByIDRequest{
 		UpdateID:          createUpdateID,
 		RequestingParties: []string{party},
 	})
-	require.NoError(t, err, "GetTransactionByIDTyped should succeed")
-	require.NotNil(t, typedResp, "typed response should not be nil")
-	require.NotNil(t, typedResp.Transaction, "typed transaction should not be nil")
+	require.NoError(t, err, "GetTransactionByID should succeed")
+	require.NotNil(t, txResp, "response should not be nil")
+	require.NotNil(t, txResp.Transaction, "transaction should not be nil")
 
 	var foundTypedContract bool
-	for _, event := range typedResp.Transaction.Events {
+	for _, event := range txResp.Transaction.Events {
 		if event.Created != nil && event.Created.CreateArguments != nil {
 			foundTypedContract = true
-			contract := event.Created.CreateArguments
+			var contract OneOfEverything
+			err = ledger.RecordToStruct(event.Created.CreateArguments, &contract)
+			require.NoError(t, err, "RecordToStruct should succeed")
+
 			log.Info().
 				Str("operator", string(contract.Operator)).
 				Bool("someBoolean", bool(contract.SomeBoolean)).
