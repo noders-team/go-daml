@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/noders-team/go-daml/pkg/codec"
 	"github.com/noders-team/go-daml/pkg/model"
 	. "github.com/noders-team/go-daml/pkg/types"
 )
@@ -61,6 +62,18 @@ func (t Accept) toMap() map[string]interface{} {
 	}
 }
 
+// MarshalJSON implements custom JSON marshaling for Accept using JsonCodec
+func (t Accept) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(t)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for Accept using JsonCodec
+func (t *Accept) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, t)
+}
+
 // RentalAgreement is a Template type
 type RentalAgreement struct {
 	Landlord PARTY `json:"landlord"`
@@ -87,6 +100,18 @@ func (t RentalAgreement) CreateCommand() *model.CreateCommand {
 		TemplateID: t.GetTemplateID(),
 		Arguments:  args,
 	}
+}
+
+// MarshalJSON implements custom JSON marshaling for RentalAgreement using JsonCodec
+func (t RentalAgreement) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(t)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for RentalAgreement using JsonCodec
+func (t *RentalAgreement) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, t)
 }
 
 // Choice methods for RentalAgreement
@@ -127,6 +152,18 @@ func (t RentalProposal) CreateCommand() *model.CreateCommand {
 		TemplateID: t.GetTemplateID(),
 		Arguments:  args,
 	}
+}
+
+// MarshalJSON implements custom JSON marshaling for RentalProposal using JsonCodec
+func (t RentalProposal) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(t)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for RentalProposal using JsonCodec
+func (t *RentalProposal) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, t)
 }
 
 // Choice methods for RentalProposal

@@ -9,6 +9,7 @@ import (
 	
 	"github.com/noders-team/go-daml/pkg/model"
 	. "github.com/noders-team/go-daml/pkg/types"
+	"github.com/noders-team/go-daml/pkg/codec"
 )
 
 var (
@@ -73,42 +74,14 @@ func argsToMap(args interface{}) map[string]interface{} {
 
 	// MarshalJSON implements custom JSON marshaling for {{capitalise .Name}}
 	func (v {{capitalise .Name}}) MarshalJSON() ([]byte, error) {
-		{{range $field := .Fields}}
-		if v.{{capitalise $field.Name}} != nil {
-			return json.Marshal(map[string]interface{}{
-				"tag":   "{{$field.Name}}",
-				"value": v.{{capitalise $field.Name}},
-			})
-		}
-		{{end}}
-		return json.Marshal(map[string]interface{}{})
+		jsonCodec := codec.NewJsonCodec()
+		return jsonCodec.Marshall(v)
 	}
 
 	// UnmarshalJSON implements custom JSON unmarshaling for {{capitalise .Name}}
 	func (v *{{capitalise .Name}}) UnmarshalJSON(data []byte) error {
-		var tagged struct {
-			Tag   string          `json:"tag"`
-			Value json.RawMessage `json:"value"`
-		}
-		
-		if err := json.Unmarshal(data, &tagged); err != nil {
-			return err
-		}
-		
-		switch tagged.Tag {
-		{{range $field := .Fields}}
-		case "{{$field.Name}}":
-			var value {{$field.Type}}
-			if err := json.Unmarshal(tagged.Value, &value); err != nil {
-				return err
-			}
-			v.{{capitalise $field.Name}} = &value
-		{{end}}
-		default:
-			return fmt.Errorf("unknown tag: %s", tagged.Tag)
-		}
-		
-		return nil
+		jsonCodec := codec.NewJsonCodec()
+		return jsonCodec.Unmarshall(data, a)
 	}
 	
 	// GetVariantTag implements types.VARIANT interface
@@ -152,6 +125,18 @@ func argsToMap(args interface{}) map[string]interface{} {
 		return fmt.Sprintf("%s:%s:%s", PackageID, "{{.ModuleName}}", "{{capitalise .Name}}")
 	}
 
+	// MarshalJSON implements custom JSON marshaling for {{capitalise .Name}} using JsonCodec
+	func (e {{capitalise .Name}}) MarshalJSON() ([]byte, error) {
+		jsonCodec := codec.NewJsonCodec()
+		return jsonCodec.Marshall(e)
+	}
+
+	// UnmarshalJSON implements custom JSON unmarshaling for {{capitalise .Name}} using JsonCodec
+	func (e *{{capitalise .Name}}) UnmarshalJSON(data []byte) error {
+		jsonCodec := codec.NewJsonCodec()
+		return jsonCodec.Unmarshall(data, e)
+	}
+
 	// Verify interface implementation
 	var _ ENUM = {{capitalise .Name}}("")
 	{{else}}
@@ -161,7 +146,7 @@ func argsToMap(args interface{}) map[string]interface{} {
 		{{capitalise $field.Name}} {{$field.Type}} `json:"{{$field.Name}}"`{{end}}
 	}
 	{{if and (eq .RawType "Record") (not .IsTemplate) (not .IsInterface)}}
-	
+
 	// toMap converts {{capitalise .Name}} to a map for DAML arguments
 	func (t {{capitalise .Name}}) toMap() map[string]interface{} {
 		return map[string]interface{}{
@@ -169,14 +154,26 @@ func argsToMap(args interface{}) map[string]interface{} {
 			"{{$field.Name}}": {{template "fieldToDAMLValue" $field}},{{end}}
 		}
 	}
+
+	// MarshalJSON implements custom JSON marshaling for {{capitalise .Name}} using JsonCodec
+	func (t {{capitalise .Name}}) MarshalJSON() ([]byte, error) {
+		jsonCodec := codec.NewJsonCodec()
+		return jsonCodec.Marshall(t)
+	}
+
+	// UnmarshalJSON implements custom JSON unmarshaling for {{capitalise .Name}} using JsonCodec
+	func (t *{{capitalise .Name}}) UnmarshalJSON(data []byte) error {
+		jsonCodec := codec.NewJsonCodec()
+		return jsonCodec.Unmarshall(data, t)
+	}
 	{{end}}
 	{{if .IsTemplate}}
-	
+
 	// GetTemplateID returns the template ID for this template
 	func (t {{capitalise .Name}}) GetTemplateID() string {
 		return fmt.Sprintf("%s:%s:%s", PackageID, "{{.ModuleName}}", "{{capitalise .Name}}")
 	}
-	
+
 	// CreateCommand returns a CreateCommand for this template
 	func (t {{capitalise .Name}}) CreateCommand() *model.CreateCommand {
 		args := make(map[string]interface{})
@@ -204,7 +201,7 @@ func argsToMap(args interface{}) map[string]interface{} {
 		}
 	}
 	{{if .Key}}
-	
+
 	// GetKey returns the key for this template as a string
 	func (t {{capitalise .Name}}) GetKey() string {
 		{{if eq .Key.Type "TEXT"}}
@@ -218,6 +215,18 @@ func argsToMap(args interface{}) map[string]interface{} {
 		{{end}}
 	}
 	{{end}}
+
+	// MarshalJSON implements custom JSON marshaling for {{capitalise .Name}} using JsonCodec
+	func (t {{capitalise .Name}}) MarshalJSON() ([]byte, error) {
+		jsonCodec := codec.NewJsonCodec()
+		return jsonCodec.Marshall(t)
+	}
+
+	// UnmarshalJSON implements custom JSON unmarshaling for {{capitalise .Name}} using JsonCodec
+	func (t *{{capitalise .Name}}) UnmarshalJSON(data []byte) error {
+		jsonCodec := codec.NewJsonCodec()
+		return jsonCodec.Unmarshall(data, t)
+	}
 	{{end}}
 	{{if and .IsTemplate .Choices}}
 	{{$templateName := .Name}}

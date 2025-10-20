@@ -27,6 +27,10 @@ func NewUpdateServiceClient(conn *grpc.ClientConn) *updateService {
 	}
 }
 
+func (c *updateService) Client() v2.UpdateServiceClient {
+	return c.client
+}
+
 func (c *updateService) GetUpdates(ctx context.Context, req *model.GetUpdatesRequest) (<-chan *model.GetUpdatesResponse, <-chan error) {
 	protoReq := &v2.GetUpdatesRequest{
 		BeginExclusive: req.BeginExclusive,

@@ -140,19 +140,40 @@ type GetEventsByContractIDResponse struct {
 }
 
 type CreatedEvent struct {
-	ContractID      string
-	TemplateID      string
-	CreateArguments map[string]interface{}
-	ContractKey     map[string]interface{}
-	CreatedAt       *time.Time
-	Signatories     []string
-	Observers       []string
+	Offset           int64
+	NodeID           int32
+	ContractID       string
+	TemplateID       string
+	ContractKey      interface{}
+	CreateArguments  interface{}
+	CreatedEventBlob []byte
+	InterfaceViews   []*InterfaceView
+	WitnessParties   []string
+	Signatories      []string
+	Observers        []string
+	CreatedAt        *time.Time
+	PackageName      string
+}
+
+type InterfaceView struct {
+	InterfaceID string
+	ViewStatus  *ViewStatus
+	ViewValue   interface{}
+}
+
+type ViewStatus struct {
+	Code    int32
+	Message string
 }
 
 type ArchivedEvent struct {
-	ContractID string
-	TemplateID string
-	ArchivedAt *time.Time
+	Offset                int64
+	NodeID                int32
+	ContractID            string
+	TemplateID            string
+	WitnessParties        []string
+	PackageName           string
+	ImplementedInterfaces []string
 }
 
 type ExercisedEvent struct {
@@ -162,7 +183,7 @@ type ExercisedEvent struct {
 	TemplateID            string
 	InterfaceID           string
 	Choice                string
-	ChoiceArgument        map[string]interface{}
+	ChoiceArgument        interface{}
 	ActingParties         []string
 	Consuming             bool
 	WitnessParties        []string

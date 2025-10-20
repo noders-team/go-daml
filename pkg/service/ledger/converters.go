@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"reflect"
 	"strings"
@@ -14,10 +15,13 @@ import (
 
 	v2 "github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2"
 	"github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2/interactive"
+	"github.com/noders-team/go-daml/pkg/codec"
 	"github.com/noders-team/go-daml/pkg/model"
 	"github.com/noders-team/go-daml/pkg/types"
 	"github.com/rs/zerolog/log"
 )
+
+var defaultJsonCodec = codec.NewJsonCodec()
 
 func parseTemplateID(templateID string) (packageID, moduleName, entityName string) {
 	parts := strings.Split(templateID, ":")
@@ -195,25 +199,66 @@ func createdEventFromProto(pb *v2.CreatedEvent) *model.CreatedEvent {
 	}
 
 	event := &model.CreatedEvent{
-		ContractID:  pb.ContractId,
-		TemplateID:  pb.TemplateId.String(),
-		Signatories: pb.Signatories,
-		Observers:   pb.Observers,
+		Offset:           pb.Offset,
+		NodeID:           pb.NodeId,
+		ContractID:       pb.ContractId,
+		CreatedEventBlob: pb.CreatedEventBlob,
+		WitnessParties:   pb.WitnessParties,
+		Signatories:      pb.Signatories,
+		Observers:        pb.Observers,
+		PackageName:      pb.PackageName,
 	}
 
-	// Convert proto Values to map[string]interface{}
-	if pb.CreateArguments != nil {
-		event.CreateArguments = valueFromRecord(pb.CreateArguments)
+	if pb.TemplateId != nil {
+		event.TemplateID = identifierToString(pb.TemplateId)
 	}
+
+	if pb.CreateArguments != nil {
+		event.CreateArguments = pb.CreateArguments
+	}
+
 	if pb.ContractKey != nil {
-		if key := valueFromProto(pb.ContractKey); key != nil {
-			if m, ok := key.(map[string]interface{}); ok {
-				event.ContractKey = m
-			}
+		event.ContractKey = pb.ContractKey
+	}
+
+	if pb.CreatedAt != nil {
+		t := pb.CreatedAt.AsTime()
+		event.CreatedAt = &t
+	}
+
+	if len(pb.InterfaceViews) > 0 {
+		event.InterfaceViews = make([]*model.InterfaceView, len(pb.InterfaceViews))
+		for i, iv := range pb.InterfaceViews {
+			event.InterfaceViews[i] = interfaceViewFromProto(iv)
 		}
 	}
 
 	return event
+}
+
+func interfaceViewFromProto(pb *v2.InterfaceView) *model.InterfaceView {
+	if pb == nil {
+		return nil
+	}
+
+	view := &model.InterfaceView{}
+
+	if pb.InterfaceId != nil {
+		view.InterfaceID = identifierToString(pb.InterfaceId)
+	}
+
+	if pb.ViewStatus != nil {
+		view.ViewStatus = &model.ViewStatus{
+			Code:    pb.ViewStatus.Code,
+			Message: pb.ViewStatus.Message,
+		}
+	}
+
+	if pb.ViewValue != nil {
+		view.ViewValue = pb.ViewValue
+	}
+
+	return view
 }
 
 func archivedEventFromProto(pb *v2.ArchivedEvent) *model.ArchivedEvent {
@@ -221,10 +266,23 @@ func archivedEventFromProto(pb *v2.ArchivedEvent) *model.ArchivedEvent {
 		return nil
 	}
 
-	return &model.ArchivedEvent{
-		ContractID: pb.ContractId,
-		TemplateID: pb.TemplateId.String(),
+	event := &model.ArchivedEvent{
+		Offset:         pb.Offset,
+		NodeID:         pb.NodeId,
+		ContractID:     pb.ContractId,
+		WitnessParties: pb.WitnessParties,
+		PackageName:    pb.PackageName,
 	}
+
+	if pb.TemplateId != nil {
+		event.TemplateID = identifierToString(pb.TemplateId)
+	}
+
+	for _, iface := range pb.ImplementedInterfaces {
+		event.ImplementedInterfaces = append(event.ImplementedInterfaces, identifierToString(iface))
+	}
+
+	return event
 }
 
 func convertBigIntToNumeric(i *big.Int, scale int) *big.Rat {
@@ -285,6 +343,19 @@ func valueFromProto(pb *v2.Value) interface{} {
 			result[entry.Key] = valueFromProto(entry.Value)
 		}
 		return result
+	case *v2.Value_Enum:
+		if v.Enum != nil {
+			return v.Enum.Constructor
+		}
+		return nil
+	case *v2.Value_Variant:
+		if v.Variant != nil {
+			return map[string]interface{}{
+				"tag":   v.Variant.Constructor,
+				"value": valueFromProto(v.Variant.Value),
+			}
+		}
+		return nil
 	default:
 		return nil
 	}
@@ -576,6 +647,81 @@ func valueFromRecord(record *v2.Record) map[string]interface{} {
 	return result
 }
 
+func recordToStruct(record *v2.Record, target interface{}) error {
+	if record == nil {
+		return nil
+	}
+
+	if target == nil {
+		return fmt.Errorf("target cannot be nil")
+	}
+
+	rv := reflect.ValueOf(target)
+	if rv.Kind() != reflect.Ptr {
+		return fmt.Errorf("target must be a pointer, got %T", target)
+	}
+
+	if rv.IsNil() {
+		return fmt.Errorf("target pointer cannot be nil")
+	}
+
+	recordMap := valueFromRecord(record)
+
+	jsonData, err := json.Marshal(recordMap)
+	if err != nil {
+		return fmt.Errorf("failed to marshal record to JSON: %w", err)
+	}
+
+	if err := defaultJsonCodec.Unmarshall(jsonData, target); err != nil {
+		return fmt.Errorf("failed to unmarshal JSON to struct (target type: %T): %w", target, err)
+	}
+
+	return nil
+}
+
+func RecordToStruct(data interface{}, target interface{}) error {
+	if data == nil {
+		return nil
+	}
+
+	record, ok := data.(*v2.Record)
+	if !ok {
+		return fmt.Errorf("expected *v2.Record, got %T", data)
+	}
+
+	return recordToStruct(record, target)
+}
+
+func MapToStruct(data map[string]interface{}, target interface{}) error {
+	if data == nil {
+		return nil
+	}
+
+	if target == nil {
+		return fmt.Errorf("target cannot be nil")
+	}
+
+	rv := reflect.ValueOf(target)
+	if rv.Kind() != reflect.Ptr {
+		return fmt.Errorf("target must be a pointer, got %T", target)
+	}
+
+	if rv.IsNil() {
+		return fmt.Errorf("target pointer cannot be nil")
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal map to JSON: %w", err)
+	}
+
+	if err := defaultJsonCodec.Unmarshall(jsonData, target); err != nil {
+		return fmt.Errorf("failed to unmarshal JSON to struct (target type: %T): %w", target, err)
+	}
+
+	return nil
+}
+
 func prepareSubmissionRequestToProto(req *model.PrepareSubmissionRequest) *interactive.PrepareSubmissionRequest {
 	if req == nil {
 		return nil
@@ -857,11 +1003,7 @@ func exercisedEventFromProto(pb *v2.ExercisedEvent) *model.ExercisedEvent {
 	}
 
 	if pb.ChoiceArgument != nil {
-		if arg := valueFromProto(pb.ChoiceArgument); arg != nil {
-			if m, ok := arg.(map[string]interface{}); ok {
-				event.ChoiceArgument = m
-			}
-		}
+		event.ChoiceArgument = pb.ChoiceArgument
 	}
 
 	if pb.ExerciseResult != nil {

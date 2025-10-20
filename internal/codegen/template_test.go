@@ -58,9 +58,6 @@ func TestBind(t *testing.T) {
 	if !strings.Contains(result, `json:"landlord"`) {
 		t.Error("Generated code does not contain JSON tags with original field names")
 	}
-
-	// Print the result for inspection
-	t.Logf("Generated code:\n%s", result)
 }
 
 func TestCapitalize(t *testing.T) {

@@ -1,12 +1,12 @@
 package codegen_test
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"strings"
 
+	"github.com/noders-team/go-daml/pkg/codec"
 	"github.com/noders-team/go-daml/pkg/model"
 	. "github.com/noders-team/go-daml/pkg/types"
 )
@@ -55,6 +55,18 @@ func (t Accept) toMap() map[string]interface{} {
 	return map[string]interface{}{}
 }
 
+// MarshalJSON implements custom JSON marshaling for Accept using JsonCodec
+func (a Accept) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(a)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for Accept using JsonCodec
+func (a *Accept) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, a)
+}
+
 // Color is an enum type
 type Color string
 
@@ -72,6 +84,18 @@ func (e Color) GetEnumConstructor() string {
 // GetEnumTypeID implements types.ENUM interface
 func (e Color) GetEnumTypeID() string {
 	return fmt.Sprintf("%s:%s:%s", PackageID, "AllKindsOf", "Color")
+}
+
+// MarshalJSON implements custom JSON marshaling for Color using JsonCodec
+func (c Color) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(c)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for Color using JsonCodec
+func (c *Color) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, c)
 }
 
 // Verify interface implementation
@@ -116,6 +140,18 @@ func (t MappyContract) Archive(contractID string) *model.ExerciseCommand {
 	}
 }
 
+// MarshalJSON implements custom JSON marshaling for MappyContract using JsonCodec
+func (m MappyContract) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(m)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for MappyContract using JsonCodec
+func (m *MappyContract) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, m)
+}
+
 // MyPair is a Record type
 type MyPair struct {
 	Left  interface{} `json:"left"`
@@ -128,6 +164,18 @@ func (t MyPair) toMap() map[string]interface{} {
 		"left":  t.Left,
 		"right": t.Right,
 	}
+}
+
+// MarshalJSON implements custom JSON marshaling for MyPair using JsonCodec
+func (p MyPair) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(p)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for MyPair using JsonCodec
+func (p *MyPair) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, p)
 }
 
 // OneOfEverything is a Template type
@@ -243,6 +291,18 @@ func (t OneOfEverything) Accept(contractID string, args Accept) *model.ExerciseC
 	}
 }
 
+// MarshalJSON implements custom JSON marshaling for OneOfEverything using JsonCodec
+func (o OneOfEverything) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(o)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for OneOfEverything using JsonCodec
+func (o *OneOfEverything) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, o)
+}
+
 // VPair is a variant/union type
 type VPair struct {
 	Left  *interface{} `json:"Left,omitempty"`
@@ -250,71 +310,16 @@ type VPair struct {
 	Both  *VPair       `json:"Both,omitempty"`
 }
 
-// MarshalJSON implements custom JSON marshaling for VPair
+// MarshalJSON implements custom JSON marshaling for VPair using JsonCodec
 func (v VPair) MarshalJSON() ([]byte, error) {
-	if v.Left != nil {
-		return json.Marshal(map[string]interface{}{
-			"tag":   "Left",
-			"value": v.Left,
-		})
-	}
-
-	if v.Right != nil {
-		return json.Marshal(map[string]interface{}{
-			"tag":   "Right",
-			"value": v.Right,
-		})
-	}
-
-	if v.Both != nil {
-		return json.Marshal(map[string]interface{}{
-			"tag":   "Both",
-			"value": v.Both,
-		})
-	}
-
-	return json.Marshal(map[string]interface{}{})
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(v)
 }
 
-// UnmarshalJSON implements custom JSON unmarshaling for VPair
+// UnmarshalJSON implements custom JSON unmarshaling for VPair using JsonCodec
 func (v *VPair) UnmarshalJSON(data []byte) error {
-	var tagged struct {
-		Tag   string          `json:"tag"`
-		Value json.RawMessage `json:"value"`
-	}
-
-	if err := json.Unmarshal(data, &tagged); err != nil {
-		return err
-	}
-
-	switch tagged.Tag {
-
-	case "Left":
-		var value interface{}
-		if err := json.Unmarshal(tagged.Value, &value); err != nil {
-			return err
-		}
-		v.Left = &value
-
-	case "Right":
-		var value interface{}
-		if err := json.Unmarshal(tagged.Value, &value); err != nil {
-			return err
-		}
-		v.Right = &value
-
-	case "Both":
-		var value VPair
-		if err := json.Unmarshal(tagged.Value, &value); err != nil {
-			return err
-		}
-		v.Both = &value
-
-	default:
-		return fmt.Errorf("unknown tag: %s", tagged.Tag)
-	}
-
-	return nil
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, v)
 }
 
 // GetVariantTag implements types.VARIANT interface

@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/noders-team/go-daml/pkg/codec"
 	"github.com/noders-team/go-daml/pkg/model"
 	. "github.com/noders-team/go-daml/pkg/types"
 )
@@ -55,56 +56,14 @@ type Address struct {
 
 // MarshalJSON implements custom JSON marshaling for Address
 func (v Address) MarshalJSON() ([]byte, error) {
-
-	if v.Us != nil {
-		return json.Marshal(map[string]interface{}{
-			"tag":   "US",
-			"value": v.Us,
-		})
-	}
-
-	if v.Uk != nil {
-		return json.Marshal(map[string]interface{}{
-			"tag":   "UK",
-			"value": v.Uk,
-		})
-	}
-
-	return json.Marshal(map[string]interface{}{})
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(v)
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for Address
 func (v *Address) UnmarshalJSON(data []byte) error {
-	var tagged struct {
-		Tag   string          `json:"tag"`
-		Value json.RawMessage `json:"value"`
-	}
-
-	if err := json.Unmarshal(data, &tagged); err != nil {
-		return err
-	}
-
-	switch tagged.Tag {
-
-	case "US":
-		var value USAddress
-		if err := json.Unmarshal(tagged.Value, &value); err != nil {
-			return err
-		}
-		v.Us = &value
-
-	case "UK":
-		var value UKAddress
-		if err := json.Unmarshal(tagged.Value, &value); err != nil {
-			return err
-		}
-		v.Uk = &value
-
-	default:
-		return fmt.Errorf("unknown tag: %s", tagged.Tag)
-	}
-
-	return nil
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, a)
 }
 
 // GetVariantTag implements types.VARIANT interface
@@ -163,6 +122,18 @@ func (t American) CreateCommand() *model.CreateCommand {
 	}
 }
 
+// MarshalJSON implements custom JSON marshaling for American using JsonCodec
+func (t American) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(t)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for American using JsonCodec
+func (t *American) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, t)
+}
+
 // Choice methods for American
 
 // Archive exercises the Archive choice on this American contract
@@ -198,6 +169,18 @@ func (t Briton) CreateCommand() *model.CreateCommand {
 		TemplateID: t.GetTemplateID(),
 		Arguments:  args,
 	}
+}
+
+// MarshalJSON implements custom JSON marshaling for Briton using JsonCodec
+func (t Briton) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(t)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for Briton using JsonCodec
+func (t *Briton) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, t)
 }
 
 // Choice methods for Briton
@@ -246,6 +229,18 @@ func (t OptionalFields) CreateCommand() *model.CreateCommand {
 	}
 }
 
+// MarshalJSON implements custom JSON marshaling for OptionalFields using JsonCodec
+func (t OptionalFields) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(t)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for OptionalFields using JsonCodec
+func (t *OptionalFields) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, t)
+}
+
 // Choice methods for OptionalFields
 
 // Archive exercises the Archive choice on this OptionalFields contract
@@ -277,6 +272,18 @@ func (t OptionalFieldsCleanUp) toMap() map[string]interface{} {
 	return map[string]interface{}{}
 }
 
+// MarshalJSON implements custom JSON marshaling for OptionalFieldsCleanUp using JsonCodec
+func (t OptionalFieldsCleanUp) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(t)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for OptionalFieldsCleanUp using JsonCodec
+func (t *OptionalFieldsCleanUp) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, t)
+}
+
 // Person is a Template type
 type Person struct {
 	Person  PARTY   `json:"person"`
@@ -300,6 +307,18 @@ func (t Person) CreateCommand() *model.CreateCommand {
 		TemplateID: t.GetTemplateID(),
 		Arguments:  args,
 	}
+}
+
+// MarshalJSON implements custom JSON marshaling for Person using JsonCodec
+func (t Person) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(t)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for Person using JsonCodec
+func (t *Person) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, t)
 }
 
 // Choice methods for Person
@@ -356,6 +375,18 @@ func (t SimpleFields) CreateCommand() *model.CreateCommand {
 	}
 }
 
+// MarshalJSON implements custom JSON marshaling for SimpleFields using JsonCodec
+func (t SimpleFields) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(t)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for SimpleFields using JsonCodec
+func (t *SimpleFields) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, t)
+}
+
 // Choice methods for SimpleFields
 
 // SimpleFieldsCleanUp exercises the SimpleFieldsCleanUp choice on this SimpleFields contract
@@ -387,6 +418,18 @@ func (t SimpleFieldsCleanUp) toMap() map[string]interface{} {
 	return map[string]interface{}{}
 }
 
+// MarshalJSON implements custom JSON marshaling for SimpleFieldsCleanUp using JsonCodec
+func (t SimpleFieldsCleanUp) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(t)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for SimpleFieldsCleanUp using JsonCodec
+func (t *SimpleFieldsCleanUp) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, t)
+}
+
 // UKAddress is a Record type
 type UKAddress struct {
 	Address  LIST     `json:"address"`
@@ -408,6 +451,18 @@ func (t UKAddress) toMap() map[string]interface{} {
 	}
 }
 
+// MarshalJSON implements custom JSON marshaling for UKAddress using JsonCodec
+func (t UKAddress) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(t)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for UKAddress using JsonCodec
+func (t *UKAddress) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, t)
+}
+
 // USAddress is a Record type
 type USAddress struct {
 	Address LIST  `json:"address"`
@@ -425,4 +480,16 @@ func (t USAddress) toMap() map[string]interface{} {
 		"state":   string(t.State),
 		"zip":     int64(t.Zip),
 	}
+}
+
+// MarshalJSON implements custom JSON marshaling for USAddress using JsonCodec
+func (t USAddress) MarshalJSON() ([]byte, error) {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Marshall(t)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for USAddress using JsonCodec
+func (t *USAddress) UnmarshalJSON(data []byte) error {
+	jsonCodec := codec.NewJsonCodec()
+	return jsonCodec.Unmarshall(data, t)
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/noders-team/go-daml/pkg/client"
 	"github.com/noders-team/go-daml/pkg/errors"
 	"github.com/noders-team/go-daml/pkg/model"
+	"github.com/noders-team/go-daml/pkg/service/ledger"
 	. "github.com/noders-team/go-daml/pkg/types"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -106,6 +107,10 @@ func TestCodegenIntegration(t *testing.T) {
 		},
 	}
 
+	marshalled, err := mappyContract.MarshalJSON()
+	require.NoError(t, err)
+	log.Info().Msgf("marshalled: %s", string(marshalled))
+
 	contractIDs, err := createContract(ctx, party, cl, mappyContract)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("failed to create contract")
@@ -124,7 +129,6 @@ func TestCodegenIntegration(t *testing.T) {
 	log.Info().Str("contractID", firstContractID).Msg("Using contract ID from creation for Archive command")
 	archiveCmd := mappyContract.Archive(firstContractID)
 
-	// Submit the Archive command
 	commandID := "archive-" + time.Now().Format("20060102150405")
 	submissionReq := &model.SubmitAndWaitRequest{
 		Commands: &model.Commands{
@@ -164,6 +168,39 @@ func TestCodegenIntegration(t *testing.T) {
 			}
 		}
 	}
+
+	createUpdateID, err := getUpdateIDFromContractCreate(ctx, party, cl, mappyContract)
+	require.NoError(t, err)
+	require.NotEmpty(t, createUpdateID, "should have a valid create updateID")
+
+	txResp, err := cl.UpdateService.GetTransactionByID(ctx, &model.GetTransactionByIDRequest{
+		UpdateID:          createUpdateID,
+		RequestingParties: []string{party},
+	})
+	require.NoError(t, err, "GetTransactionByID should succeed")
+	require.NotNil(t, txResp, "response should not be nil")
+	require.NotNil(t, txResp.Transaction, "transaction should not be nil")
+
+	var foundTypedContract bool
+	for _, event := range txResp.Transaction.Events {
+		if event.Created != nil && event.Created.CreateArguments != nil {
+			foundTypedContract = true
+			var contract MappyContract
+			err = ledger.RecordToStruct(event.Created.CreateArguments, &contract)
+			require.NoError(t, err, "RecordToStruct should succeed")
+
+			log.Info().
+				Str("operator", string(contract.Operator)).
+				Interface("value", contract.Value).
+				Msg("successfully retrieved typed MappyContract")
+
+			require.Equal(t, PARTY(party), contract.Operator, "operator should match")
+			require.NotNil(t, contract.Value, "value should not be nil")
+			require.Equal(t, "value1", contract.Value["key1"], "key1 should have correct value")
+			require.Equal(t, "value2", contract.Value["key2"], "key2 should have correct value")
+		}
+	}
+	require.True(t, foundTypedContract, "should find at least one typed created event")
 }
 
 func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
@@ -230,7 +267,13 @@ func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
 				if !ok {
 					return
 				}
-				log.Info().Msgf("update: %v", upd)
+				if upd.Update.Transaction != nil {
+					log.Info().Str("updateID", upd.Update.Transaction.UpdateID).Str("workflowID", upd.Update.Transaction.WorkflowID).Int("events", len(upd.Update.Transaction.Events)).Msg("received transaction update")
+				} else if upd.Update.Reassignment != nil {
+					log.Info().Str("updateID", upd.Update.Reassignment.UpdateID).Msg("received reassignment update")
+				} else if upd.Update.OffsetCheckpoint != nil {
+					log.Info().Int64("offset", upd.Update.OffsetCheckpoint.Offset).Msg("received offset checkpoint")
+				}
 			case err := <-errRes:
 				log.Fatal().Err(err).Msg("failed to get updates")
 			}
@@ -354,6 +397,49 @@ func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
 			}
 		}
 	}
+
+	createUpdateID, err := getUpdateIDFromContractCreate(ctx, party, cl, mappyContract)
+	require.NoError(t, err)
+	require.NotEmpty(t, createUpdateID, "should have a valid create updateID")
+
+	txResp, err := cl.UpdateService.GetTransactionByID(ctx, &model.GetTransactionByIDRequest{
+		UpdateID:          createUpdateID,
+		RequestingParties: []string{party},
+	})
+	require.NoError(t, err, "GetTransactionByID should succeed")
+	require.NotNil(t, txResp, "response should not be nil")
+	require.NotNil(t, txResp.Transaction, "transaction should not be nil")
+
+	var foundTypedContract bool
+	for _, event := range txResp.Transaction.Events {
+		if event.Created != nil && event.Created.CreateArguments != nil {
+			foundTypedContract = true
+			var contract OneOfEverything
+			err = ledger.RecordToStruct(event.Created.CreateArguments, &contract)
+			require.NoError(t, err, "RecordToStruct should succeed")
+
+			log.Info().
+				Str("operator", string(contract.Operator)).
+				Bool("someBoolean", bool(contract.SomeBoolean)).
+				Int64("someInteger", int64(contract.SomeInteger)).
+				Str("someText", string(contract.SomeText)).
+				Msg("successfully retrieved typed OneOfEverything contract")
+
+			require.Equal(t, PARTY(party), contract.Operator, "operator should match")
+			require.True(t, bool(contract.SomeBoolean), "someBoolean should be true")
+			require.Equal(t, INT64(190), contract.SomeInteger, "someInteger should be 190")
+			require.Equal(t, TEXT("some text"), contract.SomeText, "someText should match")
+			require.NotNil(t, contract.SomeDecimal, "someDecimal should not be nil")
+			require.NotNil(t, contract.SomeMeasurement, "someMeasurement should not be nil")
+			require.NotNil(t, contract.SomeMaybe, "someMaybe should not be nil")
+			require.Equal(t, INT64(42), *contract.SomeMaybe, "someMaybe value should be 42")
+			require.Nil(t, contract.SomeMaybeNot, "someMaybeNot should be nil")
+			require.NotNil(t, contract.SomeSimpleList, "someSimpleList should not be nil")
+			require.Len(t, contract.SomeSimpleList, 3, "someSimpleList should have 3 elements")
+			require.Equal(t, ColorRed, contract.SomeEnum, "someEnum should be ColorRed")
+		}
+	}
+	require.True(t, foundTypedContract, "should find at least one typed created event")
 }
 
 func TestAmuletsTransfer(t *testing.T) {
@@ -593,4 +679,32 @@ func getContractIDsFromUpdate(ctx context.Context, party, updateID string, cl *c
 	}
 
 	return contractIDs, nil
+}
+
+func getUpdateIDFromContractCreate(ctx context.Context, party string, cl *client.DamlBindingClient, template Template) (string, error) {
+	createCommands := []*model.Command{
+		{
+			Command: template.CreateCommand(),
+		},
+	}
+
+	createSubmissionReq := &model.SubmitAndWaitRequest{
+		Commands: &model.Commands{
+			WorkflowID:   "create-for-typed-test-" + time.Now().Format("20060102150405"),
+			CommandID:    "create-typed-" + time.Now().Format("20060102150405"),
+			ActAs:        []string{party},
+			SubmissionID: "create-typed-sub-" + time.Now().Format("20060102150405"),
+			DeduplicationPeriod: model.DeduplicationDuration{
+				Duration: 60 * time.Second,
+			},
+			Commands: createCommands,
+		},
+	}
+
+	createResponse, err := cl.CommandService.SubmitAndWait(ctx, createSubmissionReq)
+	if err != nil {
+		return "", fmt.Errorf("failed to create contract for typed test: %w", err)
+	}
+
+	return createResponse.UpdateID, nil
 }
