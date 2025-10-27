@@ -105,10 +105,14 @@ func toCamelCase(input string) string {
 		}
 
 		if isAllCaps(word) {
-			if i == 0 {
-				result.WriteString(strings.ToLower(word))
+			if len(word) <= 3 {
+				result.WriteString(word)
 			} else {
-				result.WriteString(strings.ToUpper(word[:1]) + strings.ToLower(word[1:]))
+				if i == 0 {
+					result.WriteString(strings.ToLower(word))
+				} else {
+					result.WriteString(strings.ToUpper(word[:1]) + strings.ToLower(word[1:]))
+				}
 			}
 		} else {
 			if i == 0 {

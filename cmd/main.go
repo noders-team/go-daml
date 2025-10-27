@@ -151,11 +151,9 @@ func runCodeGen(dar, outputDir, pkgFile string, debugMode bool) error {
 		return fmt.Errorf("failed to create output directory '%s': %w", outputDir, err)
 	}
 
-	// First pass: collect all interfaces from all DALFs
 	log.Info().Msg("first pass: collecting interfaces from all DALFs")
 	allInterfaces := make(map[string]*model.TmplStruct)
 
-	// Collect interfaces from MainDalf
 	dalfFullPath := filepath.Join(unzippedPath, manifest.MainDalf)
 	dalfContent, err := os.ReadFile(dalfFullPath)
 	if err != nil {
@@ -177,7 +175,6 @@ func runCodeGen(dar, outputDir, pkgFile string, debugMode bool) error {
 		log.Info().Msgf("collected %d interfaces from MainDalf", len(interfaces))
 	}
 
-	// Collect interfaces from dependency DALFs
 	for _, dalf := range manifest.Dalfs {
 		if dalf == manifest.MainDalf {
 			continue
@@ -214,10 +211,11 @@ func runCodeGen(dar, outputDir, pkgFile string, debugMode bool) error {
 
 	log.Info().Msgf("total interfaces collected: %d", len(allInterfaces))
 
-	// Second pass: process all DALFs with access to all interfaces
 	log.Info().Msg("second pass: generating code for all DALFs")
+	allStructNames := make(map[string]string)
+
 	log.Info().Msgf("processing MainDalf: %s", manifest.MainDalf)
-	err = processDalf(manifest.MainDalf, unzippedPath, pkgFile, manifest.SdkVersion, outputDir, true, allInterfaces)
+	err = processDalfWithConflictCheck(manifest.MainDalf, unzippedPath, pkgFile, manifest.SdkVersion, outputDir, true, allInterfaces, allStructNames)
 	if err != nil {
 		return fmt.Errorf("failed to process MainDalf: %w", err)
 	}
@@ -241,7 +239,7 @@ func runCodeGen(dar, outputDir, pkgFile string, debugMode bool) error {
 		}
 
 		log.Info().Msgf("processing dependency dalf: %s", dalf)
-		err = processDalf(dalf, unzippedPath, pkgFile, manifest.SdkVersion, outputDir, false, allInterfaces)
+		err = processDalfWithConflictCheck(dalf, unzippedPath, pkgFile, manifest.SdkVersion, outputDir, false, allInterfaces, allStructNames)
 		if err != nil {
 			log.Error().Err(err).Msgf("failed to process dalf: %s", dalf)
 			failedCount++
@@ -256,5 +254,109 @@ func runCodeGen(dar, outputDir, pkgFile string, debugMode bool) error {
 		return fmt.Errorf("all dalf files failed to process")
 	}
 
+	return nil
+}
+
+func getDALFPrefix(dalfRelPath string) string {
+	parts := strings.Split(dalfRelPath, "/")
+	var dalfFileName string
+	if len(parts) > 1 {
+		dalfFileName = parts[len(parts)-1]
+	} else {
+		dalfFileName = dalfRelPath
+	}
+	dalfFileName = strings.TrimSuffix(dalfFileName, ".dalf")
+	dalfFileName = removePackageID(dalfFileName)
+	parts = strings.FieldsFunc(dalfFileName, func(r rune) bool {
+		return r == '.' || r == '_' || r == '-' || r == ' '
+	})
+
+	var result strings.Builder
+	for _, part := range parts {
+		if len(part) == 0 {
+			continue
+		}
+		result.WriteString(strings.ToUpper(part[:1]) + part[1:])
+	}
+
+	return result.String()
+}
+
+func processDalfWithConflictCheck(dalfRelPath, unzippedPath, pkgName, sdkVersion, outputDir string, isMainDalf bool, allInterfaces map[string]*model.TmplStruct, allStructNames map[string]string) error {
+	dalfFullPath := filepath.Join(unzippedPath, dalfRelPath)
+	dalfContent, err := os.ReadFile(dalfFullPath)
+	if err != nil {
+		return fmt.Errorf("failed to read dalf file '%s': %w", dalfFullPath, err)
+	}
+
+	manifest := &model.Manifest{
+		SdkVersion: sdkVersion,
+		MainDalf:   dalfRelPath,
+	}
+
+	pkg, err := codegen.GetASTWithInterfaces(dalfContent, manifest, allInterfaces)
+	if err != nil {
+		return fmt.Errorf("failed to generate AST: %w", err)
+	}
+
+	dalfPrefix := getDALFPrefix(dalfRelPath)
+	renamedStructs := make(map[string]*model.TmplStruct)
+	structsToProcess := make(map[string]*model.TmplStruct)
+
+	for structName, structDef := range pkg.Structs {
+		if !structDef.IsInterface {
+			structsToProcess[structName] = structDef
+		}
+	}
+
+	for structName, structDef := range structsToProcess {
+		if existingDalf, exists := allStructNames[structName]; exists {
+			newName := dalfPrefix + structName
+			log.Info().Msgf("conflict detected: struct '%s' already exists in %s, renaming to %s", structName, existingDalf, newName)
+			structDef.Name = newName
+			renamedStructs[structName] = structDef
+			allStructNames[newName] = dalfRelPath
+			delete(pkg.Structs, structName)
+			pkg.Structs[newName] = structDef
+		} else {
+			allStructNames[structName] = dalfRelPath
+		}
+	}
+
+	for _, structDef := range pkg.Structs {
+		for _, field := range structDef.Fields {
+			if renamed, exists := renamedStructs[field.Type]; exists {
+				field.Type = renamed.Name
+			}
+			trimmedType := strings.TrimPrefix(field.Type, "*")
+			trimmedType = strings.TrimPrefix(trimmedType, "[]")
+			if renamed, exists := renamedStructs[trimmedType]; exists {
+				field.Type = strings.Replace(field.Type, trimmedType, renamed.Name, 1)
+			}
+		}
+
+		for _, choice := range structDef.Choices {
+			if renamed, exists := renamedStructs[choice.ArgType]; exists {
+				choice.ArgType = renamed.Name
+			}
+			if renamed, exists := renamedStructs[choice.ReturnType]; exists {
+				choice.ReturnType = renamed.Name
+			}
+		}
+	}
+
+	code, err := codegen.Bind(pkgName, pkg.PackageID, sdkVersion, pkg.Structs, isMainDalf)
+	if err != nil {
+		return fmt.Errorf("failed to generate Go code: %w", err)
+	}
+
+	baseFileName := getFilenameFromDalf(dalfRelPath)
+	outputFile := filepath.Join(outputDir, baseFileName+".go")
+
+	if err := os.WriteFile(outputFile, []byte(code), 0o644); err != nil {
+		return fmt.Errorf("failed to write file '%s': %w", outputFile, err)
+	}
+
+	log.Info().Msgf("successfully generated: %s", outputFile)
 	return nil
 }
