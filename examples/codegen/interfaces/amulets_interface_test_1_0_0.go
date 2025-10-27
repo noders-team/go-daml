@@ -17,8 +17,10 @@ var (
 	_ = strings.NewReader
 )
 
-const PackageID = "8f919735d2daa1abb780808ad1fed686fc9229a039dc659ccb04e5fd5d071c90"
-const SDKVersion = "3.3.0-snapshot.20250507.0"
+const (
+	PackageID  = "8f919735d2daa1abb780808ad1fed686fc9229a039dc659ccb04e5fd5d071c90"
+	SDKVersion = "3.3.0-snapshot.20250507.0"
+)
 
 type Template interface {
 	CreateCommand() *model.CreateCommand
@@ -27,7 +29,6 @@ type Template interface {
 
 // ITransferable is a DAML interface
 type ITransferable interface {
-
 	// Archive executes the Archive choice
 	Archive(contractID string) *model.ExerciseCommand
 
@@ -142,7 +143,6 @@ type AssetTransfer struct {
 // toMap converts AssetTransfer to a map for DAML arguments
 func (t AssetTransfer) toMap() map[string]interface{} {
 	return map[string]interface{}{
-
 		"newOwner": t.NewOwner.ToMap(),
 	}
 }
@@ -235,7 +235,6 @@ type Transfer struct {
 // toMap converts Transfer to a map for DAML arguments
 func (t Transfer) toMap() map[string]interface{} {
 	return map[string]interface{}{
-
 		"newOwner": t.NewOwner.ToMap(),
 	}
 }
@@ -260,7 +259,6 @@ type TransferableView struct {
 // toMap converts TransferableView to a map for DAML arguments
 func (t TransferableView) toMap() map[string]interface{} {
 	return map[string]interface{}{
-
 		"owner": t.Owner.ToMap(),
 	}
 }

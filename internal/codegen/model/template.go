@@ -8,18 +8,18 @@ import (
 )
 
 type TmplStruct struct {
-	Name         string
-	DAMLName     string
-	ModuleName   string
-	Fields       []*TmplField
-	RawType      string
-	IsTemplate   bool
-	IsInterface  bool
-	Key          *TmplField
-	Choices      []*TmplChoice
-	Implements   []string
-	Signatories  []string
-	Observers    []string
+	Name        string
+	DAMLName    string
+	ModuleName  string
+	Fields      []*TmplField
+	RawType     string
+	IsTemplate  bool
+	IsInterface bool
+	Key         *TmplField
+	Choices     []*TmplChoice
+	Implements  []string
+	Signatories []string
+	Observers   []string
 }
 
 type TmplField struct {
