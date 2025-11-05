@@ -175,7 +175,7 @@ func GetAST(payload []byte, manifest *model.Manifest) (*model.Package, error) {
 	return GetASTWithInterfaces(payload, manifest, nil)
 }
 
-func GetASTWithInterfaces(payload []byte, manifest *model.Manifest, externalInterfaces map[string]*model.TmplStruct) (*model.Package, error) {
+func GetASTWithInterfaces(payload []byte, manifest *model.Manifest, ifcByModule map[string]model.InterfaceMap) (*model.Package, error) {
 	var version string
 	if strings.HasPrefix(manifest.SdkVersion, astgen.V3) {
 		version = astgen.V3
@@ -190,7 +190,7 @@ func GetASTWithInterfaces(payload []byte, manifest *model.Manifest, externalInte
 		return nil, err
 	}
 	var structs map[string]*model.TmplStruct
-	structs, err = gen.GetTemplateStructsWithInterfaces(externalInterfaces)
+	structs, err = gen.GetTemplateStructsWithInterfaces(ifcByModule)
 	if err != nil {
 		return nil, err
 	}
