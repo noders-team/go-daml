@@ -17,8 +17,9 @@ var (
 	_ = strings.NewReader
 )
 
-const PackageID = "6d7e83e81a0a7960eec37340f5b11e7a61606bd9161f413684bc345c3f387948"
 const SDKVersion = "3.3.0-snapshot.20250417.0"
+
+const packageName = "all-kinds-of-1.0.0"
 
 type Template interface {
 	CreateCommand() *model.CreateCommand
@@ -85,7 +86,7 @@ func (e Color) GetEnumConstructor() string {
 
 // GetEnumTypeID implements types.ENUM interface
 func (e Color) GetEnumTypeID() string {
-	return fmt.Sprintf("%s:%s:%s", PackageID, "AllKindsOf", "Color")
+	return fmt.Sprintf("#%s:%s:%s", packageName, "AllKindsOf", "Color")
 }
 
 // MarshalJSON implements custom JSON marshaling for Color using JsonCodec
@@ -111,7 +112,7 @@ type MappyContract struct {
 
 // GetTemplateID returns the template ID for this template
 func (t MappyContract) GetTemplateID() string {
-	return fmt.Sprintf("%s:%s:%s", PackageID, "AllKindsOf", "MappyContract")
+	return fmt.Sprintf("#%s:%s:%s", packageName, "AllKindsOf", "MappyContract")
 }
 
 // CreateCommand returns a CreateCommand for this template
@@ -147,7 +148,7 @@ func (t *MappyContract) UnmarshalJSON(data []byte) error {
 // Archive exercises the Archive choice on this MappyContract contract
 func (t MappyContract) Archive(contractID string) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "AllKindsOf", "MappyContract"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "AllKindsOf", "MappyContract"),
 		ContractID: contractID,
 		Choice:     "Archive",
 		Arguments:  map[string]interface{}{},
@@ -203,7 +204,7 @@ type OneOfEverything struct {
 
 // GetTemplateID returns the template ID for this template
 func (t OneOfEverything) GetTemplateID() string {
-	return fmt.Sprintf("%s:%s:%s", PackageID, "AllKindsOf", "OneOfEverything")
+	return fmt.Sprintf("#%s:%s:%s", packageName, "AllKindsOf", "OneOfEverything")
 }
 
 // CreateCommand returns a CreateCommand for this template
@@ -289,7 +290,7 @@ func (t *OneOfEverything) UnmarshalJSON(data []byte) error {
 // Archive exercises the Archive choice on this OneOfEverything contract
 func (t OneOfEverything) Archive(contractID string) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "AllKindsOf", "OneOfEverything"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "AllKindsOf", "OneOfEverything"),
 		ContractID: contractID,
 		Choice:     "Archive",
 		Arguments:  map[string]interface{}{},
@@ -299,7 +300,7 @@ func (t OneOfEverything) Archive(contractID string) *model.ExerciseCommand {
 // Accept exercises the Accept choice on this OneOfEverything contract
 func (t OneOfEverything) Accept(contractID string, args Accept) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "AllKindsOf", "OneOfEverything"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "AllKindsOf", "OneOfEverything"),
 		ContractID: contractID,
 		Choice:     "Accept",
 		Arguments:  argsToMap(args),

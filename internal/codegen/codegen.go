@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/noders-team/go-daml/internal/codegen/astgen"
@@ -153,6 +154,144 @@ func GetManifest(srcPath string) (*model.Manifest, error) {
 	return manifest, nil
 }
 
+func CodegenDalfs(dalfToProcess []string, unzippedPath string, pkgFile string, dalfManifest *model.Manifest) (map[string]string, error) {
+	ifcByModule := make(map[string]model.InterfaceMap)
+	result := make(map[string]string)
+
+	for _, dalf := range dalfToProcess {
+		dalfFullPath := filepath.Join(unzippedPath, dalf)
+		dalfContent, err := os.ReadFile(dalfFullPath)
+		if err != nil {
+			log.Warn().Err(err).Msgf("failed to read dalf '%s': %s", dalf, err)
+			continue
+		}
+
+		interfaces, err := GetInterfaces(dalfContent, dalfManifest)
+		if err != nil {
+			log.Warn().Err(err).Msgf("failed to extract interfaces from dalf: %s", dalf)
+			continue
+		}
+
+		for key, val := range interfaces {
+			equalNames := 0
+			for _, ifcName := range ifcByModule {
+				for ifcKey := range ifcName {
+					res, found := strings.CutPrefix(ifcKey, key)
+					_, atoiErr := strconv.Atoi(res)
+					if found && (res == "" || atoiErr == nil) {
+						equalNames++
+					}
+				}
+			}
+			if equalNames > 0 {
+				equalNames++
+				val.Name = fmt.Sprintf("%s%d", key, equalNames)
+			}
+
+			m, ok := ifcByModule[val.ModuleName]
+			if !ok {
+				m = make(model.InterfaceMap)
+				ifcByModule[val.ModuleName] = m
+			}
+			m[val.Name] = val
+		}
+	}
+
+	allStructNames := make(map[string]int)
+
+	for _, dalf := range dalfToProcess {
+		dalfFullPath := filepath.Join(unzippedPath, dalf)
+		dalfContent, err := os.ReadFile(dalfFullPath)
+		if err != nil {
+			log.Warn().Err(err).Msgf("failed to read dalf '%s': %s", dalf, err)
+			continue
+		}
+
+		pkg, err := GetAST(dalfContent, dalfManifest, ifcByModule)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate AST: %w", err)
+		}
+
+		currentModules := make(map[string]bool)
+		for _, structDef := range pkg.Structs {
+			if structDef.ModuleName != "" {
+				currentModules[structDef.ModuleName] = true
+			}
+		}
+
+		log.Info().Msgf("adding interfaces for dalf %s from modules: %v", dalf, currentModules)
+		for moduleName := range currentModules {
+			if ifcMap, exists := ifcByModule[moduleName]; exists {
+				for key, val := range ifcMap {
+					log.Debug().Msgf("adding interface %s from module %s to output", key, moduleName)
+					pkg.Structs[key] = val
+				}
+			}
+		}
+
+		renamedStructs := make(map[string]*model.TmplStruct)
+
+		for structName, structDef := range pkg.Structs {
+			if structDef.IsInterface {
+				continue
+			}
+
+			equalNames := 0
+			for existingName := range allStructNames {
+				res, found := strings.CutPrefix(existingName, structName)
+				_, atoiErr := strconv.Atoi(res)
+				if found && (res == "" || atoiErr == nil) {
+					equalNames++
+				}
+			}
+
+			if equalNames > 0 {
+				equalNames++
+				originalName := structName
+				newName := fmt.Sprintf("%s%d", structName, equalNames)
+				structDef.Name = newName
+
+				delete(pkg.Structs, originalName)
+				pkg.Structs[newName] = structDef
+				renamedStructs[originalName] = structDef
+				allStructNames[newName] = equalNames
+			} else {
+				allStructNames[structName] = 0
+			}
+		}
+
+		for _, structDef := range pkg.Structs {
+			for _, field := range structDef.Fields {
+				if renamed, exists := renamedStructs[field.Type]; exists {
+					field.Type = renamed.Name
+				}
+				trimmedType := strings.TrimPrefix(field.Type, "*")
+				trimmedType = strings.TrimPrefix(trimmedType, "[]")
+				if renamed, exists := renamedStructs[trimmedType]; exists {
+					field.Type = strings.Replace(field.Type, trimmedType, renamed.Name, 1)
+				}
+			}
+
+			for _, choice := range structDef.Choices {
+				if renamed, exists := renamedStructs[choice.ArgType]; exists {
+					choice.ArgType = renamed.Name
+				}
+				if renamed, exists := renamedStructs[choice.ReturnType]; exists {
+					choice.ReturnType = renamed.Name
+				}
+			}
+		}
+
+		code, err := Bind(pkgFile, pkg.PackageID, "", dalfManifest.SdkVersion, pkg.Structs, dalf == dalfManifest.MainDalf) // TODO
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate Go code: %w", err)
+		}
+
+		result[dalf] = code
+	}
+	return result, nil
+}
+
 func GetInterfaces(payload []byte, manifest *model.Manifest) (map[string]*model.TmplStruct, error) {
 	var version string
 	if strings.HasPrefix(manifest.SdkVersion, astgen.V3) {
@@ -171,11 +310,7 @@ func GetInterfaces(payload []byte, manifest *model.Manifest) (map[string]*model.
 	return gen.GetInterfaces()
 }
 
-func GetAST(payload []byte, manifest *model.Manifest) (*model.Package, error) {
-	return GetASTWithInterfaces(payload, manifest, nil)
-}
-
-func GetASTWithInterfaces(payload []byte, manifest *model.Manifest, externalInterfaces map[string]*model.TmplStruct) (*model.Package, error) {
+func GetAST(payload []byte, manifest *model.Manifest, ifcByModule map[string]model.InterfaceMap) (*model.Package, error) {
 	var version string
 	if strings.HasPrefix(manifest.SdkVersion, astgen.V3) {
 		version = astgen.V3
@@ -190,7 +325,7 @@ func GetASTWithInterfaces(payload []byte, manifest *model.Manifest, externalInte
 		return nil, err
 	}
 	var structs map[string]*model.TmplStruct
-	structs, err = gen.GetTemplateStructsWithInterfaces(externalInterfaces)
+	structs, err = gen.GetTemplateStructs(ifcByModule)
 	if err != nil {
 		return nil, err
 	}

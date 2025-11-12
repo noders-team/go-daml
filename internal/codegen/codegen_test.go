@@ -33,7 +33,7 @@ func TestGetMainDalf(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, dalfContent)
 
-	ast, err := GetAST(dalfContent, manifest)
+	ast, err := GetAST(dalfContent, manifest, nil)
 	require.Nil(t, err)
 	require.NotEmpty(t, ast.Structs)
 
@@ -97,7 +97,7 @@ func TestGetMainDalfAllTypes(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, dalfContent)
 
-	ast, err := GetAST(dalfContent, manifest)
+	ast, err := GetAST(dalfContent, manifest, nil)
 	require.Nil(t, err)
 	require.NotEmpty(t, ast.Structs)
 
@@ -242,7 +242,7 @@ func TestGetMainDalfV3(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, dalfContent)
 
-	ast, err := GetAST(dalfContent, manifest)
+	ast, err := GetAST(dalfContent, manifest, nil)
 	require.Nil(t, err)
 	require.NotEmpty(t, ast.Structs)
 

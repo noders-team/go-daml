@@ -67,11 +67,7 @@ func (c *codeGenAst) GetInterfaces() (map[string]*model.TmplStruct, error) {
 	return interfaceMap, nil
 }
 
-func (c *codeGenAst) GetTemplateStructs() (map[string]*model.TmplStruct, error) {
-	return c.GetTemplateStructsWithInterfaces(nil)
-}
-
-func (c *codeGenAst) GetTemplateStructsWithInterfaces(externalInterfaces map[string]*model.TmplStruct) (map[string]*model.TmplStruct, error) {
+func (c *codeGenAst) GetTemplateStructs(_ map[string]model.InterfaceMap) (map[string]*model.TmplStruct, error) {
 	structs := make(map[string]*model.TmplStruct)
 
 	var archive daml.Archive
@@ -241,7 +237,7 @@ func (c *codeGenAst) getInterfaces(pkg *daml.Package, module *daml.Module, modul
 			DAMLName:    originalName,
 			ModuleName:  moduleName,
 			RawType:     RawTypeInterface,
-			IsInterface: true,
+			IsInterface: true, // TODO dont need
 			Choices:     make([]*model.TmplChoice, 0),
 		}
 

@@ -17,8 +17,9 @@ var (
 	_ = strings.NewReader
 )
 
-const PackageID = "e2d906db3930143bfa53f43c7a69c218c8b499c03556485f312523090684ff34"
 const SDKVersion = "2.9.1"
+
+const packageName = "Test-1.0.0"
 
 type Template interface {
 	CreateCommand() *model.CreateCommand
@@ -105,7 +106,7 @@ type American struct {
 
 // GetTemplateID returns the template ID for this template
 func (t American) GetTemplateID() string {
-	return fmt.Sprintf("%s:%s:%s", PackageID, "Address", "American")
+	return fmt.Sprintf("#%s:%s:%s", packageName, "Address", "American")
 }
 
 // CreateCommand returns a CreateCommand for this template
@@ -139,7 +140,7 @@ func (t *American) UnmarshalJSON(data []byte) error {
 // Archive exercises the Archive choice on this American contract
 func (t American) Archive(contractID string) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Address", "American"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "Address", "American"),
 		ContractID: contractID,
 		Choice:     "Archive",
 		Arguments:  map[string]interface{}{},
@@ -154,7 +155,7 @@ type Briton struct {
 
 // GetTemplateID returns the template ID for this template
 func (t Briton) GetTemplateID() string {
-	return fmt.Sprintf("%s:%s:%s", PackageID, "Address", "Briton")
+	return fmt.Sprintf("#%s:%s:%s", packageName, "Address", "Briton")
 }
 
 // CreateCommand returns a CreateCommand for this template
@@ -188,7 +189,7 @@ func (t *Briton) UnmarshalJSON(data []byte) error {
 // Archive exercises the Archive choice on this Briton contract
 func (t Briton) Archive(contractID string) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Address", "Briton"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "Address", "Briton"),
 		ContractID: contractID,
 		Choice:     "Archive",
 		Arguments:  map[string]interface{}{},
@@ -203,7 +204,7 @@ type OptionalFields struct {
 
 // GetTemplateID returns the template ID for this template
 func (t OptionalFields) GetTemplateID() string {
-	return fmt.Sprintf("%s:%s:%s", PackageID, "Primitives", "OptionalFields")
+	return fmt.Sprintf("#%s:%s:%s", packageName, "Primitives", "OptionalFields")
 }
 
 // CreateCommand returns a CreateCommand for this template
@@ -246,7 +247,7 @@ func (t *OptionalFields) UnmarshalJSON(data []byte) error {
 // Archive exercises the Archive choice on this OptionalFields contract
 func (t OptionalFields) Archive(contractID string) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Primitives", "OptionalFields"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "Primitives", "OptionalFields"),
 		ContractID: contractID,
 		Choice:     "Archive",
 		Arguments:  map[string]interface{}{},
@@ -256,7 +257,7 @@ func (t OptionalFields) Archive(contractID string) *model.ExerciseCommand {
 // OptionalFieldsCleanUp exercises the OptionalFieldsCleanUp choice on this OptionalFields contract
 func (t OptionalFields) OptionalFieldsCleanUp(contractID string, args OptionalFieldsCleanUp) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Primitives", "OptionalFields"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "Primitives", "OptionalFields"),
 		ContractID: contractID,
 		Choice:     "OptionalFieldsCleanUp",
 		Arguments:  argsToMap(args),
@@ -292,7 +293,7 @@ type Person struct {
 
 // GetTemplateID returns the template ID for this template
 func (t Person) GetTemplateID() string {
-	return fmt.Sprintf("%s:%s:%s", PackageID, "Address", "Person")
+	return fmt.Sprintf("#%s:%s:%s", packageName, "Address", "Person")
 }
 
 // CreateCommand returns a CreateCommand for this template
@@ -326,7 +327,7 @@ func (t *Person) UnmarshalJSON(data []byte) error {
 // Archive exercises the Archive choice on this Person contract
 func (t Person) Archive(contractID string) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Address", "Person"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "Address", "Person"),
 		ContractID: contractID,
 		Choice:     "Archive",
 		Arguments:  map[string]interface{}{},
@@ -346,7 +347,7 @@ type SimpleFields struct {
 
 // GetTemplateID returns the template ID for this template
 func (t SimpleFields) GetTemplateID() string {
-	return fmt.Sprintf("%s:%s:%s", PackageID, "Primitives", "SimpleFields")
+	return fmt.Sprintf("#%s:%s:%s", packageName, "Primitives", "SimpleFields")
 }
 
 // CreateCommand returns a CreateCommand for this template
@@ -392,7 +393,7 @@ func (t *SimpleFields) UnmarshalJSON(data []byte) error {
 // SimpleFieldsCleanUp exercises the SimpleFieldsCleanUp choice on this SimpleFields contract
 func (t SimpleFields) SimpleFieldsCleanUp(contractID string, args SimpleFieldsCleanUp) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Primitives", "SimpleFields"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "Primitives", "SimpleFields"),
 		ContractID: contractID,
 		Choice:     "SimpleFieldsCleanUp",
 		Arguments:  argsToMap(args),
@@ -402,7 +403,7 @@ func (t SimpleFields) SimpleFieldsCleanUp(contractID string, args SimpleFieldsCl
 // Archive exercises the Archive choice on this SimpleFields contract
 func (t SimpleFields) Archive(contractID string) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Primitives", "SimpleFields"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "Primitives", "SimpleFields"),
 		ContractID: contractID,
 		Choice:     "Archive",
 		Arguments:  map[string]interface{}{},

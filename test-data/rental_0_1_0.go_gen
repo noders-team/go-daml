@@ -17,8 +17,9 @@ var (
 	_ = strings.NewReader
 )
 
-const PackageID = "20a17897a6664ecb8a4dd3e10b384c8cc41181d26ecbb446c2d65ae0928686c9"
 const SDKVersion = "1.18.1"
+
+const packageName = "rental-0.1.0"
 
 type Template interface {
 	CreateCommand() *model.CreateCommand
@@ -84,7 +85,7 @@ type RentalAgreement struct {
 
 // GetTemplateID returns the template ID for this template
 func (t RentalAgreement) GetTemplateID() string {
-	return fmt.Sprintf("%s:%s:%s", PackageID, "Rental", "RentalAgreement")
+	return fmt.Sprintf("#%s:%s:%s", packageName, "Rental", "RentalAgreement")
 }
 
 // CreateCommand returns a CreateCommand for this template
@@ -120,7 +121,7 @@ func (t *RentalAgreement) UnmarshalJSON(data []byte) error {
 // Archive exercises the Archive choice on this RentalAgreement contract
 func (t RentalAgreement) Archive(contractID string) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Rental", "RentalAgreement"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "Rental", "RentalAgreement"),
 		ContractID: contractID,
 		Choice:     "Archive",
 		Arguments:  map[string]interface{}{},
@@ -136,7 +137,7 @@ type RentalProposal struct {
 
 // GetTemplateID returns the template ID for this template
 func (t RentalProposal) GetTemplateID() string {
-	return fmt.Sprintf("%s:%s:%s", PackageID, "Rental", "RentalProposal")
+	return fmt.Sprintf("#%s:%s:%s", packageName, "Rental", "RentalProposal")
 }
 
 // CreateCommand returns a CreateCommand for this template
@@ -172,7 +173,7 @@ func (t *RentalProposal) UnmarshalJSON(data []byte) error {
 // Archive exercises the Archive choice on this RentalProposal contract
 func (t RentalProposal) Archive(contractID string) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Rental", "RentalProposal"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "Rental", "RentalProposal"),
 		ContractID: contractID,
 		Choice:     "Archive",
 		Arguments:  map[string]interface{}{},
@@ -182,7 +183,7 @@ func (t RentalProposal) Archive(contractID string) *model.ExerciseCommand {
 // Accept exercises the Accept choice on this RentalProposal contract
 func (t RentalProposal) Accept(contractID string, args Accept) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Rental", "RentalProposal"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "Rental", "RentalProposal"),
 		ContractID: contractID,
 		Choice:     "Accept",
 		Arguments:  argsToMap(args),

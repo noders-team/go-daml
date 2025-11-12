@@ -88,11 +88,7 @@ func (c *codeGenAst) GetInterfaces() (map[string]*model.TmplStruct, error) {
 	return interfaceMap, nil
 }
 
-func (c *codeGenAst) GetTemplateStructs() (map[string]*model.TmplStruct, error) {
-	return c.GetTemplateStructsWithInterfaces(nil)
-}
-
-func (c *codeGenAst) GetTemplateStructsWithInterfaces(externalInterfaces map[string]*model.TmplStruct) (map[string]*model.TmplStruct, error) {
+func (c *codeGenAst) GetTemplateStructs(ifcByModule map[string]model.InterfaceMap) (map[string]*model.TmplStruct, error) {
 	structs := make(map[string]*model.TmplStruct)
 
 	var archive daml.Archive
@@ -112,37 +108,6 @@ func (c *codeGenAst) GetTemplateStructsWithInterfaces(externalInterfaces map[str
 		return nil, errors.New("unsupported daml version")
 	}
 
-	// First pass: collect all interfaces from this DALF
-	interfaceMap := make(map[string]*model.TmplStruct)
-	for _, module := range damlLf.Modules {
-		if len(damlLf.InternedStrings) == 0 {
-			continue
-		}
-
-		idx := damlLf.InternedDottedNames[module.GetNameInternedDname()].SegmentsInternedStr
-		moduleName := damlLf.InternedStrings[idx[len(idx)-1]]
-
-		interfaces, err := c.getInterfaces(damlLf, module, moduleName)
-		if err != nil {
-			return nil, err
-		}
-		for key, val := range interfaces {
-			interfaceMap[key] = val
-			structs[key] = val
-		}
-	}
-
-	// Merge external interfaces (from other DALFs) into our interface map
-	if externalInterfaces != nil {
-		for key, val := range externalInterfaces {
-			if _, exists := interfaceMap[key]; !exists {
-				interfaceMap[key] = val
-				log.Debug().Msgf("added external interface %s to interface map", key)
-			}
-		}
-	}
-
-	// Second pass: process data types and templates
 	for _, module := range damlLf.Modules {
 		if len(damlLf.InternedStrings) == 0 {
 			continue
@@ -160,7 +125,7 @@ func (c *codeGenAst) GetTemplateStructsWithInterfaces(externalInterfaces map[str
 			structs[key] = val
 		}
 
-		templates, err := c.getTemplates(damlLf, module, moduleName, interfaceMap)
+		templates, err := c.getTemplates(damlLf, module, moduleName, ifcByModule)
 		if err != nil {
 			return nil, err
 		}
@@ -178,12 +143,15 @@ func (c *codeGenAst) getName(pkg *daml.Package, id int32) string {
 	return pkg.InternedStrings[idx[len(idx)-1]]
 }
 
-func (c *codeGenAst) getTemplates(pkg *daml.Package, module *daml.Module, moduleName string, interfaces map[string]*model.TmplStruct) (map[string]*model.TmplStruct, error) {
+func (c *codeGenAst) getTemplates(
+	pkg *daml.Package, module *daml.Module, moduleName string,
+	interfaces map[string]model.InterfaceMap,
+) (map[string]*model.TmplStruct, error) {
 	structs := make(map[string]*model.TmplStruct, 0)
 
 	for _, template := range module.Templates {
 		templateName := c.getName(pkg, template.TyconInternedDname)
-		log.Info().Msgf("processing template: %s", templateName)
+		log.Debug().Msgf("processing template: %s", templateName)
 
 		var templateDataType *daml.DefDataType
 		for _, dataType := range module.DataTypes {
@@ -264,9 +232,10 @@ func (c *codeGenAst) getTemplates(pkg *daml.Package, module *daml.Module, module
 				if impl.Interface != nil {
 					interfaceName := "I" + c.getName(pkg, impl.Interface.GetNameInternedDname())
 					tmplStruct.Implements = append(tmplStruct.Implements, interfaceName)
-					log.Debug().Msgf("template %s implements interface: %s", templateName, interfaceName)
+					ifcModuleName := c.getName(pkg, impl.Interface.Module.ModuleNameInternedDname)
+					log.Debug().Msgf("template %s -implements interface: %s location %s", templateName, interfaceName, ifcModuleName)
 
-					if interfaceStruct, exists := interfaces[interfaceName]; exists {
+					if interfaceStruct, exists := interfaces[ifcModuleName][interfaceName]; exists {
 						log.Debug().Msgf("found interface %s in map with %d choices", interfaceName, len(interfaceStruct.Choices))
 						for _, ifaceChoice := range interfaceStruct.Choices {
 							found := false
@@ -287,8 +256,6 @@ func (c *codeGenAst) getTemplates(pkg *daml.Package, module *daml.Module, module
 								})
 							}
 						}
-					} else {
-						log.Warn().Msgf("interface %s not found in interfaceMap for template %s - this interface is likely from a dependency DALF", interfaceName, templateName)
 					}
 				}
 			}
@@ -333,15 +300,17 @@ func (c *codeGenAst) getInterfaces(pkg *daml.Package, module *daml.Module, modul
 	for _, iface := range module.Interfaces {
 		originalName := c.getName(pkg, iface.TyconInternedDname)
 		interfaceName := "I" + originalName
-		log.Info().Msgf("processing interface: %s", interfaceName)
+		location := c.getName(pkg, iface.Location.Module.GetModuleNameInternedDname())
+		log.Debug().Msgf("processing interface: %s, original name %s location %s", interfaceName, originalName, location)
 
 		tmplStruct := model.TmplStruct{
 			Name:        interfaceName,
 			DAMLName:    originalName,
 			ModuleName:  moduleName,
 			RawType:     RawTypeInterface,
-			IsInterface: true,
+			IsInterface: true, // TODO dont need as we have RawTypeInterface
 			Choices:     make([]*model.TmplChoice, 0),
+			Location:    location,
 		}
 		choices := c.getChoices(pkg, iface.Choices)
 		tmplStruct.Choices = append(tmplStruct.Choices, choices...)
