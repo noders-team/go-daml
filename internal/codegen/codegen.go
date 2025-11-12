@@ -282,7 +282,7 @@ func CodegenDalfs(dalfToProcess []string, unzippedPath string, pkgFile string, d
 			}
 		}
 
-		code, err := Bind(pkgFile, pkg.PackageID, "", dalfManifest.SdkVersion, pkg.Structs, dalf == dalfManifest.MainDalf) // TODO
+		code, err := Bind(pkgFile, pkg.Name, dalfManifest.SdkVersion, pkg.Structs, dalf == dalfManifest.MainDalf)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate Go code: %w", err)
 		}
