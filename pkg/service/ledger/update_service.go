@@ -12,6 +12,7 @@ import (
 
 type UpdateService interface {
 	GetUpdates(ctx context.Context, req *model.GetUpdatesRequest) (<-chan *model.GetUpdatesResponse, <-chan error)
+	GetUpdateById(ctx context.Context, req *model.GetUpdateByIDRequest) (*model.GetUpdateResponse, error)
 	GetTransactionByID(ctx context.Context, req *model.GetTransactionByIDRequest) (*model.GetTransactionResponse, error)
 	GetTransactionByOffset(ctx context.Context, req *model.GetTransactionByOffsetRequest) (*model.GetTransactionResponse, error)
 }
@@ -35,6 +36,7 @@ func (c *updateService) GetUpdates(ctx context.Context, req *model.GetUpdatesReq
 	protoReq := &v2.GetUpdatesRequest{
 		BeginExclusive: req.BeginExclusive,
 		Filter:         transactionFilterToProto(req.Filter),
+		UpdateFormat:   updateFormatToProto(req.UpdateFormat),
 		Verbose:        req.Verbose,
 	}
 
@@ -79,6 +81,20 @@ func (c *updateService) GetUpdates(ctx context.Context, req *model.GetUpdatesReq
 	}()
 
 	return responseCh, errCh
+}
+
+func (c *updateService) GetUpdateById(ctx context.Context, req *model.GetUpdateByIDRequest) (*model.GetUpdateResponse, error) {
+	protoReq := &v2.GetUpdateByIdRequest{
+		UpdateId:     req.UpdateID,
+		UpdateFormat: updateFormatToProto(req.UpdateFormat),
+	}
+
+	resp, err := c.client.GetUpdateById(ctx, protoReq)
+	if err != nil {
+		return nil, err
+	}
+
+	return getUpdateResponseFromProto(resp), nil
 }
 
 func (c *updateService) GetTransactionByID(ctx context.Context, req *model.GetTransactionByIDRequest) (*model.GetTransactionResponse, error) {
@@ -134,6 +150,16 @@ func getUpdatesResponseFromProto(pb *v2.GetUpdatesResponse) *model.GetUpdatesRes
 	}
 
 	return resp
+}
+
+func getUpdateResponseFromProto(pb *v2.GetUpdateResponse) *model.GetUpdateResponse {
+	if pb == nil {
+		return nil
+	}
+
+	return &model.GetUpdateResponse{
+		Transaction: transactionFromProto(pb.GetTransaction()),
+	}
 }
 
 func getTransactionResponseFromProto(pb *v2.GetTransactionResponse) *model.GetTransactionResponse {

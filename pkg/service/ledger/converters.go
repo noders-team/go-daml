@@ -217,6 +217,18 @@ func eventFormatToProto(format *model.EventFormat) *v2.EventFormat {
 	}
 }
 
+func updateFormatToProto(format *model.EventFormat) *v2.UpdateFormat {
+	if format == nil {
+		return nil
+	}
+	return &v2.UpdateFormat{
+		IncludeTransactions: &v2.TransactionFormat{
+			EventFormat:      eventFormatToProto(format),
+			TransactionShape: 1,
+		},
+	}
+}
+
 func createdEventFromProto(pb *v2.CreatedEvent) *model.CreatedEvent {
 	if pb == nil {
 		return nil

@@ -347,6 +347,7 @@ type GetUpdatesRequest struct {
 	BeginExclusive int64
 	EndInclusive   *int64
 	Filter         *TransactionFilter
+	UpdateFormat   *EventFormat
 	Verbose        bool
 }
 
@@ -392,7 +393,16 @@ type GetTransactionByIDRequest struct {
 	RequestingParties []string
 }
 
+type GetUpdateByIDRequest struct {
+	UpdateID     string
+	UpdateFormat *EventFormat
+}
+
 type GetTransactionResponse struct {
+	Transaction *Transaction
+}
+
+type GetUpdateResponse struct {
 	Transaction *Transaction
 }
 
