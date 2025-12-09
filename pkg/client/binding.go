@@ -7,6 +7,7 @@ import (
 	"github.com/noders-team/go-daml/pkg/service/admin"
 	"github.com/noders-team/go-daml/pkg/service/ledger"
 	"github.com/noders-team/go-daml/pkg/service/testing"
+	"github.com/noders-team/go-daml/pkg/service/topology"
 	"google.golang.org/grpc"
 )
 
@@ -29,6 +30,8 @@ type DamlBindingClient struct {
 	VersionService               ledger.VersionService
 	InteractiveSubmissionService ledger.InteractiveSubmissionService
 	TimeService                  testing.TimeService
+	TopologyManagerWrite         topology.TopologyManagerWrite
+	TopologyManagerRead          topology.TopologyManagerRead
 }
 
 func NewDamlBindingClient(client *DamlClient, grpc *grpc.ClientConn) *DamlBindingClient {
@@ -51,6 +54,8 @@ func NewDamlBindingClient(client *DamlClient, grpc *grpc.ClientConn) *DamlBindin
 		VersionService:               ledger.NewVersionServiceClient(grpc),
 		InteractiveSubmissionService: ledger.NewInteractiveSubmissionServiceClient(grpc),
 		TimeService:                  testing.NewTimeServiceClient(grpc),
+		TopologyManagerWrite:         topology.NewTopologyManagerWriteClient(grpc),
+		TopologyManagerRead:          topology.NewTopologyManagerReadClient(grpc),
 	}
 }
 
