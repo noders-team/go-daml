@@ -63,9 +63,15 @@ func (c *codeGenAst) GetInterfaces() (map[string]*model.TmplStruct, error) {
 		return nil, err
 	}
 
-	damlLf := payloadMapped.GetDamlLf_2()
-	if damlLf == nil {
+	damlLfBytes := payloadMapped.GetDamlLf_2()
+	if damlLfBytes == nil {
 		return nil, errors.New("unsupported daml version")
+	}
+
+	var damlLf daml.Package
+	err = proto.Unmarshal(damlLfBytes, &damlLf)
+	if err != nil {
+		return nil, err
 	}
 
 	for _, module := range damlLf.Modules {
@@ -76,7 +82,7 @@ func (c *codeGenAst) GetInterfaces() (map[string]*model.TmplStruct, error) {
 		idx := damlLf.InternedDottedNames[module.GetNameInternedDname()].SegmentsInternedStr
 		moduleName := damlLf.InternedStrings[idx[len(idx)-1]]
 
-		interfaces, err := c.getInterfaces(damlLf, module, moduleName)
+		interfaces, err := c.getInterfaces(&damlLf, module, moduleName)
 		if err != nil {
 			return nil, err
 		}
@@ -103,9 +109,15 @@ func (c *codeGenAst) GetTemplateStructs(ifcByModule map[string]model.InterfaceMa
 		return nil, err
 	}
 
-	damlLf := payloadMapped.GetDamlLf_2()
-	if damlLf == nil {
+	damlLfBytes := payloadMapped.GetDamlLf_2()
+	if damlLfBytes == nil {
 		return nil, errors.New("unsupported daml version")
+	}
+
+	var damlLf daml.Package
+	err = proto.Unmarshal(damlLfBytes, &damlLf)
+	if err != nil {
+		return nil, err
 	}
 
 	for _, module := range damlLf.Modules {
@@ -117,7 +129,7 @@ func (c *codeGenAst) GetTemplateStructs(ifcByModule map[string]model.InterfaceMa
 		moduleName := damlLf.InternedStrings[idx[len(idx)-1]]
 		log.Info().Msgf("processing module %s", moduleName)
 
-		dataTypes, err := c.getDataTypes(damlLf, module, moduleName)
+		dataTypes, err := c.getDataTypes(&damlLf, module, moduleName)
 		if err != nil {
 			return nil, err
 		}
@@ -125,7 +137,7 @@ func (c *codeGenAst) GetTemplateStructs(ifcByModule map[string]model.InterfaceMa
 			structs[key] = val
 		}
 
-		templates, err := c.getTemplates(damlLf, module, moduleName, ifcByModule)
+		templates, err := c.getTemplates(&damlLf, module, moduleName, ifcByModule)
 		if err != nil {
 			return nil, err
 		}
@@ -458,8 +470,8 @@ func (c *codeGenAst) extractType(pkg *daml.Package, typ *daml.Type) string {
 
 	var fieldType string
 	switch v := typ.Sum.(type) {
-	case *daml.Type_Interned:
-		prim := pkg.InternedTypes[v.Interned]
+	case *daml.Type_InternedType:
+		prim := pkg.InternedTypes[v.InternedType]
 		if prim == nil {
 			return "unknown_interned_type"
 		}
@@ -545,8 +557,8 @@ func (c *codeGenAst) extractField(pkg *daml.Package, field *daml.FieldWithType) 
 	//	*Type_Interned
 	var fieldType string
 	switch v := field.Type.Sum.(type) {
-	case *daml.Type_Interned:
-		prim := pkg.InternedTypes[v.Interned]
+	case *daml.Type_InternedType:
+		prim := pkg.InternedTypes[v.InternedType]
 		if prim != nil {
 			isConType := prim.GetCon()
 			if isConType != nil {

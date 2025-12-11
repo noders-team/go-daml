@@ -94,9 +94,15 @@ const (
 )
 
 type SignedTopologyTransaction struct {
-	Transaction []byte
-	Signatures  []TopologyTransactionSignature
-	Proposal    bool
+	Transaction                []byte
+	Signatures                 []TopologyTransactionSignature
+	MultiTransactionSignatures []*MultiTransactionSignatures
+	Proposal                   bool
+}
+
+type MultiTransactionSignatures struct {
+	TransactionHashes [][]byte
+	Signatures        []TopologyTransactionSignature
 }
 
 type TopologyTransactionSignature struct {

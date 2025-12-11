@@ -16,6 +16,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const damlSandboxVersion = "3.5.0-snapshot.20251106.0"
+
 var (
 	once       sync.Once
 	setupErr   error
@@ -162,7 +164,7 @@ func initDamlSandbox(ctx context.Context, dockerPool *dockertest.Pool) (*dockert
 
 	resource, err := dockerPool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "digitalasset/daml-sdk",
-		Tag:        "3.5.0-snapshot.20251106.0",
+		Tag:        damlSandboxVersion,
 		Platform:   "linux/amd64",
 		Cmd: []string{
 			"daml",
@@ -201,7 +203,7 @@ func initDamlSandbox(ctx context.Context, dockerPool *dockertest.Pool) (*dockert
 	log.Info().Msgf("canton admin API port %s is ready", adminAPIPort)
 
 	log.Info().Msg("port is open, waiting for Canton to fully initialize...")
-	if err := waitForCantonReady(ctx, dockerPool, resource, 2*time.Minute); err != nil {
+	if err := waitForCantonReady(ctx, dockerPool, resource, 3*time.Minute); err != nil {
 		log.Fatal().Err(err).Msg("Canton sandbox initialization timeout")
 	}
 

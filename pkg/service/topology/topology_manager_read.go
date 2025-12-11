@@ -265,9 +265,9 @@ func storeIDFromProto(pb *topov30.StoreId) *model.StoreID {
 	switch store := pb.Store.(type) {
 	case *topov30.StoreId_Authorized_:
 		value = "authorized"
-	case *topov30.StoreId_Synchronizer_:
+	case *topov30.StoreId_Synchronizer:
 		if store.Synchronizer != nil {
-			value = "synchronizer:" + store.Synchronizer.Id
+			value = "synchronizer:" + store.Synchronizer.GetId()
 		}
 	case *topov30.StoreId_Temporary_:
 		if store.Temporary != nil {

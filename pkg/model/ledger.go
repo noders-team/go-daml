@@ -131,8 +131,8 @@ type SubmitAndWaitResponse struct {
 
 // Event Query Service types
 type GetEventsByContractIDRequest struct {
-	ContractID        string
-	RequestingParties []string
+	ContractID  string
+	EventFormat *EventFormat
 }
 
 type GetEventsByContractIDResponse struct {
@@ -234,8 +234,6 @@ const (
 
 // State Service types
 type GetActiveContractsRequest struct {
-	Filter         *TransactionFilter
-	Verbose        bool
 	ActiveAtOffset int64
 	EventFormat    *EventFormat
 }
@@ -416,6 +414,7 @@ type Reassignment struct {
 type GetTransactionByIDRequest struct {
 	UpdateID          string
 	RequestingParties []string
+	UpdateFormat      *EventFormat
 }
 
 type GetUpdateByIDRequest struct {
@@ -434,6 +433,7 @@ type GetUpdateResponse struct {
 type GetTransactionByOffsetRequest struct {
 	Offset            int64
 	RequestingParties []string
+	UpdateFormat      *EventFormat
 }
 
 // Version Service types
@@ -531,6 +531,11 @@ type Signature struct {
 	Signature            []byte
 	SignedBy             string
 	SigningAlgorithmSpec SigningAlgorithmSpec
+}
+
+type SignedTransaction struct {
+	Transaction []byte
+	Signatures  []Signature
 }
 
 type SignatureFormat int32

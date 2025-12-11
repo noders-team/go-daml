@@ -6,6 +6,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
+	v2 "github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2"
 	adminv2 "github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2/admin"
 	"github.com/noders-team/go-daml/pkg/model"
 )
@@ -15,6 +16,7 @@ type PartyManagement interface {
 	GetParties(ctx context.Context, parties []string, identityProviderID string) ([]*model.PartyDetails, error)
 	ListKnownParties(ctx context.Context, pageToken string, pageSize int32, identityProviderID string) (*model.ListKnownPartiesResponse, error)
 	AllocateParty(ctx context.Context, partyIDHint string, localMetadata map[string]string, identityProviderID string) (*model.PartyDetails, error)
+	AllocateExternalParty(ctx context.Context, synchronizer string, onboardingTransactions []model.SignedTransaction, multiHashSignatures []model.Signature, identityProviderID string) (string, error)
 	UpdatePartyDetails(ctx context.Context, party *model.PartyDetails, updateMask *model.UpdateMask) (*model.PartyDetails, error)
 	UpdatePartyIdentityProviderID(ctx context.Context, party string, sourceIdentityProviderID string, targetIdentityProviderID string) error
 }
@@ -112,6 +114,47 @@ func (c *partyManagement) UpdatePartyDetails(ctx context.Context, party *model.P
 	}
 
 	return partyDetailsFromProto(resp.PartyDetails), nil
+}
+
+func (c *partyManagement) AllocateExternalParty(ctx context.Context, synchronizer string, onboardingTransactions []model.SignedTransaction, multiHashSignatures []model.Signature, identityProviderID string) (string, error) {
+	signedTxs := make([]*adminv2.AllocateExternalPartyRequest_SignedTransaction, len(onboardingTransactions))
+	for i, tx := range onboardingTransactions {
+		sigs := make([]*v2.Signature, len(tx.Signatures))
+		for j, sig := range tx.Signatures {
+			sigs[j] = &v2.Signature{
+				Format:    v2.SignatureFormat(sig.Format),
+				Signature: sig.Signature,
+				SignedBy:  sig.SignedBy,
+			}
+		}
+		signedTxs[i] = &adminv2.AllocateExternalPartyRequest_SignedTransaction{
+			Transaction: tx.Transaction,
+			Signatures:  sigs,
+		}
+	}
+
+	multiSigs := make([]*v2.Signature, len(multiHashSignatures))
+	for i, sig := range multiHashSignatures {
+		multiSigs[i] = &v2.Signature{
+			Format:    v2.SignatureFormat(sig.Format),
+			Signature: sig.Signature,
+			SignedBy:  sig.SignedBy,
+		}
+	}
+
+	req := &adminv2.AllocateExternalPartyRequest{
+		Synchronizer:           synchronizer,
+		OnboardingTransactions: signedTxs,
+		MultiHashSignatures:    multiSigs,
+		IdentityProviderId:     identityProviderID,
+	}
+
+	resp, err := c.client.AllocateExternalParty(ctx, req)
+	if err != nil {
+		return "", err
+	}
+
+	return resp.PartyId, nil
 }
 
 func (c *partyManagement) UpdatePartyIdentityProviderID(ctx context.Context, party string, sourceIdentityProviderID string, targetIdentityProviderID string) error {

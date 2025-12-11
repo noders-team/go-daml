@@ -43,7 +43,7 @@ func RunStateService(cl *client.DamlBindingClient) {
 
 	party := getAvailableParty(cl)
 	activeContractsReq := &model.GetActiveContractsRequest{
-		Filter: &model.TransactionFilter{
+		EventFormat: &model.EventFormat{
 			FiltersByParty: map[string]*model.Filters{
 				party: {
 					Inclusive: &model.InclusiveFilters{
@@ -52,7 +52,6 @@ func RunStateService(cl *client.DamlBindingClient) {
 				},
 			},
 		},
-		Verbose: false,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

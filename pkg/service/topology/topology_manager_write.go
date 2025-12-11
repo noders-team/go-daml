@@ -20,8 +20,6 @@ type TopologyManagerWrite interface {
 	GenerateTransactions(ctx context.Context, req *model.GenerateTransactionsRequest) (*model.GenerateTransactionsResponse, error)
 	CreateTemporaryTopologyStore(ctx context.Context, req *model.CreateTemporaryTopologyStoreRequest) (*model.CreateTemporaryTopologyStoreResponse, error)
 	DropTemporaryTopologyStore(ctx context.Context, req *model.DropTemporaryTopologyStoreRequest) (*model.DropTemporaryTopologyStoreResponse, error)
-	PrepareOnboardingTransactions(ctx context.Context, req *PrepareOnboardingTransactionsRequest) (*PrepareOnboardingTransactionsResponse, error)
-	OnboardExternalParty(ctx context.Context, req *OnboardExternalPartyRequest) (*OnboardExternalPartyResponse, error)
 }
 
 type topologyManagerWrite struct {
@@ -155,9 +153,11 @@ func storeIDToProto(store *model.StoreID) *topov30.StoreId {
 			Authorized: &topov30.StoreId_Authorized{},
 		}
 	} else if strings.HasPrefix(store.Value, "synchronizer:") {
-		pbStore.Store = &topov30.StoreId_Synchronizer_{
-			Synchronizer: &topov30.StoreId_Synchronizer{
-				Id: store.Value[13:],
+		pbStore.Store = &topov30.StoreId_Synchronizer{
+			Synchronizer: &topov30.Synchronizer{
+				Kind: &topov30.Synchronizer_Id{
+					Id: store.Value[13:],
+				},
 			},
 		}
 	} else if strings.HasPrefix(store.Value, "temporary:") {
@@ -185,10 +185,27 @@ func signedTopologyTransactionToProto(tx *model.SignedTopologyTransaction) *prot
 		}
 	}
 
+	multiTxSigs := make([]*protov30.MultiTransactionSignatures, len(tx.MultiTransactionSignatures))
+	for i, mts := range tx.MultiTransactionSignatures {
+		sigs := make([]*cryptov30.Signature, len(mts.Signatures))
+		for j, sig := range mts.Signatures {
+			sigs[j] = &cryptov30.Signature{
+				SignedBy:  sig.SignedBy,
+				Signature: sig.Signature,
+				Format:    cryptov30.SignatureFormat(sig.SignatureFormat),
+			}
+		}
+		multiTxSigs[i] = &protov30.MultiTransactionSignatures{
+			TransactionHashes: mts.TransactionHashes,
+			Signatures:        sigs,
+		}
+	}
+
 	return &protov30.SignedTopologyTransaction{
-		Transaction: tx.Transaction,
-		Signatures:  signatures,
-		Proposal:    tx.Proposal,
+		Transaction:                tx.Transaction,
+		Signatures:                 signatures,
+		MultiTransactionSignatures: multiTxSigs,
+		Proposal:                   tx.Proposal,
 	}
 }
 
@@ -214,10 +231,27 @@ func signedTopologyTransactionFromProto(pb *protov30.SignedTopologyTransaction) 
 		}
 	}
 
+	multiTxSigs := make([]*model.MultiTransactionSignatures, len(pb.MultiTransactionSignatures))
+	for i, mts := range pb.MultiTransactionSignatures {
+		sigs := make([]model.TopologyTransactionSignature, len(mts.Signatures))
+		for j, sig := range mts.Signatures {
+			sigs[j] = model.TopologyTransactionSignature{
+				SignedBy:        sig.SignedBy,
+				Signature:       sig.Signature,
+				SignatureFormat: int32(sig.Format),
+			}
+		}
+		multiTxSigs[i] = &model.MultiTransactionSignatures{
+			TransactionHashes: mts.TransactionHashes,
+			Signatures:        sigs,
+		}
+	}
+
 	return &model.SignedTopologyTransaction{
-		Transaction: pb.Transaction,
-		Signatures:  signatures,
-		Proposal:    pb.Proposal,
+		Transaction:                pb.Transaction,
+		Signatures:                 signatures,
+		MultiTransactionSignatures: multiTxSigs,
+		Proposal:                   pb.Proposal,
 	}
 }
 

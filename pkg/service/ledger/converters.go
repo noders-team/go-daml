@@ -124,22 +124,6 @@ func commandToProto(cmd *model.Command) *v2.Command {
 	return pbCmd
 }
 
-func transactionFilterToProto(filter *model.TransactionFilter) *v2.TransactionFilter {
-	if filter == nil {
-		return nil
-	}
-
-	pbFilter := &v2.TransactionFilter{
-		FiltersByParty: make(map[string]*v2.Filters),
-	}
-
-	for party, filters := range filter.FiltersByParty {
-		pbFilter.FiltersByParty[party] = filtersToProto(filters)
-	}
-
-	return pbFilter
-}
-
 func filtersToProto(filters *model.Filters) *v2.Filters {
 	if filters == nil {
 		return nil
@@ -969,18 +953,18 @@ func singlePartySignaturesToProto(sigs []*model.SinglePartySignatures) []*intera
 	return result
 }
 
-func signaturesToProto(sigs []*model.Signature) []*interactive.Signature {
+func signaturesToProto(sigs []*model.Signature) []*v2.Signature {
 	if sigs == nil {
 		return nil
 	}
 
-	result := make([]*interactive.Signature, len(sigs))
+	result := make([]*v2.Signature, len(sigs))
 	for i, sig := range sigs {
-		result[i] = &interactive.Signature{
-			Format:               interactive.SignatureFormat(sig.Format),
+		result[i] = &v2.Signature{
+			Format:               v2.SignatureFormat(sig.Format),
 			Signature:            sig.Signature,
 			SignedBy:             sig.SignedBy,
-			SigningAlgorithmSpec: interactive.SigningAlgorithmSpec(sig.SigningAlgorithmSpec),
+			SigningAlgorithmSpec: v2.SigningAlgorithmSpec(sig.SigningAlgorithmSpec),
 		}
 	}
 	return result
@@ -1013,7 +997,7 @@ func unassignedEventFromProto(pb *v2.UnassignedEvent) *model.UnassignedEvent {
 	}
 
 	return &model.UnassignedEvent{
-		UnassignID:            pb.UnassignId,
+		UnassignID:            pb.ReassignmentId,
 		ContractID:            pb.ContractId,
 		TemplateID:            templateID,
 		Source:                pb.Source,
@@ -1035,7 +1019,7 @@ func assignedEventFromProto(pb *v2.AssignedEvent) *model.AssignedEvent {
 	return &model.AssignedEvent{
 		Source:              pb.Source,
 		Target:              pb.Target,
-		UnassignID:          pb.UnassignId,
+		UnassignID:          pb.ReassignmentId,
 		Submitter:           pb.Submitter,
 		ReassignmentCounter: pb.ReassignmentCounter,
 		CreatedEvent:        createdEventFromProto(pb.CreatedEvent),

@@ -26,8 +26,8 @@ func NewEventQueryClient(conn *grpc.ClientConn) *eventQuery {
 
 func (c *eventQuery) GetEventsByContractID(ctx context.Context, req *model.GetEventsByContractIDRequest) (*model.GetEventsByContractIDResponse, error) {
 	protoReq := &v2.GetEventsByContractIdRequest{
-		ContractId:        req.ContractID,
-		RequestingParties: req.RequestingParties,
+		ContractId:  req.ContractID,
+		EventFormat: eventFormatToProto(req.EventFormat),
 	}
 
 	resp, err := c.client.GetEventsByContractId(ctx, protoReq)
