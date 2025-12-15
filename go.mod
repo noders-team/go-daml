@@ -4,8 +4,10 @@ go 1.23.0
 
 toolchain go1.24.1
 
+replace github.com/digital-asset/dazl-client/v8 => github.com/noders-team/dazl-client/v8 v8.7.1-2
+
 require (
-	github.com/digital-asset/dazl-client/v8 v8.4.2
+	github.com/digital-asset/dazl-client/v8 v8.7.1
 	github.com/ory/dockertest/v3 v3.12.0
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/cobra v1.10.1

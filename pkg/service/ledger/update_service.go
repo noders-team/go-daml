@@ -35,9 +35,7 @@ func (c *updateService) Client() v2.UpdateServiceClient {
 func (c *updateService) GetUpdates(ctx context.Context, req *model.GetUpdatesRequest) (<-chan *model.GetUpdatesResponse, <-chan error) {
 	protoReq := &v2.GetUpdatesRequest{
 		BeginExclusive: req.BeginExclusive,
-		Filter:         transactionFilterToProto(req.Filter),
 		UpdateFormat:   updateFormatToProto(req.UpdateFormat),
-		Verbose:        req.Verbose,
 	}
 
 	if req.EndInclusive != nil {
@@ -98,31 +96,31 @@ func (c *updateService) GetUpdateById(ctx context.Context, req *model.GetUpdateB
 }
 
 func (c *updateService) GetTransactionByID(ctx context.Context, req *model.GetTransactionByIDRequest) (*model.GetTransactionResponse, error) {
-	protoReq := &v2.GetTransactionByIdRequest{
-		UpdateId:          req.UpdateID,
-		RequestingParties: req.RequestingParties,
+	protoReq := &v2.GetUpdateByIdRequest{
+		UpdateId:     req.UpdateID,
+		UpdateFormat: updateFormatToProto(req.UpdateFormat),
 	}
 
-	resp, err := c.client.GetTransactionById(ctx, protoReq)
+	resp, err := c.client.GetUpdateById(ctx, protoReq)
 	if err != nil {
 		return nil, err
 	}
 
-	return getTransactionResponseFromProto(resp), nil
+	return getTransactionResponseFromProto(resp.GetTransaction()), nil
 }
 
 func (c *updateService) GetTransactionByOffset(ctx context.Context, req *model.GetTransactionByOffsetRequest) (*model.GetTransactionResponse, error) {
-	protoReq := &v2.GetTransactionByOffsetRequest{
-		Offset:            req.Offset,
-		RequestingParties: req.RequestingParties,
+	protoReq := &v2.GetUpdateByOffsetRequest{
+		Offset:       req.Offset,
+		UpdateFormat: updateFormatToProto(req.UpdateFormat),
 	}
 
-	resp, err := c.client.GetTransactionByOffset(ctx, protoReq)
+	resp, err := c.client.GetUpdateByOffset(ctx, protoReq)
 	if err != nil {
 		return nil, err
 	}
 
-	return getTransactionResponseFromProto(resp), nil
+	return getTransactionResponseFromProto(resp.GetTransaction()), nil
 }
 
 func getUpdatesResponseFromProto(pb *v2.GetUpdatesResponse) *model.GetUpdatesResponse {
@@ -162,13 +160,13 @@ func getUpdateResponseFromProto(pb *v2.GetUpdateResponse) *model.GetUpdateRespon
 	}
 }
 
-func getTransactionResponseFromProto(pb *v2.GetTransactionResponse) *model.GetTransactionResponse {
-	if pb == nil {
+func getTransactionResponseFromProto(tx *v2.Transaction) *model.GetTransactionResponse {
+	if tx == nil {
 		return nil
 	}
 
 	return &model.GetTransactionResponse{
-		Transaction: transactionFromProto(pb.Transaction),
+		Transaction: transactionFromProto(tx),
 	}
 }
 
@@ -234,7 +232,7 @@ func reassignmentFromProto(pb *v2.Reassignment) *model.Reassignment {
 		switch e := event.Event.(type) {
 		case *v2.ReassignmentEvent_Unassigned:
 			if e.Unassigned != nil {
-				r.UnassignID = e.Unassigned.UnassignId
+				r.UnassignID = e.Unassigned.ReassignmentId
 				r.Source = e.Unassigned.Source
 				r.Target = e.Unassigned.Target
 				r.Counter = int64(e.Unassigned.ReassignmentCounter)
@@ -246,7 +244,7 @@ func reassignmentFromProto(pb *v2.Reassignment) *model.Reassignment {
 		case *v2.ReassignmentEvent_Assigned:
 			if e.Assigned != nil {
 				if r.UnassignID == "" {
-					r.UnassignID = e.Assigned.UnassignId
+					r.UnassignID = e.Assigned.ReassignmentId
 				}
 				if r.Source == "" {
 					r.Source = e.Assigned.Source

@@ -5,9 +5,10 @@ import (
 )
 
 type Config struct {
-	Address string
-	TLS     *TLSConfig
-	Auth    *AuthConfig
+	Address      string
+	AdminAddress string
+	TLS          *TLSConfig
+	Auth         *AuthConfig
 }
 
 type TLSConfig struct {
@@ -26,6 +27,12 @@ type ConfigOption func(*Config)
 func WithAddress(addr string) ConfigOption {
 	return func(c *Config) {
 		c.Address = addr
+	}
+}
+
+func WithAdminAddress(addr string) ConfigOption {
+	return func(c *Config) {
+		c.AdminAddress = addr
 	}
 }
 

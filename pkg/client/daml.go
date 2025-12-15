@@ -31,6 +31,11 @@ func (c *DamlClient) WithTLSConfig(cfg TlsConfig) *DamlClient {
 	return c
 }
 
+func (c *DamlClient) WithAdminAddress(addr string) *DamlClient {
+	c.config.AdminAddress = addr
+	return c
+}
+
 func (c *DamlClient) Build(ctx context.Context) (*DamlBindingClient, error) {
 	client := NewClient(c.config)
 	conn, err := client.Connect(ctx)
@@ -38,7 +43,7 @@ func (c *DamlClient) Build(ctx context.Context) (*DamlBindingClient, error) {
 		return nil, err
 	}
 
-	return NewDamlBindingClient(c, conn.GRPCConn()), nil
+	return NewDamlBindingClient(c, conn), nil
 }
 
 type TlsConfig struct {

@@ -13,8 +13,12 @@ func RunEventQuery(cl *client.DamlBindingClient) {
 	party := getAvailableParty(cl)
 
 	eventReq := &model.GetEventsByContractIDRequest{
-		ContractID:        contractID,
-		RequestingParties: []string{party},
+		ContractID: contractID,
+		EventFormat: &model.EventFormat{
+			FiltersByParty: map[string]*model.Filters{
+				party: {},
+			},
+		},
 	}
 
 	events, err := cl.EventQuery.GetEventsByContractID(context.Background(), eventReq)

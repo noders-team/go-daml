@@ -106,8 +106,8 @@ var _ ENUM = Color("")
 
 // MappyContract is a Template type
 type MappyContract struct {
-	Operator PARTY  `json:"operator"`
-	Value    GENMAP `json:"value"`
+	Operator PARTY   `json:"operator"`
+	Value    TEXTMAP `json:"value"`
 }
 
 // GetTemplateID returns the template ID for this template
@@ -121,9 +121,7 @@ func (t MappyContract) CreateCommand() *model.CreateCommand {
 
 	args["operator"] = t.Operator.ToMap()
 
-	if t.Value != nil && len(t.Value) > 0 {
-		args["value"] = map[string]interface{}{"_type": "genmap", "value": t.Value}
-	}
+	args["value"] = t.Value
 
 	return &model.CreateCommand{
 		TemplateID: t.GetTemplateID(),

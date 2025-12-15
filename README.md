@@ -15,9 +15,11 @@ The public SDK components are located under `pkg/`, which includes the client, s
 
 ### SDK Components
 - **Complete DAML Client Library** - Full gRPC client for DAML Ledger API with connection management, authentication, and TLS support
+- **Dual-Connection Support** - Separate connections for ledger and admin endpoints with automatic service routing
 - **Service Layer Abstractions** - High-level services for common ledger and administrative operations
 - **Ledger Services** - Command submission, command completion, event querying, state management, update service, package service, version service, interactive submission
 - **Admin Services** - Package management, user management, party management, participant pruning, command inspection, identity provider configuration
+- **Topology Services** - Topology manager read/write operations for namespace delegations, party-to-key mappings, and party-to-participant mappings
 - **Authentication Support** - Bearer token authentication with automatic token injection via gRPC interceptors
 - **Error Handling** - Comprehensive DAML-specific error processing with categorized error types (authorization, validation, ledger-specific, connection errors)
 - **JSON Codec** - Custom JSON serialization/deserialization for complex DAML types including Records, Variants, Enums, and primitive types
@@ -68,10 +70,12 @@ import (
 )
 
 bearerToken := "your-auth-token"
-grpcAddress := "localhost:8080"
+grpcAddress := "localhost:6865"
+adminAddress := "localhost:6866"
 tlsConfig := client.TlsConfig{}
 
 cl, err := client.NewDamlClient(bearerToken, grpcAddress).
+    WithAdminAddress(adminAddress).
     WithTLSConfig(tlsConfig).
     Build(context.Background())
 if err != nil {
@@ -83,6 +87,7 @@ cl.EventQueryService.GetActiveContracts(ctx, filter)
 cl.StateService.GetLedgerEnd(ctx)
 cl.UserMng.CreateUser(ctx, userRequest)
 cl.PartyMng.AllocateParty(ctx, partyRequest)
+cl.TopologyManagerWrite.GenerateTransactions(ctx, request)
 ```
 
 ### Code Generation
@@ -188,6 +193,11 @@ The Go DAML SDK is organized into the following modules:
   - **Participant Pruning**: Prune ledger history
   - **Command Inspection**: Inspect command status
   - **Identity Provider Configuration**: Configure identity providers
+
+- **`pkg/service/topology/`**: Topology management operations
+  - **Topology Manager Write**: Generate, authorize, sign, and add topology transactions
+  - **Topology Manager Read**: Query namespace delegations, party-to-key mappings, party-to-participant mappings
+  - **External Party Support**: Onboarding transactions for external party allocation
 
 - **`pkg/service/testing/`**: Testing utilities
   - **Time Service**: Control ledger time for testing
@@ -370,6 +380,106 @@ func main() {
     log.Info().Msgf("Allocated party: %s", party.PartyId)
 }
 ```
+
+### Example 4: Dual-Connection with Topology Services
+```go
+package main
+
+import (
+    "context"
+    "os"
+    "github.com/noders-team/go-daml/pkg/client"
+    "github.com/noders-team/go-daml/pkg/model"
+    "github.com/rs/zerolog/log"
+)
+
+func main() {
+    ledgerAddress := "localhost:6865"
+    adminAddress := "localhost:6866"
+    bearerToken := os.Getenv("BEARER_TOKEN")
+
+    cl, err := client.NewDamlClient(bearerToken, ledgerAddress).
+        WithAdminAddress(adminAddress).
+        Build(context.Background())
+    if err != nil {
+        log.Fatal().Err(err).Msg("failed to build DAML client")
+    }
+    defer cl.Close()
+
+    ctx := context.Background()
+
+    proposals := []*model.GenerateTransactionProposal{
+        {
+            Operation: model.OperationAddReplace,
+            Serial:    1,
+            Mapping: &model.NamespaceDelegation{
+                Namespace:        "namespace-fingerprint",
+                TargetKey:        publicKey,
+                IsRootDelegation: true,
+            },
+            Store: &model.StoreID{Value: "authorized"},
+        },
+    }
+
+    genResp, err := cl.TopologyManagerWrite.GenerateTransactions(ctx, &model.GenerateTransactionsRequest{
+        Proposals: proposals,
+    })
+    if err != nil {
+        log.Error().Err(err).Msg("failed to generate topology transactions")
+        return
+    }
+
+    listResp, err := cl.TopologyManagerRead.ListNamespaceDelegation(ctx, &model.ListNamespaceDelegationRequest{})
+    if err != nil {
+        log.Error().Err(err).Msg("failed to list namespace delegations")
+        return
+    }
+
+    log.Info().Msgf("Generated %d topology transactions", len(genResp.GeneratedTransactions))
+    log.Info().Msgf("Found %d namespace delegations", len(listResp.Results))
+}
+```
+
+## Dual-Connection Architecture
+
+The Go DAML SDK supports separate connections for **Ledger API** and **Admin API** endpoints, which is essential for Canton deployments where these services run on different ports.
+
+### When to Use Dual Connections
+
+Use dual connections when:
+- Your Canton participant exposes Ledger API and Admin API on different ports (e.g., 6865 and 6866)
+- You need to use topology management services alongside ledger operations
+- You're working with external party allocation and onboarding transactions
+
+### Connection Routing
+
+The client automatically routes services to the appropriate connection:
+
+**Main Connection (Ledger Address):**
+- Command Service, Command Completion, Command Submission
+- Event Query Service
+- State Service, Update Service
+- Package Service, Version Service
+- Interactive Submission Service
+- User Management, Party Management
+- Package Management, Participant Pruning
+- Command Inspection, Identity Provider Configuration
+
+**Admin Connection (Admin Address):**
+- Topology Manager Write (GenerateTransactions, Authorize, SignTransactions, AddTransactions)
+- Topology Manager Read (ListNamespaceDelegation, ListPartyToKeyMapping, ListPartyToParticipant)
+
+### Usage
+
+```go
+cl, err := client.NewDamlClient(token, "localhost:6865").
+    WithAdminAddress("localhost:6866").  // Optional: if not provided, all services use main address
+    Build(ctx)
+
+cl.TopologyManagerWrite.GenerateTransactions(ctx, request)
+```
+
+**Backward Compatibility:** If `WithAdminAddress()` is not called, all services (including topology) use the main ledger address, maintaining backward compatibility with existing code.
 
 ## Architecture
 

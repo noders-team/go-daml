@@ -13,8 +13,9 @@ import (
 )
 
 type Client struct {
-	config *Config
-	conn   *grpc.ClientConn
+	config    *Config
+	conn      *grpc.ClientConn
+	adminConn *grpc.ClientConn
 }
 
 func NewClient(config *Config) *Client {
@@ -32,14 +33,31 @@ func (c *Client) Connect(ctx context.Context) (*Connection, error) {
 	}
 
 	c.conn = conn
-	return NewConnection(c, conn), nil
+
+	var adminConn *grpc.ClientConn
+	if c.config.AdminAddress != "" {
+		adminConn, err = grpc.DialContext(ctx, c.config.AdminAddress, opts...)
+		if err != nil {
+			c.conn.Close()
+			return nil, fmt.Errorf("failed to connect to DAML admin endpoint: %w", err)
+		}
+		c.adminConn = adminConn
+	}
+
+	return NewConnection(c, conn, adminConn), nil
 }
 
 func (c *Client) Close() error {
+	var err error
 	if c.conn != nil {
-		return c.conn.Close()
+		err = c.conn.Close()
 	}
-	return nil
+	if c.adminConn != nil {
+		if adminErr := c.adminConn.Close(); adminErr != nil && err == nil {
+			err = adminErr
+		}
+	}
+	return err
 }
 
 func (c *Client) buildDialOptions() []grpc.DialOption {
@@ -89,17 +107,26 @@ func (c *Client) createBearerAuth() *auth.BearerTokenAuth {
 }
 
 type Connection struct {
-	client *Client
-	conn   *grpc.ClientConn
+	client    *Client
+	conn      *grpc.ClientConn
+	adminConn *grpc.ClientConn
 }
 
-func NewConnection(client *Client, conn *grpc.ClientConn) *Connection {
+func NewConnection(client *Client, conn *grpc.ClientConn, adminConn *grpc.ClientConn) *Connection {
 	return &Connection{
-		client: client,
-		conn:   conn,
+		client:    client,
+		conn:      conn,
+		adminConn: adminConn,
 	}
 }
 
 func (c *Connection) GRPCConn() *grpc.ClientConn {
+	return c.conn
+}
+
+func (c *Connection) AdminGRPCConn() *grpc.ClientConn {
+	if c.adminConn != nil {
+		return c.adminConn
+	}
 	return c.conn
 }
