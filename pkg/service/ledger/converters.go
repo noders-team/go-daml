@@ -558,85 +558,9 @@ func mapToValue(data interface{}) *v2.Value {
 
 		if typeStr, ok := v["_type"].(string); ok && typeStr == "genmap" {
 			if mapValue, ok := v["value"].(map[string]interface{}); ok {
-				allTextValues := true
-				for _, val := range mapValue {
-					if _, ok := val.(string); !ok {
-						allTextValues = false
-						break
-					}
-				}
-
-				if allTextValues {
-					textMapEntries := make([]*v2.TextMap_Entry, 0, len(mapValue))
-					for key, val := range mapValue {
-						textMapEntries = append(textMapEntries, &v2.TextMap_Entry{
-							Key:   key,
-							Value: mapToValue(val),
-						})
-					}
-					return &v2.Value{
-						Sum: &v2.Value_TextMap{
-							TextMap: &v2.TextMap{
-								Entries: textMapEntries,
-							},
-						},
-					}
-				} else {
-					entries := make([]*v2.GenMap_Entry, 0, len(mapValue))
-					for key, val := range mapValue {
-						entries = append(entries, &v2.GenMap_Entry{
-							Key:   &v2.Value{Sum: &v2.Value_Text{Text: key}},
-							Value: mapToValue(val),
-						})
-					}
-					return &v2.Value{
-						Sum: &v2.Value_GenMap{
-							GenMap: &v2.GenMap{
-								Entries: entries,
-							},
-						},
-					}
-				}
+				return getMapConvert(mapValue)
 			} else if genMapValue, ok := v["value"].(types.GENMAP); ok {
-				allTextValues := true
-				for _, val := range genMapValue {
-					if _, ok := val.(string); !ok {
-						allTextValues = false
-						break
-					}
-				}
-
-				if allTextValues {
-					textMapEntries := make([]*v2.TextMap_Entry, 0, len(genMapValue))
-					for key, val := range genMapValue {
-						textMapEntries = append(textMapEntries, &v2.TextMap_Entry{
-							Key:   key,
-							Value: mapToValue(val),
-						})
-					}
-					return &v2.Value{
-						Sum: &v2.Value_TextMap{
-							TextMap: &v2.TextMap{
-								Entries: textMapEntries,
-							},
-						},
-					}
-				} else {
-					entries := make([]*v2.GenMap_Entry, 0, len(genMapValue))
-					for key, val := range genMapValue {
-						entries = append(entries, &v2.GenMap_Entry{
-							Key:   &v2.Value{Sum: &v2.Value_Text{Text: key}},
-							Value: mapToValue(val),
-						})
-					}
-					return &v2.Value{
-						Sum: &v2.Value_GenMap{
-							GenMap: &v2.GenMap{
-								Entries: entries,
-							},
-						},
-					}
-				}
+				return getMapConvert(genMapValue)
 			}
 		}
 		fields := make([]*v2.RecordField, 0, len(v))
@@ -695,6 +619,48 @@ func mapToValue(data interface{}) *v2.Value {
 		return mapToValue(structToMap(v))
 	default:
 		return nil
+	}
+}
+
+func getMapConvert(genMapValue map[string]interface{}) *v2.Value {
+	allTextValues := true
+	for _, val := range genMapValue {
+		if _, ok := val.(string); !ok {
+			allTextValues = false
+			break
+		}
+	}
+
+	if allTextValues {
+		textMapEntries := make([]*v2.TextMap_Entry, 0, len(genMapValue))
+		for key, val := range genMapValue {
+			textMapEntries = append(textMapEntries, &v2.TextMap_Entry{
+				Key:   key,
+				Value: mapToValue(val),
+			})
+		}
+		return &v2.Value{
+			Sum: &v2.Value_TextMap{
+				TextMap: &v2.TextMap{
+					Entries: textMapEntries,
+				},
+			},
+		}
+	} else {
+		entries := make([]*v2.GenMap_Entry, 0, len(genMapValue))
+		for key, val := range genMapValue {
+			entries = append(entries, &v2.GenMap_Entry{
+				Key:   &v2.Value{Sum: &v2.Value_Text{Text: key}},
+				Value: mapToValue(val),
+			})
+		}
+		return &v2.Value{
+			Sum: &v2.Value_GenMap{
+				GenMap: &v2.GenMap{
+					Entries: entries,
+				},
+			},
+		}
 	}
 }
 
