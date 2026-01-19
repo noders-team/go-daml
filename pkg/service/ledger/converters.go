@@ -350,7 +350,7 @@ func valueFromProto(pb *v2.Value) interface{} {
 	case *v2.Value_Date:
 		return v.Date
 	case *v2.Value_Timestamp:
-		return v.Timestamp
+		return time.Unix(v.Timestamp/1000000, (v.Timestamp%1000000)*1000)
 	case *v2.Value_Optional:
 		if v.Optional.Value != nil {
 			return valueFromProto(v.Optional.Value)
@@ -505,7 +505,9 @@ func mapToValue(data interface{}) *v2.Value {
 	case types.DATE:
 		return &v2.Value{Sum: &v2.Value_Date{Date: int32((time.Time)(v).Unix() / 86400)}}
 	case types.TIMESTAMP:
-		return &v2.Value{Sum: &v2.Value_Timestamp{Timestamp: int64((time.Time)(v).Unix())}}
+		t := time.Time(v)
+		microseconds := t.Unix()*1000000 + int64(t.Nanosecond())/1000
+		return &v2.Value{Sum: &v2.Value_Timestamp{Timestamp: microseconds}}
 	case bool:
 		return &v2.Value{Sum: &v2.Value_Bool{Bool: v}}
 	case int64:
