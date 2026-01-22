@@ -232,6 +232,43 @@ const (
 	PackageStatusRegistered PackageStatus = 1
 )
 
+type ListVettedPackagesRequest struct {
+	PackageMetadataFilter *PackageMetadataFilter
+	TopologyStateFilter   *TopologyStateFilter
+	PageToken             string
+	PageSize              uint32
+}
+
+type ListVettedPackagesResponse struct {
+	VettedPackages []*VettedPackages
+	NextPageToken  string
+}
+
+type VettedPackages struct {
+	Packages       []*VettedPackage
+	ParticipantID  string
+	SynchronizerID string
+	TopologySerial uint32
+}
+
+type VettedPackage struct {
+	PackageID           string
+	ValidFromInclusive  *time.Time
+	ValidUntilExclusive *time.Time
+	PackageName         string
+	PackageVersion      string
+}
+
+type PackageMetadataFilter struct {
+	PackageIDs          []string
+	PackageNamePrefixes []string
+}
+
+type TopologyStateFilter struct {
+	ParticipantIDs  []string
+	SynchronizerIDs []string
+}
+
 // State Service types
 type GetActiveContractsRequest struct {
 	ActiveAtOffset int64

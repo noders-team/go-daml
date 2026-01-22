@@ -90,3 +90,49 @@ type IdentityProviderConfig struct {
 type UpdateMask struct {
 	Paths []string
 }
+
+type UpdateVettedPackagesRequest struct {
+	Changes                        []*VettedPackagesChange
+	DryRun                         bool
+	SynchronizerID                 string
+	ExpectedTopologySerial         *PriorTopologySerial
+	UpdateVettedPackagesForceFlags []UpdateVettedPackagesForceFlag
+}
+
+type UpdateVettedPackagesResponse struct {
+	PastVettedPackages *VettedPackages
+	NewVettedPackages  *VettedPackages
+}
+
+type VettedPackagesChange struct {
+	Vet   *VettedPackagesVet
+	Unvet *VettedPackagesUnvet
+}
+
+type VettedPackagesVet struct {
+	Packages               []*VettedPackagesRef
+	NewValidFromInclusive  *time.Time
+	NewValidUntilExclusive *time.Time
+}
+
+type VettedPackagesUnvet struct {
+	Packages []*VettedPackagesRef
+}
+
+type VettedPackagesRef struct {
+	PackageID      string
+	PackageName    string
+	PackageVersion string
+}
+
+type PriorTopologySerial struct {
+	TopologySerial uint32
+}
+
+type UpdateVettedPackagesForceFlag int32
+
+const (
+	UpdateVettedPackagesForceFlagUnspecified                  UpdateVettedPackagesForceFlag = 0
+	UpdateVettedPackagesForceFlagAllowVetIncompatibleUpgrades UpdateVettedPackagesForceFlag = 2
+	UpdateVettedPackagesForceFlagAllowUnvettedDependencies    UpdateVettedPackagesForceFlag = 3
+)
