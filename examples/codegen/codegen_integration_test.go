@@ -616,6 +616,140 @@ func TestAmuletsTransfer(t *testing.T) {
 	log.Info().Str("updateID", archiveResponse.UpdateID).Msg("archive executed successfully")
 }
 
+func TestPackageVetting(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	var err error
+	if err = cl.ValidateSDKVersion(ctx, SDKVersion); err != nil {
+		log.Warn().Err(err).Msg("failed to validate SDK version, ignoring")
+	}
+
+	uploadedPackageName := "all-kinds-of"
+	packageID, err := packageUpload(ctx, uploadedPackageName, darFilePath, cl)
+	if err != nil {
+		log.Fatal().Msgf("error uploading package: %v", err)
+	}
+	log.Info().Str("packageID", packageID).Msg("uploaded package")
+
+	participantID, err := cl.PartyMng.GetParticipantID(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to get participant ID")
+	}
+	log.Info().Str("participantID", participantID).Msg("got participant ID")
+
+	syncResp, err := cl.StateService.GetConnectedSynchronizers(ctx, &model.GetConnectedSynchronizersRequest{})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to get connected synchronizers")
+	}
+	require.NotEmpty(t, syncResp.ConnectedSynchronizers, "expected at least one connected synchronizer")
+
+	synchronizerID := syncResp.ConnectedSynchronizers[0].SynchronizerID
+	log.Info().Str("synchronizerID", synchronizerID).Msg("using synchronizer")
+
+	packages, err := cl.PackageMng.ListKnownPackages(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to list known packages")
+	}
+
+	var pkgName, pkgVersion string
+	for _, pkg := range packages {
+		if pkg.PackageID == packageID {
+			pkgName = pkg.Name
+			pkgVersion = pkg.Version
+			log.Info().
+				Str("packageName", pkgName).
+				Str("packageVersion", pkgVersion).
+				Msg("found package details")
+			break
+		}
+	}
+
+	listVettedReq := &model.ListVettedPackagesRequest{
+		PackageMetadataFilter: &model.PackageMetadataFilter{
+			PackageIDs: []string{packageID},
+		},
+		TopologyStateFilter: &model.TopologyStateFilter{
+			ParticipantIDs:  []string{participantID},
+			SynchronizerIDs: []string{synchronizerID},
+		},
+		PageSize: 10,
+	}
+
+	vettedResp, err := cl.PackageService.ListVettedPackages(ctx, listVettedReq)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to list vetted packages")
+	}
+
+	isVetted := false
+	if len(vettedResp.VettedPackages) > 0 {
+		for _, vp := range vettedResp.VettedPackages {
+			for _, pkg := range vp.Packages {
+				if pkg.PackageID == packageID {
+					isVetted = true
+					log.Info().Str("packageID", packageID).Msg("package is already vetted")
+					break
+				}
+			}
+		}
+	}
+
+	if !isVetted {
+		log.Info().Str("packageID", packageID).Msg("package is not vetted, vetting now")
+
+		updateReq := &model.UpdateVettedPackagesRequest{
+			SynchronizerID: synchronizerID,
+			Changes: []*model.VettedPackagesChange{
+				{
+					Vet: &model.VettedPackagesVet{
+						Packages: []*model.VettedPackagesRef{
+							{
+								PackageID:      packageID,
+								PackageName:    pkgName,
+								PackageVersion: pkgVersion,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		updateResp, err := cl.PackageMng.UpdateVettedPackages(ctx, updateReq)
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to update vetted packages")
+		}
+
+		require.NotNil(t, updateResp, "update response should not be nil")
+		log.Info().
+			Interface("newVettedPackages", updateResp.NewVettedPackages).
+			Msg("successfully vetted package")
+
+		vettedRespAfter, err := cl.PackageService.ListVettedPackages(ctx, listVettedReq)
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to list vetted packages after update")
+		}
+
+		foundVetted := false
+		for _, vp := range vettedRespAfter.VettedPackages {
+			for _, pkg := range vp.Packages {
+				if pkg.PackageID == packageID {
+					foundVetted = true
+					log.Info().
+						Str("packageID", packageID).
+						Str("packageName", pkg.PackageName).
+						Str("packageVersion", pkg.PackageVersion).
+						Msg("verified package is now vetted")
+					break
+				}
+			}
+		}
+		require.True(t, foundVetted, "package should be vetted after update")
+	}
+}
+
 func packageUpload(ctx context.Context, uploadedPackageName, darPath string, cl *client.DamlBindingClient) (string, error) {
 	darContent, err := os.ReadFile(darPath)
 	if err != nil {
