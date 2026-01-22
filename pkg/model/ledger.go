@@ -6,16 +6,17 @@ import (
 )
 
 type Commands struct {
-	WorkflowID          string
-	UserID              string
-	CommandID           string
-	Commands            []*Command
-	DeduplicationPeriod DeduplicationPeriod
-	MinLedgerTimeAbs    *time.Time
-	MinLedgerTimeRel    *time.Duration
-	ActAs               []string
-	ReadAs              []string
-	SubmissionID        string
+	WorkflowID                   string
+	UserID                       string
+	CommandID                    string
+	Commands                     []*Command
+	DeduplicationPeriod          DeduplicationPeriod
+	MinLedgerTimeAbs             *time.Time
+	MinLedgerTimeRel             *time.Duration
+	ActAs                        []string
+	ReadAs                       []string
+	SubmissionID                 string
+	PackageIDSelectionPreference []string
 }
 
 type DeduplicationPeriod interface {

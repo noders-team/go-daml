@@ -53,13 +53,14 @@ func parseTemplateID(templateID string) (packageID, moduleName, entityName strin
 
 func commandsToProto(cmd *model.Commands) *v2.Commands {
 	pbCmd := &v2.Commands{
-		WorkflowId:   cmd.WorkflowID,
-		UserId:       cmd.UserID,
-		CommandId:    cmd.CommandID,
-		Commands:     commandsArrayToProto(cmd.Commands),
-		ActAs:        cmd.ActAs,
-		ReadAs:       cmd.ReadAs,
-		SubmissionId: cmd.SubmissionID,
+		WorkflowId:                   cmd.WorkflowID,
+		UserId:                       cmd.UserID,
+		CommandId:                    cmd.CommandID,
+		Commands:                     commandsArrayToProto(cmd.Commands),
+		ActAs:                        cmd.ActAs,
+		ReadAs:                       cmd.ReadAs,
+		SubmissionId:                 cmd.SubmissionID,
+		PackageIdSelectionPreference: cmd.PackageIDSelectionPreference,
 	}
 
 	if cmd.MinLedgerTimeAbs != nil {
