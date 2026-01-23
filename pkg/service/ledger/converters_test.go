@@ -2282,3 +2282,270 @@ func TestConvertToRecordNestedMaps(t *testing.T) {
 		require.Equal(t, "value", innerEntries["key"].GetText())
 	})
 }
+
+func TestMapToValue_TIMESTAMP(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    types.TIMESTAMP
+		expected int64
+	}{
+		{
+			name:     "epoch timestamp",
+			input:    types.TIMESTAMP(time.Unix(0, 0)),
+			expected: 0,
+		},
+		{
+			name:     "standard timestamp",
+			input:    types.TIMESTAMP(time.Date(2024, 1, 15, 12, 30, 45, 123456000, time.UTC)),
+			expected: 1705321845123456,
+		},
+		{
+			name:     "timestamp with microseconds",
+			input:    types.TIMESTAMP(time.Date(2025, 6, 1, 10, 20, 30, 500000000, time.UTC)),
+			expected: 1748773230500000,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := mapToValue(tt.input)
+
+			require.NotNil(t, result)
+			timestampValue, ok := result.Sum.(*v2.Value_Timestamp)
+			require.True(t, ok)
+			require.Equal(t, tt.expected, timestampValue.Timestamp)
+		})
+	}
+}
+
+func TestValueFromProto_TIMESTAMP(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    int64
+		expected time.Time
+	}{
+		{
+			name:     "epoch timestamp",
+			input:    0,
+			expected: time.Unix(0, 0),
+		},
+		{
+			name:     "standard timestamp",
+			input:    1705321845123456,
+			expected: time.Date(2024, 1, 15, 12, 30, 45, 123456000, time.UTC),
+		},
+		{
+			name:     "timestamp with microseconds",
+			input:    1748773230500000,
+			expected: time.Date(2025, 6, 1, 10, 20, 30, 500000000, time.UTC),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			protoValue := &v2.Value{
+				Sum: &v2.Value_Timestamp{
+					Timestamp: tt.input,
+				},
+			}
+
+			result := valueFromProto(protoValue)
+
+			require.NotNil(t, result)
+			timestamp, ok := result.(time.Time)
+			require.True(t, ok)
+			require.Equal(t, tt.expected.Unix(), timestamp.Unix())
+			require.Equal(t, tt.expected.Nanosecond(), timestamp.Nanosecond())
+		})
+	}
+}
+
+func TestTimestampRoundTrip(t *testing.T) {
+	tests := []struct {
+		name      string
+		timestamp types.TIMESTAMP
+	}{
+		{
+			name:      "epoch",
+			timestamp: types.TIMESTAMP(time.Unix(0, 0)),
+		},
+		{
+			name:      "recent date",
+			timestamp: types.TIMESTAMP(time.Date(2024, 1, 15, 12, 30, 45, 123456000, time.UTC)),
+		},
+		{
+			name:      "future date",
+			timestamp: types.TIMESTAMP(time.Date(2030, 12, 31, 23, 59, 59, 999999000, time.UTC)),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			protoValue := mapToValue(tt.timestamp)
+			result := valueFromProto(protoValue)
+
+			originalTime := time.Time(tt.timestamp)
+			resultTime, ok := result.(time.Time)
+			require.True(t, ok)
+			require.Equal(t, originalTime.Unix(), resultTime.Unix())
+			require.Equal(t, originalTime.Nanosecond()/1000*1000, resultTime.Nanosecond())
+		})
+	}
+}
+
+func TestConvertToRecordTIMESTAMP(t *testing.T) {
+	t.Run("TIMESTAMP type conversion - epoch", func(t *testing.T) {
+		timestampValue := types.TIMESTAMP(time.Unix(0, 0))
+
+		data := make(map[string]interface{})
+		data["timestamp"] = timestampValue
+
+		record := convertToRecord(data)
+
+		require.NotNil(t, record)
+		require.Len(t, record.Fields, 1)
+		require.Equal(t, "timestamp", record.Fields[0].Label)
+
+		int64Value := record.Fields[0].Value.GetTimestamp()
+		require.Equal(t, int64(0), int64Value)
+	})
+
+	t.Run("TIMESTAMP type conversion - standard date", func(t *testing.T) {
+		timestampValue := types.TIMESTAMP(time.Date(2024, 1, 15, 12, 30, 45, 123456000, time.UTC))
+
+		data := make(map[string]interface{})
+		data["timestamp"] = timestampValue
+
+		record := convertToRecord(data)
+
+		require.NotNil(t, record)
+		require.Len(t, record.Fields, 1)
+		require.Equal(t, "timestamp", record.Fields[0].Label)
+
+		int64Value := record.Fields[0].Value.GetTimestamp()
+		require.Equal(t, int64(1705321845123456), int64Value)
+	})
+
+	t.Run("TIMESTAMP type conversion - with microseconds", func(t *testing.T) {
+		timestampValue := types.TIMESTAMP(time.Date(2025, 6, 1, 10, 20, 30, 500000000, time.UTC))
+
+		data := make(map[string]interface{})
+		data["timestamp"] = timestampValue
+
+		record := convertToRecord(data)
+
+		require.NotNil(t, record)
+		require.Len(t, record.Fields, 1)
+		require.Equal(t, "timestamp", record.Fields[0].Label)
+
+		int64Value := record.Fields[0].Value.GetTimestamp()
+		require.Equal(t, int64(1748773230500000), int64Value)
+	})
+
+	t.Run("TIMESTAMP in struct", func(t *testing.T) {
+		type TestTimestampStruct struct {
+			Owner     types.PARTY     `json:"owner"`
+			CreatedAt types.TIMESTAMP `json:"createdAt"`
+			UpdatedAt types.TIMESTAMP `json:"updatedAt"`
+			Name      types.TEXT      `json:"name"`
+		}
+
+		testData := TestTimestampStruct{
+			Owner:     types.PARTY("alice"),
+			CreatedAt: types.TIMESTAMP(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
+			UpdatedAt: types.TIMESTAMP(time.Date(2024, 12, 31, 23, 59, 59, 999999000, time.UTC)),
+			Name:      types.TEXT("test timestamp"),
+		}
+
+		data := make(map[string]interface{})
+		data["testStruct"] = testData
+
+		record := convertToRecord(data)
+
+		require.NotNil(t, record)
+		require.Len(t, record.Fields, 1)
+
+		structRecord := record.Fields[0].Value.GetRecord()
+		require.NotNil(t, structRecord)
+		require.Len(t, structRecord.Fields, 4)
+
+		fieldMap := make(map[string]*v2.RecordField)
+		for _, field := range structRecord.Fields {
+			fieldMap[field.Label] = field
+		}
+
+		require.Equal(t, "alice", fieldMap["owner"].Value.GetParty())
+		require.Equal(t, "test timestamp", fieldMap["name"].Value.GetText())
+		require.Equal(t, int64(1704067200000000), fieldMap["createdAt"].Value.GetTimestamp())
+		require.Equal(t, int64(1735689599999999), fieldMap["updatedAt"].Value.GetTimestamp())
+	})
+
+	t.Run("Multiple TIMESTAMP fields", func(t *testing.T) {
+		type TestMultiTimestampStruct struct {
+			StartTime types.TIMESTAMP `json:"startTime"`
+			EndTime   types.TIMESTAMP `json:"endTime"`
+			LastCheck types.TIMESTAMP `json:"lastCheck"`
+		}
+
+		testData := TestMultiTimestampStruct{
+			StartTime: types.TIMESTAMP(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
+			EndTime:   types.TIMESTAMP(time.Date(2024, 12, 31, 23, 59, 59, 0, time.UTC)),
+			LastCheck: types.TIMESTAMP(time.Date(2024, 6, 15, 12, 30, 0, 0, time.UTC)),
+		}
+
+		data := make(map[string]interface{})
+		data["testStruct"] = testData
+
+		record := convertToRecord(data)
+
+		require.NotNil(t, record)
+		require.Len(t, record.Fields, 1)
+
+		structRecord := record.Fields[0].Value.GetRecord()
+		require.NotNil(t, structRecord)
+		require.Len(t, structRecord.Fields, 3)
+
+		fieldMap := make(map[string]*v2.RecordField)
+		for _, field := range structRecord.Fields {
+			fieldMap[field.Label] = field
+		}
+
+		require.Equal(t, int64(1704067200000000), fieldMap["startTime"].Value.GetTimestamp())
+		require.Equal(t, int64(1735689599000000), fieldMap["endTime"].Value.GetTimestamp())
+		require.Equal(t, int64(1718454600000000), fieldMap["lastCheck"].Value.GetTimestamp())
+	})
+}
+
+func TestTimestampFormatAutoDetection(t *testing.T) {
+	t.Run("all three formats produce same date", func(t *testing.T) {
+		expectedDate := time.Date(2026, 1, 22, 14, 7, 42, 0, time.UTC)
+
+		testCases := []struct {
+			name  string
+			value int64
+		}{
+			{"seconds", 1769090862},
+			{"milliseconds", 1769090862000},
+			{"microseconds", 1769090862000000},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				value := &v2.Value{
+					Sum: &v2.Value_Timestamp{
+						Timestamp: tc.value,
+					},
+				}
+
+				result := valueFromProto(value)
+				resultTime, ok := result.(time.Time)
+				require.True(t, ok)
+
+				require.Equal(t, expectedDate.Unix(), resultTime.Unix(),
+					"Value %d (%s) should convert to %s", tc.value, tc.name, expectedDate.Format(time.RFC3339))
+
+				t.Logf("%d (%s) -> %s", tc.value, tc.name, resultTime.UTC().Format(time.RFC3339))
+			})
+		}
+	})
+}
