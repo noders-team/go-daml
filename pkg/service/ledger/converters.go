@@ -24,6 +24,25 @@ import (
 
 var defaultJsonCodec = codec.NewJsonCodec()
 
+func parseTimestampValue(ts int64) time.Time {
+	if ts == 0 {
+		return time.Unix(0, 0)
+	}
+
+	absTs := ts
+	if ts < 0 {
+		absTs = -ts
+	}
+
+	if absTs < 1e12 {
+		return time.Unix(ts, 0)
+	} else if absTs < 1e15 {
+		return time.UnixMilli(ts)
+	} else {
+		return time.UnixMicro(ts)
+	}
+}
+
 func isTuple2(v reflect.Value) bool {
 	if v.Kind() == reflect.Struct && v.NumField() == 2 {
 		t := v.Type()
@@ -350,7 +369,7 @@ func valueFromProto(pb *v2.Value) interface{} {
 	case *v2.Value_Date:
 		return v.Date
 	case *v2.Value_Timestamp:
-		return time.Unix(v.Timestamp/1000000, (v.Timestamp%1000000)*1000)
+		return parseTimestampValue(v.Timestamp)
 	case *v2.Value_Optional:
 		if v.Optional.Value != nil {
 			return valueFromProto(v.Optional.Value)

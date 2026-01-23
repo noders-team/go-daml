@@ -2515,3 +2515,37 @@ func TestConvertToRecordTIMESTAMP(t *testing.T) {
 		require.Equal(t, int64(1718454600000000), fieldMap["lastCheck"].Value.GetTimestamp())
 	})
 }
+
+func TestTimestampFormatAutoDetection(t *testing.T) {
+	t.Run("all three formats produce same date", func(t *testing.T) {
+		expectedDate := time.Date(2026, 1, 22, 14, 7, 42, 0, time.UTC)
+
+		testCases := []struct {
+			name  string
+			value int64
+		}{
+			{"seconds", 1769090862},
+			{"milliseconds", 1769090862000},
+			{"microseconds", 1769090862000000},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				value := &v2.Value{
+					Sum: &v2.Value_Timestamp{
+						Timestamp: tc.value,
+					},
+				}
+
+				result := valueFromProto(value)
+				resultTime, ok := result.(time.Time)
+				require.True(t, ok)
+
+				require.Equal(t, expectedDate.Unix(), resultTime.Unix(),
+					"Value %d (%s) should convert to %s", tc.value, tc.name, expectedDate.Format(time.RFC3339))
+
+				t.Logf("%d (%s) -> %s", tc.value, tc.name, resultTime.UTC().Format(time.RFC3339))
+			})
+		}
+	})
+}
