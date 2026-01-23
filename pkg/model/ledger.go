@@ -6,16 +6,17 @@ import (
 )
 
 type Commands struct {
-	WorkflowID          string
-	UserID              string
-	CommandID           string
-	Commands            []*Command
-	DeduplicationPeriod DeduplicationPeriod
-	MinLedgerTimeAbs    *time.Time
-	MinLedgerTimeRel    *time.Duration
-	ActAs               []string
-	ReadAs              []string
-	SubmissionID        string
+	WorkflowID                   string
+	UserID                       string
+	CommandID                    string
+	Commands                     []*Command
+	DeduplicationPeriod          DeduplicationPeriod
+	MinLedgerTimeAbs             *time.Time
+	MinLedgerTimeRel             *time.Duration
+	ActAs                        []string
+	ReadAs                       []string
+	SubmissionID                 string
+	PackageIDSelectionPreference []string
 }
 
 type DeduplicationPeriod interface {
@@ -231,6 +232,43 @@ const (
 	PackageStatusUnknown    PackageStatus = 0
 	PackageStatusRegistered PackageStatus = 1
 )
+
+type ListVettedPackagesRequest struct {
+	PackageMetadataFilter *PackageMetadataFilter
+	TopologyStateFilter   *TopologyStateFilter
+	PageToken             string
+	PageSize              uint32
+}
+
+type ListVettedPackagesResponse struct {
+	VettedPackages []*VettedPackages
+	NextPageToken  string
+}
+
+type VettedPackages struct {
+	Packages       []*VettedPackage
+	ParticipantID  string
+	SynchronizerID string
+	TopologySerial uint32
+}
+
+type VettedPackage struct {
+	PackageID           string
+	ValidFromInclusive  *time.Time
+	ValidUntilExclusive *time.Time
+	PackageName         string
+	PackageVersion      string
+}
+
+type PackageMetadataFilter struct {
+	PackageIDs          []string
+	PackageNamePrefixes []string
+}
+
+type TopologyStateFilter struct {
+	ParticipantIDs  []string
+	SynchronizerIDs []string
+}
 
 // State Service types
 type GetActiveContractsRequest struct {
