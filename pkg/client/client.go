@@ -61,7 +61,7 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) buildDialOptions() []grpc.DialOption {
-	var opts []grpc.DialOption
+	opts := append([]grpc.DialOption{}, c.config.GRPCDialOptions...)
 
 	if c.config.TLS != nil {
 		tlsConfig := c.buildTLSConfig()
