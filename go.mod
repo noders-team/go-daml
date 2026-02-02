@@ -1,8 +1,6 @@
 module github.com/noders-team/go-daml
 
-go 1.23.0
-
-toolchain go1.24.1
+go 1.24.2
 
 replace github.com/digital-asset/dazl-client/v8 => github.com/noders-team/dazl-client/v8 v8.7.1-2
 

@@ -6,10 +6,10 @@ import (
 )
 
 type Config struct {
-	Address      string
-	AdminAddress string
-	TLS          *TLSConfig
-	Auth         *AuthConfig
+	Address         string
+	AdminAddress    string
+	TLS             *TLSConfig
+	Auth            *AuthConfig
 	GRPCDialOptions []grpc.DialOption
 }
 
