@@ -16,7 +16,9 @@ type Commands struct {
 	ActAs                        []string
 	ReadAs                       []string
 	SubmissionID                 string
+	SynchronizerID               string
 	PackageIDSelectionPreference []string
+	DisclosedContracts           []*DisclosedContract
 }
 
 type DeduplicationPeriod interface {
