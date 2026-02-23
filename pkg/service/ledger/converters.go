@@ -79,6 +79,7 @@ func commandsToProto(cmd *model.Commands) *v2.Commands {
 		ActAs:                        cmd.ActAs,
 		ReadAs:                       cmd.ReadAs,
 		SubmissionId:                 cmd.SubmissionID,
+		SynchronizerId:               cmd.SynchronizerID,
 		PackageIdSelectionPreference: cmd.PackageIDSelectionPreference,
 	}
 
@@ -99,6 +100,10 @@ func commandsToProto(cmd *model.Commands) *v2.Commands {
 		pbCmd.DeduplicationPeriod = &v2.Commands_DeduplicationOffset{
 			DeduplicationOffset: dp.Offset,
 		}
+	}
+
+	if cmd.DisclosedContracts != nil {
+		pbCmd.DisclosedContracts = disclosedContractsToProto(cmd.DisclosedContracts)
 	}
 
 	return pbCmd
