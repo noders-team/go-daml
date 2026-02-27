@@ -60,10 +60,10 @@ func isTuple3(v reflect.Value) bool {
 }
 
 func parseTemplateID(templateID string) (packageID, moduleName, entityName string) {
-	trimmed := strings.TrimPrefix(templateID, "#")
-	parts := strings.Split(trimmed, ":")
+	parts := strings.Split(templateID, ":")
 	if len(parts) == 3 {
-		return parts[0], parts[1], parts[2]
+		pkgID := parts[0]
+		return pkgID, parts[1], parts[2]
 	} else if len(parts) == 2 {
 		return "", parts[0], parts[1]
 	}

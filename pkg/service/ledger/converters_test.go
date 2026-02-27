@@ -2549,3 +2549,37 @@ func TestTimestampFormatAutoDetection(t *testing.T) {
 		}
 	})
 }
+
+func TestParseTemplateID(t *testing.T) {
+	t.Run("package ID and package name", func(t *testing.T) {
+		type expected struct {
+			PackageName string
+			PackageID   string
+			EntityName  string
+		}
+
+		testCases := []struct {
+			name     string
+			value    string
+			expected expected
+		}{
+			{
+				"package ID", "8890209234cce2343dfdf234:Splice.Amulet:FeaturedAppRight",
+				expected{PackageID: "8890209234cce2343dfdf234", PackageName: "Splice.Amulet", EntityName: "FeaturedAppRight"},
+			},
+			{
+				"package name", "#splice-amulet:Splice.Amulet:FeaturedAppRight",
+				expected{PackageID: "#splice-amulet", PackageName: "Splice.Amulet", EntityName: "FeaturedAppRight"},
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				packageID, moduleName, entityName := parseTemplateID(tc.value)
+				require.Equal(t, tc.expected.PackageID, packageID)
+				require.Equal(t, tc.expected.PackageName, moduleName)
+				require.Equal(t, tc.expected.EntityName, entityName)
+			})
+		}
+	})
+}
