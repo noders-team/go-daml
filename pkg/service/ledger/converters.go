@@ -63,7 +63,11 @@ func parseTemplateID(templateID string) (packageID, moduleName, entityName strin
 	trimmed := strings.TrimPrefix(templateID, "#")
 	parts := strings.Split(trimmed, ":")
 	if len(parts) == 3 {
-		return parts[0], parts[1], parts[2]
+		pkgID := parts[0]
+		if strings.HasPrefix(templateID, "#") {
+			pkgID = "#" + pkgID
+		}
+		return pkgID, parts[1], parts[2]
 	} else if len(parts) == 2 {
 		return "", parts[0], parts[1]
 	}
