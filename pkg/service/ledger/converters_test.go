@@ -1960,6 +1960,127 @@ func TestConvertToRecordGENMAP(t *testing.T) {
 	})
 }
 
+func TestConvertToRecordTextMapAny(t *testing.T) {
+	t.Run("TextMap with string values via map[string]interface{}", func(t *testing.T) {
+		textMapData := map[string]interface{}{
+			"_type": "textmap",
+			"value": map[string]interface{}{
+				"key1": "value1",
+				"key2": "value2",
+				"key3": "value3",
+			},
+		}
+
+		data := make(map[string]interface{})
+		data["textmap"] = textMapData
+
+		record := convertToRecord(data)
+
+		require.NotNil(t, record)
+		require.Len(t, record.Fields, 1)
+		require.Equal(t, "textmap", record.Fields[0].Label)
+
+		textMap := record.Fields[0].Value.GetTextMap()
+		require.NotNil(t, textMap)
+		require.Len(t, textMap.Entries, 3)
+
+		entriesMap := make(map[string]*v2.Value)
+		for _, entry := range textMap.Entries {
+			entriesMap[entry.Key] = entry.Value
+		}
+
+		require.Equal(t, "value1", entriesMap["key1"].GetText())
+		require.Equal(t, "value2", entriesMap["key2"].GetText())
+		require.Equal(t, "value3", entriesMap["key3"].GetText())
+	})
+
+	t.Run("TextMap with mixed types via map[string]interface{}", func(t *testing.T) {
+		textMapData := map[string]interface{}{
+			"_type": "textmap",
+			"value": map[string]interface{}{
+				"text":   "hello",
+				"number": int64(42),
+				"flag":   true,
+			},
+		}
+
+		data := make(map[string]interface{})
+		data["textmap"] = textMapData
+
+		record := convertToRecord(data)
+
+		require.NotNil(t, record)
+		require.Len(t, record.Fields, 1)
+		require.Equal(t, "textmap", record.Fields[0].Label)
+
+		textMap := record.Fields[0].Value.GetTextMap()
+		require.NotNil(t, textMap)
+		require.Len(t, textMap.Entries, 3)
+
+		entriesMap := make(map[string]*v2.Value)
+		for _, entry := range textMap.Entries {
+			entriesMap[entry.Key] = entry.Value
+		}
+
+		require.Equal(t, "hello", entriesMap["text"].GetText())
+		require.Equal(t, int64(42), entriesMap["number"].GetInt64())
+		require.Equal(t, true, entriesMap["flag"].GetBool())
+	})
+
+	t.Run("TextMap with DAML types via map[string]interface{}", func(t *testing.T) {
+		textMapData := map[string]interface{}{
+			"_type": "textmap",
+			"value": map[string]interface{}{
+				"party": types.PARTY("alice"),
+				"count": types.INT64(99),
+				"label": types.TEXT("test"),
+			},
+		}
+
+		data := make(map[string]interface{})
+		data["textmap"] = textMapData
+
+		record := convertToRecord(data)
+
+		require.NotNil(t, record)
+		require.Len(t, record.Fields, 1)
+		require.Equal(t, "textmap", record.Fields[0].Label)
+
+		textMap := record.Fields[0].Value.GetTextMap()
+		require.NotNil(t, textMap)
+		require.Len(t, textMap.Entries, 3)
+
+		entriesMap := make(map[string]*v2.Value)
+		for _, entry := range textMap.Entries {
+			entriesMap[entry.Key] = entry.Value
+		}
+
+		require.Equal(t, "alice", entriesMap["party"].GetParty())
+		require.Equal(t, int64(99), entriesMap["count"].GetInt64())
+		require.Equal(t, "test", entriesMap["label"].GetText())
+	})
+
+	t.Run("TextMap with empty map[string]interface{}", func(t *testing.T) {
+		textMapData := map[string]interface{}{
+			"_type": "textmap",
+			"value": map[string]interface{}{},
+		}
+
+		data := make(map[string]interface{})
+		data["emptyTextMap"] = textMapData
+
+		record := convertToRecord(data)
+
+		require.NotNil(t, record)
+		require.Len(t, record.Fields, 1)
+		require.Equal(t, "emptyTextMap", record.Fields[0].Label)
+
+		textMap := record.Fields[0].Value.GetTextMap()
+		require.NotNil(t, textMap)
+		require.Len(t, textMap.Entries, 0)
+	})
+}
+
 func TestConvertToRecordOptionalWithMaps(t *testing.T) {
 	t.Run("Optional with GenMap", func(t *testing.T) {
 		optionalData := map[string]interface{}{

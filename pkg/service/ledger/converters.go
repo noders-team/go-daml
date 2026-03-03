@@ -594,6 +594,8 @@ func mapToValue(data interface{}) *v2.Value {
 				return getTextMapConvert(mapValue)
 			} else if textMapValue, ok := v["value"].(types.TEXTMAP); ok {
 				return getTextMapConvert(textMapValue)
+			} else if anyValue, ok := v["value"].(map[string]interface{}); ok {
+				return getTextMapAnyConvert(anyValue)
 			}
 		}
 
@@ -679,6 +681,23 @@ func getTextMapConvert(values map[string]string) *v2.Value {
 		entries = append(entries, &v2.TextMap_Entry{
 			Key:   key,
 			Value: &v2.Value{Sum: &v2.Value_Text{Text: val}},
+		})
+	}
+	return &v2.Value{
+		Sum: &v2.Value_TextMap{
+			TextMap: &v2.TextMap{
+				Entries: entries,
+			},
+		},
+	}
+}
+
+func getTextMapAnyConvert(values map[string]interface{}) *v2.Value {
+	entries := make([]*v2.TextMap_Entry, 0, len(values))
+	for key, val := range values {
+		entries = append(entries, &v2.TextMap_Entry{
+			Key:   key,
+			Value: mapToValue(val),
 		})
 	}
 	return &v2.Value{
