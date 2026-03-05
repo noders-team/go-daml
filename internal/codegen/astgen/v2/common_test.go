@@ -3,7 +3,7 @@ package v2
 import (
 	"testing"
 
-	daml "github.com/digital-asset/dazl-client/v8/go/api/com/daml/daml_lf_1_17"
+	daml "github.com/digital-asset/dazl-client/v8/go/api/com/digitalasset/daml/lf/archive/daml_lf_1"
 	"github.com/stretchr/testify/require"
 )
 
