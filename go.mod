@@ -2,10 +2,8 @@ module github.com/noders-team/go-daml
 
 go 1.24.2
 
-replace github.com/digital-asset/dazl-client/v8 => github.com/noders-team/dazl-client/v8 v8.7.1-2
-
 require (
-	github.com/digital-asset/dazl-client/v8 v8.7.1
+	github.com/digital-asset/dazl-client/v8 v8.9.0
 	github.com/ory/dockertest/v3 v3.12.0
 	github.com/rs/zerolog v1.34.0
 	github.com/shopspring/decimal v1.4.0

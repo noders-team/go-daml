@@ -912,6 +912,16 @@ func prepareSubmissionRequestToProto(req *model.PrepareSubmissionRequest) *inter
 		pbReq.PrefetchContractKeys = prefetchContractKeysToProto(req.PrefetchContractKeys)
 	}
 
+	if req.EstimateTrafficCost != nil {
+		hints := &interactive.CostEstimationHints{
+			Disabled: req.EstimateTrafficCost.Disabled,
+		}
+		for _, sig := range req.EstimateTrafficCost.ExpectedSignatures {
+			hints.ExpectedSignatures = append(hints.ExpectedSignatures, v2.SigningAlgorithmSpec(sig))
+		}
+		pbReq.EstimateTrafficCost = hints
+	}
+
 	return pbReq
 }
 
@@ -1005,6 +1015,18 @@ func prepareSubmissionResponseFromProto(pb *interactive.PrepareSubmissionRespons
 
 	if pb.HashingDetails != nil {
 		resp.HashingDetails = *pb.HashingDetails
+	}
+
+	if pb.CostEstimation != nil {
+		ce := &model.CostEstimation{
+			ConfirmationRequestTrafficCostEstimation:  pb.CostEstimation.ConfirmationRequestTrafficCostEstimation,
+			ConfirmationResponseTrafficCostEstimation: pb.CostEstimation.ConfirmationResponseTrafficCostEstimation,
+			TotalTrafficCostEstimation:                pb.CostEstimation.TotalTrafficCostEstimation,
+		}
+		if pb.CostEstimation.EstimationTimestamp != nil {
+			ce.EstimationTimestamp = pb.CostEstimation.EstimationTimestamp.AsTime()
+		}
+		resp.CostEstimation = ce
 	}
 
 	return resp

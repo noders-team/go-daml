@@ -750,6 +750,102 @@ func TestPackageVetting(t *testing.T) {
 	}
 }
 
+func TestCostEstimation(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := cl.ValidateSDKVersion(ctx, SDKVersion); err != nil {
+		log.Warn().Err(err).Msg("failed to validate SDK version, ignoring")
+	}
+
+	uploadedPkgName := "all-kinds-of"
+	packageID, err := packageUpload(ctx, uploadedPkgName, darFilePath, cl)
+	require.NoError(t, err)
+
+	party := ""
+	users, err := cl.UserMng.ListUsers(ctx)
+	require.NoError(t, err)
+	for _, u := range users {
+		if u.ID == user {
+			party = u.PrimaryParty
+		}
+	}
+	require.NotEmpty(t, party)
+
+	syncResp, err := cl.StateService.GetConnectedSynchronizers(ctx, &model.GetConnectedSynchronizersRequest{})
+	require.NoError(t, err)
+	require.NotEmpty(t, syncResp.ConnectedSynchronizers)
+	syncID := syncResp.ConnectedSynchronizers[0].SynchronizerID
+
+	contract := MappyContract{
+		Operator: PARTY(party),
+		Value:    TEXTMAP{"k1": "v1"},
+	}
+	createCmd := createCommandWithPackageID(contract, packageID)
+
+	t.Run("with cost estimation enabled", func(t *testing.T) {
+		req := &model.PrepareSubmissionRequest{
+			UserID:         user,
+			CommandID:      "cost-est-" + time.Now().Format("20060102150405"),
+			ActAs:          []string{party},
+			SynchronizerID: syncID,
+			Commands:       []*model.Command{{Command: createCmd}},
+			EstimateTrafficCost: &model.CostEstimationHints{
+				Disabled: false,
+			},
+		}
+
+		resp, err := cl.InteractiveSubmissionService.PrepareSubmission(ctx, req)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.CostEstimation, "cost estimation should be present")
+		require.False(t, resp.CostEstimation.EstimationTimestamp.IsZero(), "estimation timestamp should be set")
+		log.Info().
+			Uint64("requestCost", resp.CostEstimation.ConfirmationRequestTrafficCostEstimation).
+			Uint64("responseCost", resp.CostEstimation.ConfirmationResponseTrafficCostEstimation).
+			Uint64("totalCost", resp.CostEstimation.TotalTrafficCostEstimation).
+			Time("estimationTimestamp", resp.CostEstimation.EstimationTimestamp).
+			Msg("traffic cost estimation")
+	})
+
+	t.Run("with cost estimation disabled", func(t *testing.T) {
+		req := &model.PrepareSubmissionRequest{
+			UserID:         user,
+			CommandID:      "cost-dis-" + time.Now().Format("20060102150405"),
+			ActAs:          []string{party},
+			SynchronizerID: syncID,
+			Commands:       []*model.Command{{Command: createCmd}},
+			EstimateTrafficCost: &model.CostEstimationHints{
+				Disabled: true,
+			},
+		}
+
+		resp, err := cl.InteractiveSubmissionService.PrepareSubmission(ctx, req)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Nil(t, resp.CostEstimation, "cost estimation should be absent when disabled")
+	})
+
+	t.Run("without cost estimation hint returns default", func(t *testing.T) {
+		req := &model.PrepareSubmissionRequest{
+			UserID:         user,
+			CommandID:      "no-cost-" + time.Now().Format("20060102150405"),
+			ActAs:          []string{party},
+			SynchronizerID: syncID,
+			Commands:       []*model.Command{{Command: createCmd}},
+		}
+
+		resp, err := cl.InteractiveSubmissionService.PrepareSubmission(ctx, req)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.CostEstimation, "cost estimation is returned by default")
+		require.False(t, resp.CostEstimation.EstimationTimestamp.IsZero(), "estimation timestamp should be set")
+	})
+}
+
 func packageUpload(ctx context.Context, uploadedPackageName, darPath string, cl *client.DamlBindingClient) (string, error) {
 	darContent, err := os.ReadFile(darPath)
 	if err != nil {

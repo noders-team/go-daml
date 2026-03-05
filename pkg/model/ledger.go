@@ -503,6 +503,7 @@ type PrepareSubmissionRequest struct {
 	PackageIDSelectionPreference []string
 	VerboseHashing               bool
 	PrefetchContractKeys         []*PrefetchContractKey
+	EstimateTrafficCost          *CostEstimationHints
 }
 
 type MinLedgerTime struct {
@@ -542,6 +543,19 @@ type PrepareSubmissionResponse struct {
 	PreparedTransactionHash []byte
 	HashingSchemeVersion    HashingSchemeVersion
 	HashingDetails          string
+	CostEstimation          *CostEstimation
+}
+
+type CostEstimationHints struct {
+	Disabled           bool
+	ExpectedSignatures []SigningAlgorithmSpec
+}
+
+type CostEstimation struct {
+	EstimationTimestamp                       time.Time
+	ConfirmationRequestTrafficCostEstimation  uint64
+	ConfirmationResponseTrafficCostEstimation uint64
+	TotalTrafficCostEstimation                uint64
 }
 
 type HashingSchemeVersion int32

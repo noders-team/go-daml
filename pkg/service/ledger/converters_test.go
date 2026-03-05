@@ -6,9 +6,11 @@ import (
 	"time"
 
 	v2 "github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2"
+	"github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2/interactive"
 	"github.com/noders-team/go-daml/pkg/model"
 	"github.com/noders-team/go-daml/pkg/types"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // VPair struct for variant tests (needs to be at package level for interface implementation)
@@ -2703,4 +2705,143 @@ func TestParseTemplateID(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestPrepareSubmissionRequestToProto_CostEstimation(t *testing.T) {
+	type testCase struct {
+		name   string
+		req    *model.PrepareSubmissionRequest
+		verify func(t *testing.T, pb *interactive.PrepareSubmissionRequest)
+	}
+
+	testCases := []testCase{
+		{
+			"with cost estimation enabled",
+			&model.PrepareSubmissionRequest{
+				UserID:    "user1",
+				CommandID: "cmd1",
+				ActAs:     []string{"party1"},
+				EstimateTrafficCost: &model.CostEstimationHints{
+					Disabled: false,
+					ExpectedSignatures: []model.SigningAlgorithmSpec{
+						model.SigningAlgorithmSpecED25519,
+						model.SigningAlgorithmSpecECDSASHA256,
+					},
+				},
+			},
+			func(t *testing.T, pb *interactive.PrepareSubmissionRequest) {
+				require.NotNil(t, pb.EstimateTrafficCost)
+				require.False(t, pb.EstimateTrafficCost.Disabled)
+				require.Len(t, pb.EstimateTrafficCost.ExpectedSignatures, 2)
+				require.Equal(t, v2.SigningAlgorithmSpec_SIGNING_ALGORITHM_SPEC_ED25519, pb.EstimateTrafficCost.ExpectedSignatures[0])
+				require.Equal(t, v2.SigningAlgorithmSpec_SIGNING_ALGORITHM_SPEC_EC_DSA_SHA_256, pb.EstimateTrafficCost.ExpectedSignatures[1])
+			},
+		},
+		{
+			"with cost estimation disabled",
+			&model.PrepareSubmissionRequest{
+				UserID:    "user1",
+				CommandID: "cmd1",
+				EstimateTrafficCost: &model.CostEstimationHints{
+					Disabled: true,
+				},
+			},
+			func(t *testing.T, pb *interactive.PrepareSubmissionRequest) {
+				require.NotNil(t, pb.EstimateTrafficCost)
+				require.True(t, pb.EstimateTrafficCost.Disabled)
+				require.Empty(t, pb.EstimateTrafficCost.ExpectedSignatures)
+			},
+		},
+		{
+			"without cost estimation",
+			&model.PrepareSubmissionRequest{
+				UserID:    "user1",
+				CommandID: "cmd1",
+			},
+			func(t *testing.T, pb *interactive.PrepareSubmissionRequest) {
+				require.Nil(t, pb.EstimateTrafficCost)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			pb := prepareSubmissionRequestToProto(tc.req)
+			require.NotNil(t, pb)
+			tc.verify(t, pb)
+		})
+	}
+}
+
+func TestPrepareSubmissionResponseFromProto_CostEstimation(t *testing.T) {
+	estTime := time.Date(2026, 3, 5, 12, 0, 0, 0, time.UTC)
+
+	type testCase struct {
+		name   string
+		pb     *interactive.PrepareSubmissionResponse
+		verify func(t *testing.T, resp *model.PrepareSubmissionResponse)
+	}
+
+	testCases := []testCase{
+		{
+			"with full cost estimation",
+			&interactive.PrepareSubmissionResponse{
+				PreparedTransactionHash: []byte("hash"),
+				CostEstimation: &interactive.CostEstimation{
+					EstimationTimestamp:                       timestamppb.New(estTime),
+					ConfirmationRequestTrafficCostEstimation:  100,
+					ConfirmationResponseTrafficCostEstimation: 200,
+					TotalTrafficCostEstimation:                300,
+				},
+			},
+			func(t *testing.T, resp *model.PrepareSubmissionResponse) {
+				require.NotNil(t, resp.CostEstimation)
+				require.Equal(t, estTime, resp.CostEstimation.EstimationTimestamp)
+				require.Equal(t, uint64(100), resp.CostEstimation.ConfirmationRequestTrafficCostEstimation)
+				require.Equal(t, uint64(200), resp.CostEstimation.ConfirmationResponseTrafficCostEstimation)
+				require.Equal(t, uint64(300), resp.CostEstimation.TotalTrafficCostEstimation)
+			},
+		},
+		{
+			"with cost estimation without timestamp",
+			&interactive.PrepareSubmissionResponse{
+				PreparedTransactionHash: []byte("hash"),
+				CostEstimation: &interactive.CostEstimation{
+					ConfirmationRequestTrafficCostEstimation:  50,
+					ConfirmationResponseTrafficCostEstimation: 75,
+					TotalTrafficCostEstimation:                125,
+				},
+			},
+			func(t *testing.T, resp *model.PrepareSubmissionResponse) {
+				require.NotNil(t, resp.CostEstimation)
+				require.True(t, resp.CostEstimation.EstimationTimestamp.IsZero())
+				require.Equal(t, uint64(50), resp.CostEstimation.ConfirmationRequestTrafficCostEstimation)
+				require.Equal(t, uint64(75), resp.CostEstimation.ConfirmationResponseTrafficCostEstimation)
+				require.Equal(t, uint64(125), resp.CostEstimation.TotalTrafficCostEstimation)
+			},
+		},
+		{
+			"without cost estimation",
+			&interactive.PrepareSubmissionResponse{
+				PreparedTransactionHash: []byte("hash"),
+			},
+			func(t *testing.T, resp *model.PrepareSubmissionResponse) {
+				require.Nil(t, resp.CostEstimation)
+			},
+		},
+		{
+			"nil response",
+			nil,
+			func(t *testing.T, resp *model.PrepareSubmissionResponse) {
+				require.Nil(t, resp)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			resp := prepareSubmissionResponseFromProto(tc.pb)
+			tc.verify(t, resp)
+		})
+	}
 }
