@@ -7,6 +7,128 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestExtractFieldWithInternedTypeApplicationsV3(t *testing.T) {
+	codeGen := &codeGenAst{}
+
+	pkg := &daml.Package{
+		InternedStrings: []string{
+			"",
+			"optionalTsField",
+			"listTextField",
+			"contractIdField",
+			"Tenant",
+		},
+		InternedTypes: []*daml.Type{
+			{
+				Sum: &daml.Type_Builtin_{
+					Builtin: &daml.Type_Builtin{Builtin: daml.BuiltinType_OPTIONAL},
+				},
+			},
+			{
+				Sum: &daml.Type_Builtin_{
+					Builtin: &daml.Type_Builtin{Builtin: daml.BuiltinType_TIMESTAMP},
+				},
+			},
+			{
+				Sum: &daml.Type_Tapp{
+					Tapp: &daml.Type_TApp{
+						Lhs: &daml.Type{Sum: &daml.Type_InternedType{InternedType: 0}},
+						Rhs: &daml.Type{Sum: &daml.Type_InternedType{InternedType: 1}},
+					},
+				},
+			},
+			{
+				Sum: &daml.Type_Builtin_{
+					Builtin: &daml.Type_Builtin{Builtin: daml.BuiltinType_LIST},
+				},
+			},
+			{
+				Sum: &daml.Type_Builtin_{
+					Builtin: &daml.Type_Builtin{Builtin: daml.BuiltinType_TEXT},
+				},
+			},
+			{
+				Sum: &daml.Type_Tapp{
+					Tapp: &daml.Type_TApp{
+						Lhs: &daml.Type{Sum: &daml.Type_InternedType{InternedType: 3}},
+						Rhs: &daml.Type{Sum: &daml.Type_InternedType{InternedType: 4}},
+					},
+				},
+			},
+			{
+				Sum: &daml.Type_Builtin_{
+					Builtin: &daml.Type_Builtin{Builtin: daml.BuiltinType_CONTRACT_ID},
+				},
+			},
+			{
+				Sum: &daml.Type_Con_{
+					Con: &daml.Type_Con{
+						Tycon: &daml.TypeConId{
+							NameInternedDname: 1,
+						},
+					},
+				},
+			},
+			{
+				Sum: &daml.Type_Tapp{
+					Tapp: &daml.Type_TApp{
+						Lhs: &daml.Type{Sum: &daml.Type_InternedType{InternedType: 6}},
+						Rhs: &daml.Type{Sum: &daml.Type_InternedType{InternedType: 7}},
+					},
+				},
+			},
+		},
+		InternedDottedNames: []*daml.InternedDottedName{
+			nil,
+			{SegmentsInternedStr: []int32{4}},
+		},
+	}
+
+	testCases := []struct {
+		name         string
+		fieldNameIdx int32
+		typeIdx      int32
+		expectedName string
+		expectedType string
+	}{
+		{
+			name:         "optional timestamp from interned type app",
+			fieldNameIdx: 1,
+			typeIdx:      2,
+			expectedName: "optionalTsField",
+			expectedType: "*TIMESTAMP",
+		},
+		{
+			name:         "list text from interned type app",
+			fieldNameIdx: 2,
+			typeIdx:      5,
+			expectedName: "listTextField",
+			expectedType: "[]TEXT",
+		},
+		{
+			name:         "contract id from interned type app",
+			fieldNameIdx: 3,
+			typeIdx:      8,
+			expectedName: "contractIdField",
+			expectedType: "CONTRACT_ID",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			field := &daml.FieldWithType{
+				FieldInternedStr: tc.fieldNameIdx,
+				Type:             &daml.Type{Sum: &daml.Type_InternedType{InternedType: tc.typeIdx}},
+			}
+
+			fieldName, fieldType, err := codeGen.extractField(pkg, field)
+			require.NoError(t, err)
+			require.Equal(t, tc.expectedName, fieldName)
+			require.Equal(t, tc.expectedType, fieldType)
+		})
+	}
+}
+
 func TestParseKeyExpressionV3(t *testing.T) {
 	codeGen := &codeGenAst{}
 
