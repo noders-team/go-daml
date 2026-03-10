@@ -22,6 +22,12 @@ const SDKVersion = "{{.SdkVersion}}"
 
 const packageName = "{{.PackageName}}"
 
+const version = "{{.PkgVersion}}"
+
+func GetPackageName() string { return packageName }
+
+func GetVersion() string { return version }
+
 type Template interface {
 	CreateCommand() *model.CreateCommand
 	GetTemplateID() string

@@ -14,6 +14,7 @@ import (
 type tmplData struct {
 	Package     string
 	PackageName string
+	PkgVersion  string
 	SdkVersion  string
 	Structs     map[string]*model.TmplStruct
 	IsMainDalf  bool
@@ -22,10 +23,11 @@ type tmplData struct {
 //go:embed source.go.tpl
 var tmplSource string
 
-func Bind(pkg string, packageName string, sdkVersion string, structs map[string]*model.TmplStruct, isMainDalf bool) (string, error) {
+func Bind(pkg string, packageName string, pkgVersion string, sdkVersion string, structs map[string]*model.TmplStruct, isMainDalf bool) (string, error) {
 	data := &tmplData{
 		Package:     pkg,
 		PackageName: packageName,
+		PkgVersion:  pkgVersion,
 		SdkVersion:  sdkVersion,
 		Structs:     structs,
 		IsMainDalf:  isMainDalf,

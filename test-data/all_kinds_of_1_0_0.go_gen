@@ -19,7 +19,13 @@ var (
 
 const SDKVersion = "3.3.0-snapshot.20250417.0"
 
-const packageName = "all-kinds-of-1.0.0"
+const packageName = "all-kinds-of"
+
+const version = "1.0.0"
+
+func GetPackageName() string { return packageName }
+
+func GetVersion() string { return version }
 
 type Template interface {
 	CreateCommand() *model.CreateCommand
