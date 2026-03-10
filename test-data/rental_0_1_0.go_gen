@@ -19,7 +19,13 @@ var (
 
 const SDKVersion = "1.18.1"
 
-const packageName = "rental-0.1.0"
+const packageName = "rental"
+
+const version = "0.1.0"
+
+func GetPackageName() string { return packageName }
+
+func GetVersion() string { return version }
 
 type Template interface {
 	CreateCommand() *model.CreateCommand
