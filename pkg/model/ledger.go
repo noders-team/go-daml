@@ -347,6 +347,7 @@ type EventFormat struct {
 	FiltersByParty     map[string]*Filters
 	FiltersForAnyParty *Filters
 	Verbose            bool
+	TransactionShape   int32
 }
 
 type TransactionFilter struct {
