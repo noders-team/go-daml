@@ -247,10 +247,14 @@ func updateFormatToProto(format *model.EventFormat) *v2.UpdateFormat {
 	if format == nil {
 		return nil
 	}
+	shape := format.TransactionShape
+	if shape == 0 {
+		shape = 1
+	}
 	return &v2.UpdateFormat{
 		IncludeTransactions: &v2.TransactionFormat{
 			EventFormat:      eventFormatToProto(format),
-			TransactionShape: 1,
+			TransactionShape: v2.TransactionShape(shape),
 		},
 	}
 }
@@ -430,6 +434,8 @@ func mapToValue(data interface{}) *v2.Value {
 
 	// handle custom pointer types first before dereferencing
 	switch v := data.(type) {
+	case *v2.Value:
+		return v
 	case decimal.Decimal:
 		scaled := types.NewNumericFromDecimal(v)
 		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: convertBigIntToNumeric((*big.Int)(scaled), 10).FloatString(10)}}
