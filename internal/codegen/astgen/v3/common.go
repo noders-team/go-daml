@@ -482,9 +482,13 @@ func (c *codeGenAst) extractType(pkg *daml.Package, typ *daml.Type) string {
 			fieldType = c.handleConType(pkg, isConType)
 		} else if builtinType := prim.GetBuiltin(); builtinType != nil {
 			fieldType = c.handleBuiltinType(pkg, builtinType)
+		} else if _, isTypeApp := prim.Sum.(*daml.Type_Tapp); isTypeApp {
+			fieldType = c.extractType(pkg, prim)
 		} else {
 			fieldType = prim.String()
 		}
+	case *daml.Type_Tapp:
+		fieldType = c.handleTypeApp(pkg, v.Tapp)
 	case *daml.Type_Con_:
 		fieldType = c.handleConType(pkg, v.Con)
 	case *daml.Type_Var_:
@@ -504,6 +508,30 @@ func (c *codeGenAst) extractType(pkg *daml.Package, typ *daml.Type) string {
 	}
 
 	return model.NormalizeDAMLType(fieldType)
+}
+
+func (c *codeGenAst) handleTypeApp(pkg *daml.Package, typeApp *daml.Type_TApp) string {
+	if typeApp == nil {
+		return "unknown_type_app"
+	}
+
+	lhsType := model.NormalizeDAMLType(c.extractType(pkg, typeApp.Lhs))
+	rhsType := model.NormalizeDAMLType(c.extractType(pkg, typeApp.Rhs))
+
+	switch lhsType {
+	case RawTypeOptional:
+		return "*" + rhsType
+	case RawTypeList:
+		return "[]" + rhsType
+	case RawTypeContractID:
+		return RawTypeContractID
+	case "TEXTMAP":
+		return "TEXTMAP"
+	case "GENMAP":
+		return "GENMAP"
+	default:
+		return rhsType
+	}
 }
 
 func (c *codeGenAst) handleBuiltinType(pkg *daml.Package, builtinType *daml.Type_Builtin) string {
@@ -591,47 +619,8 @@ func (c *codeGenAst) extractField(pkg *daml.Package, field *daml.FieldWithType) 
 		return fieldName, "", fmt.Errorf("field type is nil")
 	}
 
-	//	*Type_Var_
-	//	*Type_Con_
-	//	*Type_Syn_
-	//	*Type_Interned
-	var fieldType string
-	switch v := field.Type.Sum.(type) {
-	case *daml.Type_InternedType:
-		prim := pkg.InternedTypes[v.InternedType]
-		if prim != nil {
-			isConType := prim.GetCon()
-			if isConType != nil {
-				fieldType = c.handleConType(pkg, isConType)
-			} else if builtinType := prim.GetBuiltin(); builtinType != nil {
-				fieldType = c.handleBuiltinType(pkg, builtinType)
-			} else {
-				fieldType = prim.String()
-			}
-		} else {
-			fieldType = "complex_interned_type"
-		}
-	case *daml.Type_Con_:
-		fieldType = c.handleConType(pkg, v.Con)
-	case *daml.Type_Var_:
-		switch {
-		case v.Var.GetVarInternedStr() != 0:
-			// For variables, we use the interned string directly, not getName which expects DottedName
-			if int(v.Var.GetVarInternedStr()) < len(pkg.InternedStrings) {
-				fieldType = pkg.InternedStrings[v.Var.GetVarInternedStr()]
-			} else {
-				fieldType = "unknown_var"
-			}
-		default:
-			fieldType = "unnamed_var"
-		}
-	case *daml.Type_Syn_:
-		if v.Syn.Tysyn != nil {
-			fieldType = fmt.Sprintf("syn_%s", c.getName(pkg, v.Syn.Tysyn.GetNameInternedDname()))
-		} else {
-			fieldType = "syn_without_name"
-		}
-	default:
+	fieldType := c.extractType(pkg, field.Type)
+	if fieldType == "" {
 		return fieldName, "", fmt.Errorf("unsupported type sum: %T", field.Type.Sum)
 	}
 
