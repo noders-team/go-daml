@@ -60,6 +60,18 @@ make install
 go get github.com/noders-team/go-daml
 ```
 
+#### Option 4: Use as a Go tool
+
+```bash
+go get -tool github.com/noders-team/go-daml/cmd/go-daml
+```
+
+Usage:
+
+```bash
+go tool go-daml ...
+```
+
 ### SDK Usage
 
 ```go
@@ -218,8 +230,8 @@ The Go DAML SDK is organized into the following modules:
 - **`template.go`**: Go template processing, binding, and file generation
 - **`template_test.go`**: Template generation tests
 
-### CLI Tool (`cmd/`)
-- **`cmd/main.go`**: Command-line interface for code generation
+### CLI Tool (`cmd/go-daml`)
+- **`cmd/go-daml/main.go`**: Command-line interface for code generation
 
 ### Examples
 - **`examples/admin_app/`**: Administrative operations examples

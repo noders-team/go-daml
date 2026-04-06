@@ -10,7 +10,7 @@ GOMOD=$(GOCMD) mod
 BINARY_NAME=godaml
 BINARY_DIR=bin
 CMD_DIR=cmd
-MAIN_PATH=./$(CMD_DIR)/main.go
+MAIN_PATH=./$(CMD_DIR)/go-daml/main.go
 
 # Build flags
 LDFLAGS=-ldflags "-s -w"
