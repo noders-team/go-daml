@@ -156,7 +156,8 @@ func getUpdateResponseFromProto(pb *v2.GetUpdateResponse) *model.GetUpdateRespon
 	}
 
 	return &model.GetUpdateResponse{
-		Transaction: transactionFromProto(pb.GetTransaction()),
+		Transaction:  transactionFromProto(pb.GetTransaction()),
+		Reassignment: reassignmentFromProto(pb.GetReassignment()),
 	}
 }
 
@@ -176,10 +177,11 @@ func transactionFromProto(pb *v2.Transaction) *model.Transaction {
 	}
 
 	tx := &model.Transaction{
-		UpdateID:   pb.UpdateId,
-		CommandID:  pb.CommandId,
-		WorkflowID: pb.WorkflowId,
-		Offset:     pb.Offset,
+		UpdateID:        pb.UpdateId,
+		CommandID:       pb.CommandId,
+		WorkflowID:      pb.WorkflowId,
+		Offset:          pb.Offset,
+		PaidTrafficCost: paidTrafficCostFromUnknown(pb, transactionPaidTrafficCostField),
 	}
 
 	if pb.EffectiveAt != nil {
@@ -219,8 +221,9 @@ func reassignmentFromProto(pb *v2.Reassignment) *model.Reassignment {
 	}
 
 	r := &model.Reassignment{
-		UpdateID: pb.UpdateId,
-		Offset:   pb.Offset,
+		UpdateID:        pb.UpdateId,
+		Offset:          pb.Offset,
+		PaidTrafficCost: paidTrafficCostFromUnknown(pb, reassignmentPaidTrafficCostField),
 	}
 
 	if pb.RecordTime != nil {

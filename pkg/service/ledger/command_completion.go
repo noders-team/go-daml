@@ -96,10 +96,11 @@ func completionStreamResponseFromProto(pb *v2.CompletionStreamResponse) *model.C
 
 func completionFromProto(pb *v2.Completion) model.Completion {
 	comp := model.Completion{
-		CommandID:    pb.CommandId,
-		UpdateID:     pb.UpdateId,
-		SubmissionID: pb.SubmissionId,
-		Offset:       pb.Offset,
+		CommandID:       pb.CommandId,
+		UpdateID:        pb.UpdateId,
+		SubmissionID:    pb.SubmissionId,
+		Offset:          pb.Offset,
+		PaidTrafficCost: paidTrafficCostFromUnknown(pb, completionPaidTrafficCostField),
 	}
 
 	// Note: proto Completion doesn't have CompletedAt or TransactionID fields

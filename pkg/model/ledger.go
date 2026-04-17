@@ -85,13 +85,14 @@ type CompletionResponse interface {
 }
 
 type Completion struct {
-	CommandID     string
-	Status        Status
-	UpdateID      string
-	TransactionID string
-	SubmissionID  string
-	CompletedAt   *time.Time
-	Offset        int64
+	CommandID       string
+	Status          Status
+	UpdateID        string
+	TransactionID   string
+	SubmissionID    string
+	CompletedAt     *time.Time
+	Offset          int64
+	PaidTrafficCost int64
 }
 
 func (Completion) isCompletionResponse() {}
@@ -426,12 +427,13 @@ type Update struct {
 }
 
 type Transaction struct {
-	UpdateID    string
-	CommandID   string
-	WorkflowID  string
-	EffectiveAt *time.Time
-	Events      []*Event
-	Offset      int64
+	UpdateID        string
+	CommandID       string
+	WorkflowID      string
+	EffectiveAt     *time.Time
+	Events          []*Event
+	Offset          int64
+	PaidTrafficCost int64
 }
 
 type Event struct {
@@ -441,15 +443,16 @@ type Event struct {
 }
 
 type Reassignment struct {
-	UpdateID    string
-	Offset      int64
-	UnassignID  string
-	Source      string
-	Target      string
-	Counter     int64
-	SubmittedAt *time.Time
-	Unassigned  *time.Time
-	Reassigned  *time.Time
+	UpdateID        string
+	Offset          int64
+	UnassignID      string
+	Source          string
+	Target          string
+	Counter         int64
+	SubmittedAt     *time.Time
+	Unassigned      *time.Time
+	Reassigned      *time.Time
+	PaidTrafficCost int64
 }
 
 type GetTransactionByIDRequest struct {
@@ -468,7 +471,8 @@ type GetTransactionResponse struct {
 }
 
 type GetUpdateResponse struct {
-	Transaction *Transaction
+	Transaction  *Transaction
+	Reassignment *Reassignment
 }
 
 type GetTransactionByOffsetRequest struct {
