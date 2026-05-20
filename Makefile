@@ -12,6 +12,10 @@ BINARY_DIR=bin
 CMD_DIR=cmd
 MAIN_PATH=./$(CMD_DIR)/go-daml/main.go
 
+# Pinned tool versions
+GOLANGCI_LINT_VERSION=v2.12.2
+GOLANGCI_LINT=$(BINARY_DIR)/golangci-lint
+
 # Build flags
 LDFLAGS=-ldflags "-s -w"
 BUILD_FLAGS=-trimpath
@@ -104,15 +108,21 @@ fmt:
 	@echo "Formatting code..."
 	$(GOCMD) fmt ./...
 
-# Lint code
-.PHONY: lint
-lint:
-	@echo "Linting code..."
-	@if command -v golangci-lint >/dev/null 2>&1; then \
-		golangci-lint run; \
-	else \
-		echo "golangci-lint not installed. Run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; \
+# Install pinned golangci-lint into ./bin
+.PHONY: lint-install
+lint-install:
+	@if [ ! -x "$(GOLANGCI_LINT)" ] || ! $(GOLANGCI_LINT) --version 2>/dev/null | grep -q "$(GOLANGCI_LINT_VERSION:v%=%)"; then \
+		echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION)..."; \
+		mkdir -p $(BINARY_DIR); \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/$(GOLANGCI_LINT_VERSION)/install.sh \
+			| sh -s -- -b $(BINARY_DIR) $(GOLANGCI_LINT_VERSION); \
 	fi
+
+# Lint code with pinned version
+.PHONY: lint
+lint: lint-install
+	@echo "Linting code..."
+	$(GOLANGCI_LINT) run
 
 # Vet code
 .PHONY: vet
