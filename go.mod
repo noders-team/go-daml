@@ -2,6 +2,8 @@ module github.com/noders-team/go-daml
 
 go 1.24.2
 
+toolchain go1.24.2
+
 require (
 	github.com/digital-asset/dazl-client/v8 v8.9.0
 	github.com/ory/dockertest/v3 v3.12.0
