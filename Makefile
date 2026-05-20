@@ -16,6 +16,11 @@ MAIN_PATH=./$(CMD_DIR)/go-daml/main.go
 GOLANGCI_LINT_VERSION=v2.12.2
 GOLANGCI_LINT=$(BINARY_DIR)/golangci-lint
 
+# Smoke test paths
+SMOKE_DIR=$(BINARY_DIR)/smoke
+SMOKE_DAR=test-data/all-kinds-of-1.0.0_lf.dar
+SMOKE_PKG=smoketest
+
 # Build flags
 LDFLAGS=-ldflags "-s -w"
 BUILD_FLAGS=-trimpath
@@ -67,6 +72,22 @@ install:
 test:
 	@echo "Running tests..."
 	$(GOTEST) -v ./...
+
+# Smoke: build everything, run CLI codegen end-to-end, ensure output compiles.
+# Output dir gets its own go.mod with a local replace so it stays out of the
+# parent module and so codegen-produced files do not pollute go list ./...
+.PHONY: smoke
+smoke: build
+	@echo "Smoke: go build ./..."
+	$(GOBUILD) ./...
+	@echo "Smoke: end-to-end codegen via CLI..."
+	@rm -rf $(SMOKE_DIR)
+	@mkdir -p $(SMOKE_DIR)
+	@printf 'module $(SMOKE_PKG)\n\ngo 1.24.2\n\nreplace github.com/noders-team/go-daml => $(CURDIR)\n' > $(SMOKE_DIR)/go.mod
+	./$(BINARY_DIR)/$(BINARY_NAME) --dar $(SMOKE_DAR) --output $(SMOKE_DIR) --go_package $(SMOKE_PKG)
+	@echo "Smoke: compile generated code..."
+	@cd $(SMOKE_DIR) && $(GOMOD) tidy && $(GOBUILD) ./...
+	@echo "Smoke: OK"
 
 # Run tests with coverage
 .PHONY: test-coverage
