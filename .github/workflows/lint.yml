@@ -17,8 +17,6 @@ jobs:
   lint:
     name: lint
     # Soft gate: job runs only when the 'run-lint' label is present.
-    # Any contributor with triage+ permission can add the label themselves —
-    # lint is read-only and cheap, no admin gating needed.
     if: ${{ contains(github.event.pull_request.labels.*.name, 'run-lint') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -30,8 +28,6 @@ jobs:
           go-version-file: .go-version
           cache: true
 
-      # Pinned install via official script — avoids depending on a third-party
-      # action version matching the golangci-lint major (v2 needs action >= v7).
       - name: Install golangci-lint v2.12.2 (pinned)
         run: |
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/v2.12.2/install.sh \

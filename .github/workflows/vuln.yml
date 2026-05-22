@@ -17,8 +17,6 @@ jobs:
   vuln:
     name: govulncheck
     # Soft gate: job runs only when the 'run-vuln' label is present.
-    # Any contributor with triage+ permission can add the label themselves —
-    # govulncheck is read-only and cheap, no admin gating needed.
     if: ${{ contains(github.event.pull_request.labels.*.name, 'run-vuln') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
