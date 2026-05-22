@@ -16,9 +16,7 @@ concurrency:
 jobs:
   unit:
     name: unit
-    # Soft gate: job runs only when the label is present. Without it the job
-    # is skipped (not failed), so trivial PRs without the label can still merge
-    # as long as `unit` is NOT in the required status checks list.
+    # Soft gate: job runs only when the label is present.
     if: ${{ contains(github.event.pull_request.labels.*.name, 'run-unit-tests') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -48,7 +46,6 @@ jobs:
           cache: true
 
       # -p 1 serializes test binaries so the shared Canton container started
-      # by testutil.Setup is reused across packages instead of being recreated
-      # (which would race on the fixed container name).
+      # by testutil.
       - name: go test -race -p 1 ./...
         run: go test -race -p 1 ./...
