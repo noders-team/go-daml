@@ -1,0 +1,54 @@
+name: Unit tests
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: unit-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: unit
+    # Soft gate: job runs only when the label is present. Without it the job
+    # is skipped (not failed), so trivial PRs without the label can still merge
+    # as long as `unit` is NOT in the required status checks list.
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'run-unit-tests') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Verify label was added by an admin
+        if: ${{ github.event.action == 'labeled' && github.event.label.name == 'run-unit-tests' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: perm } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: context.payload.sender.login,
+            });
+            if (perm.permission !== 'admin') {
+              core.setFailed(
+                `Only repository admins can trigger unit tests. ` +
+                `User '${context.payload.sender.login}' has '${perm.permission}'.`
+              );
+            }
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: .go-version
+          cache: true
+
+      # -p 1 serializes test binaries so the shared Canton container started
+      # by testutil.Setup is reused across packages instead of being recreated
+      # (which would race on the fixed container name).
+      - name: go test -race -p 1 ./...
+        run: go test -race -p 1 ./...
