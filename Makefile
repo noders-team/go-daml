@@ -74,8 +74,7 @@ test:
 	$(GOTEST) -v ./...
 
 # Smoke: build everything, run CLI codegen end-to-end on every test-data/*.dar
-# fixture, ensure the output compiles. Each iteration gets its own go.mod with
-# a local replace so generated files stay out of the parent module.
+# fixture, ensure the output compiles.
 .PHONY: smoke
 smoke: build
 	@echo "Smoke: go build ./..."

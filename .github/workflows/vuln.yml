@@ -1,0 +1,35 @@
+name: govulncheck
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: vuln-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vuln:
+    name: govulncheck
+    # Soft gate: job runs only when the 'run-vuln' label is present.
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'run-vuln') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: .go-version
+          cache: true
+
+      - name: Install govulncheck v1.3.0 (pinned)
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
+
+      - name: govulncheck ./...
+        run: govulncheck ./...
