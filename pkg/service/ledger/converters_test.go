@@ -1110,6 +1110,15 @@ func TestConvertToRecordSlices(t *testing.T) {
 	})
 }
 
+func reltimeMicros(t *testing.T, v *v2.Value) int64 {
+	t.Helper()
+	rec := v.GetRecord()
+	require.NotNil(t, rec)
+	require.Len(t, rec.Fields, 1)
+	require.Equal(t, "microseconds", rec.Fields[0].Label)
+	return rec.Fields[0].Value.GetInt64()
+}
+
 func TestConvertToRecordRELTIME(t *testing.T) {
 	t.Run("RELTIME type conversion - 1 second", func(t *testing.T) {
 		reltimeValue := types.RELTIME(1 * time.Second)
@@ -1123,7 +1132,7 @@ func TestConvertToRecordRELTIME(t *testing.T) {
 		require.Len(t, record.Fields, 1)
 		require.Equal(t, "duration", record.Fields[0].Label)
 
-		int64Value := record.Fields[0].Value.GetInt64()
+		int64Value := reltimeMicros(t, record.Fields[0].Value)
 		require.Equal(t, int64(1000000), int64Value)
 	})
 
@@ -1139,7 +1148,7 @@ func TestConvertToRecordRELTIME(t *testing.T) {
 		require.Len(t, record.Fields, 1)
 		require.Equal(t, "duration", record.Fields[0].Label)
 
-		int64Value := record.Fields[0].Value.GetInt64()
+		int64Value := reltimeMicros(t, record.Fields[0].Value)
 		require.Equal(t, int64(300000000), int64Value)
 	})
 
@@ -1155,7 +1164,7 @@ func TestConvertToRecordRELTIME(t *testing.T) {
 		require.Len(t, record.Fields, 1)
 		require.Equal(t, "duration", record.Fields[0].Label)
 
-		int64Value := record.Fields[0].Value.GetInt64()
+		int64Value := reltimeMicros(t, record.Fields[0].Value)
 		require.Equal(t, int64(100), int64Value)
 	})
 
@@ -1193,8 +1202,8 @@ func TestConvertToRecordRELTIME(t *testing.T) {
 
 		require.Equal(t, "alice", fieldMap["owner"].Value.GetParty())
 		require.Equal(t, "test reltime", fieldMap["name"].Value.GetText())
-		require.Equal(t, int64(30000000), fieldMap["duration"].Value.GetInt64())
-		require.Equal(t, int64(3600000000), fieldMap["maxDuration"].Value.GetInt64())
+		require.Equal(t, int64(30000000), reltimeMicros(t, fieldMap["duration"].Value))
+		require.Equal(t, int64(3600000000), reltimeMicros(t, fieldMap["maxDuration"].Value))
 	})
 }
 
@@ -1391,8 +1400,8 @@ func TestConvertToRecordRELTIMEAndSETIntegration(t *testing.T) {
 		require.Equal(t, "alice", fieldMap["owner"].Value.GetParty())
 		require.Equal(t, "integration test", fieldMap["name"].Value.GetText())
 
-		require.Equal(t, int64(10000000), fieldMap["tickDuration"].Value.GetInt64())
-		require.Equal(t, int64(300000000), fieldMap["maxProcessingTime"].Value.GetInt64())
+		require.Equal(t, int64(10000000), reltimeMicros(t, fieldMap["tickDuration"].Value))
+		require.Equal(t, int64(300000000), reltimeMicros(t, fieldMap["maxProcessingTime"].Value))
 
 		partiesSet := fieldMap["requiredParties"].Value.GetList()
 		require.NotNil(t, partiesSet)
@@ -1651,7 +1660,7 @@ func TestConvertToRecordTUPLE2(t *testing.T) {
 			fieldMap[field.Label] = field
 		}
 
-		require.Equal(t, int64(30000000), fieldMap["_1"].Value.GetInt64())
+		require.Equal(t, int64(30000000), reltimeMicros(t, fieldMap["_1"].Value))
 
 		setList := fieldMap["_2"].Value.GetList()
 		require.NotNil(t, setList)
@@ -1710,8 +1719,8 @@ func TestConvertToRecordRELTIMEAndSETAndTUPLE2Integration(t *testing.T) {
 		require.Equal(t, "alice", fieldMap["owner"].Value.GetParty())
 		require.Equal(t, "full integration test", fieldMap["name"].Value.GetText())
 
-		require.Equal(t, int64(10000000), fieldMap["tickDuration"].Value.GetInt64())
-		require.Equal(t, int64(300000000), fieldMap["maxProcessingTime"].Value.GetInt64())
+		require.Equal(t, int64(10000000), reltimeMicros(t, fieldMap["tickDuration"].Value))
+		require.Equal(t, int64(300000000), reltimeMicros(t, fieldMap["maxProcessingTime"].Value))
 
 		partiesSet := fieldMap["requiredParties"].Value.GetList()
 		require.NotNil(t, partiesSet)
