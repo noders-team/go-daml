@@ -12,6 +12,15 @@ BINARY_DIR=bin
 CMD_DIR=cmd
 MAIN_PATH=./$(CMD_DIR)/go-daml/main.go
 
+# Pinned tool versions
+GOLANGCI_LINT_VERSION=v2.12.2
+GOLANGCI_LINT=$(BINARY_DIR)/golangci-lint
+
+# Smoke test paths
+SMOKE_DIR=$(BINARY_DIR)/smoke
+SMOKE_DARS=$(wildcard test-data/*.dar)
+SMOKE_PKG=smoketest
+
 # Build flags
 LDFLAGS=-ldflags "-s -w"
 BUILD_FLAGS=-trimpath
@@ -64,6 +73,23 @@ test:
 	@echo "Running tests..."
 	$(GOTEST) -v ./...
 
+# Smoke: build everything, run CLI codegen end-to-end on every test-data/*.dar
+# fixture, ensure the output compiles.
+.PHONY: smoke
+smoke: build
+	@echo "Smoke: go build ./..."
+	$(GOBUILD) ./...
+	@echo "Smoke: end-to-end codegen on $(words $(SMOKE_DARS)) DAR fixtures..."
+	@set -e; for dar in $(SMOKE_DARS); do \
+		echo "  -> $$dar"; \
+		rm -rf $(SMOKE_DIR); \
+		mkdir -p $(SMOKE_DIR); \
+		printf 'module $(SMOKE_PKG)\n\ngo 1.24.2\n\nreplace github.com/noders-team/go-daml => $(CURDIR)\n' > $(SMOKE_DIR)/go.mod; \
+		./$(BINARY_DIR)/$(BINARY_NAME) --dar $$dar --output $(SMOKE_DIR) --go_package $(SMOKE_PKG); \
+		(cd $(SMOKE_DIR) && $(GOMOD) tidy && $(GOBUILD) ./...); \
+	done
+	@echo "Smoke: OK ($(words $(SMOKE_DARS)) fixtures)"
+
 # Run tests with coverage
 .PHONY: test-coverage
 test-coverage:
@@ -104,15 +130,21 @@ fmt:
 	@echo "Formatting code..."
 	$(GOCMD) fmt ./...
 
-# Lint code
-.PHONY: lint
-lint:
-	@echo "Linting code..."
-	@if command -v golangci-lint >/dev/null 2>&1; then \
-		golangci-lint run; \
-	else \
-		echo "golangci-lint not installed. Run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; \
+# Install pinned golangci-lint into ./bin
+.PHONY: lint-install
+lint-install:
+	@if [ ! -x "$(GOLANGCI_LINT)" ] || ! $(GOLANGCI_LINT) --version 2>/dev/null | grep -q "$(GOLANGCI_LINT_VERSION:v%=%)"; then \
+		echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION)..."; \
+		mkdir -p $(BINARY_DIR); \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/$(GOLANGCI_LINT_VERSION)/install.sh \
+			| sh -s -- -b $(BINARY_DIR) $(GOLANGCI_LINT_VERSION); \
 	fi
+
+# Lint code with pinned version
+.PHONY: lint
+lint: lint-install
+	@echo "Linting code..."
+	$(GOLANGCI_LINT) run
 
 # Vet code
 .PHONY: vet
