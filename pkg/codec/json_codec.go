@@ -816,6 +816,8 @@ func (codec *JsonCodec) assignReltimeValue(jsonValue interface{}, target reflect
 	case int64:
 		target.Set(reflect.ValueOf(types.RELTIME(time.Duration(v) * time.Microsecond)))
 		return nil
+	case map[string]interface{}:
+		return codec.assignReltimeValue(v["microseconds"], target)
 	default:
 		return fmt.Errorf("expected string or number for RELTIME, got %T", jsonValue)
 	}

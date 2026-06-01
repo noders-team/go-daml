@@ -21,6 +21,7 @@ type DamlBindingClient struct {
 	PackageMng                   admin.PackageManagement
 	CommandInspectionMng         admin.CommandInspection
 	IdentityProviderMng          admin.IdentityProviderConfig
+	TrafficControl               admin.TrafficControl
 	CommandCompletion            ledger.CommandCompletion
 	CommandService               ledger.CommandService
 	CommandSubmission            ledger.CommandSubmission
@@ -49,6 +50,7 @@ func NewDamlBindingClient(client *DamlClient, conn *Connection) *DamlBindingClie
 		PackageMng:                   admin.NewPackageManagementClient(grpc),
 		CommandInspectionMng:         admin.NewCommandInspectionClient(grpc),
 		IdentityProviderMng:          admin.NewIdentityProviderConfigClient(grpc),
+		TrafficControl:               admin.NewTrafficControlClient(adminGrpc),
 		CommandCompletion:            ledger.NewCommandCompletionClient(grpc),
 		CommandService:               ledger.NewCommandServiceClient(grpc),
 		CommandSubmission:            ledger.NewCommandSubmissionClient(grpc),

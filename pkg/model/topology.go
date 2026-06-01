@@ -209,6 +209,11 @@ type PartyToParticipantMapping struct {
 	Party        string
 	Threshold    uint32
 	Participants []HostingParticipant
+	// SigningKeys, when set, marks the party as externally signed: the protocol
+	// signing keys live in the PartyToParticipant mapping (the modern replacement
+	// for the deprecated PartyToKeyMapping). SigningKeysThreshold defaults to 1.
+	SigningKeys          []PublicKey
+	SigningKeysThreshold uint32
 }
 
 func (*PartyToParticipantMapping) isTopologyMapping() {}

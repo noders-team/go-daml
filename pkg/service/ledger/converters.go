@@ -447,7 +447,11 @@ func mapToValue(data interface{}) *v2.Value {
 		return &v2.Value{Sum: &v2.Value_Numeric{Numeric: convertBigIntToNumeric(v, 10).FloatString(10)}}
 	case types.RELTIME:
 		microseconds := int64(time.Duration(v) / time.Microsecond)
-		return &v2.Value{Sum: &v2.Value_Int64{Int64: microseconds}}
+		return &v2.Value{Sum: &v2.Value_Record{Record: &v2.Record{
+			Fields: []*v2.RecordField{
+				{Label: "microseconds", Value: &v2.Value{Sum: &v2.Value_Int64{Int64: microseconds}}},
+			},
+		}}}
 	case types.SET:
 		elements := make([]*v2.Value, len(v))
 		for i, elem := range v {

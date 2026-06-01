@@ -300,12 +300,27 @@ func topologyMappingToProto(mapping model.TopologyMapping) *protov30.TopologyMap
 				Permission:     participantPermissionToProto(p.Permission),
 			}
 		}
+		ptp := &protov30.PartyToParticipant{
+			Party:        m.Party,
+			Threshold:    m.Threshold,
+			Participants: participants,
+		}
+		if len(m.SigningKeys) > 0 {
+			keys := make([]*cryptov30.SigningPublicKey, len(m.SigningKeys))
+			for i := range m.SigningKeys {
+				keys[i] = signingPublicKeyToProto(&m.SigningKeys[i])
+			}
+			threshold := m.SigningKeysThreshold
+			if threshold == 0 {
+				threshold = 1
+			}
+			ptp.PartySigningKeys = &cryptov30.SigningKeysWithThreshold{
+				Keys:      keys,
+				Threshold: threshold,
+			}
+		}
 		pbMapping.Mapping = &protov30.TopologyMapping_PartyToParticipant{
-			PartyToParticipant: &protov30.PartyToParticipant{
-				Party:        m.Party,
-				Threshold:    m.Threshold,
-				Participants: participants,
-			},
+			PartyToParticipant: ptp,
 		}
 	}
 
