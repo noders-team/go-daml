@@ -601,6 +601,16 @@ func TestJsonCodec_Unmarshall_RELTIME(t *testing.T) {
 			json:     `"3600000000"`,
 			expected: RELTIME(1 * time.Hour),
 		},
+		{
+			name:     "microseconds object with number",
+			json:     `{"microseconds": 100}`,
+			expected: RELTIME(100 * time.Microsecond),
+		},
+		{
+			name:     "microseconds object with string",
+			json:     `{"microseconds": "1000000"}`,
+			expected: RELTIME(1 * time.Second),
+		},
 	}
 
 	for _, tt := range tests {
@@ -609,6 +619,36 @@ func TestJsonCodec_Unmarshall_RELTIME(t *testing.T) {
 			err := codec.Unmarshall([]byte(tt.json), &result)
 			require.NoError(t, err)
 			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestJsonCodec_Unmarshall_RELTIME_Errors(t *testing.T) {
+	codec := NewJsonCodec()
+
+	tests := []struct {
+		name string
+		json string
+	}{
+		{
+			name: "object missing microseconds field",
+			json: `{"seconds": 1}`,
+		},
+		{
+			name: "invalid string format",
+			json: `"not-a-number"`,
+		},
+		{
+			name: "object with invalid microseconds string",
+			json: `{"microseconds": "not-a-number"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var result RELTIME
+			err := codec.Unmarshall([]byte(tt.json), &result)
+			require.Error(t, err)
 		})
 	}
 }
