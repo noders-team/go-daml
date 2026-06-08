@@ -13,7 +13,6 @@ import (
 	"github.com/noders-team/go-daml/pkg/client"
 	"github.com/noders-team/go-daml/pkg/errors"
 	"github.com/noders-team/go-daml/pkg/model"
-	"github.com/noders-team/go-daml/pkg/service/ledger"
 	. "github.com/noders-team/go-daml/pkg/types"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -158,43 +157,34 @@ func TestCodegenIntegration(t *testing.T) {
 		}
 	}
 
-	createUpdateID, err := getUpdateIDFromContractCreate(ctx, party, packageID, cl, mappyContract)
+	createdIDs, err := createContract(ctx, party, packageID, cl, mappyContract)
 	require.NoError(t, err)
-	require.NotEmpty(t, createUpdateID, "should have a valid create updateID")
+	require.NotEmpty(t, createdIDs, "should have created a contract")
 
-	txResp, err := cl.UpdateService.GetUpdateById(ctx, &model.GetUpdateByIDRequest{
-		UpdateID: createUpdateID,
-		UpdateFormat: &model.EventFormat{
-			FiltersByParty: map[string]*model.Filters{
-				party: {},
-			},
-			Verbose: true,
-		},
-	})
-	require.NoError(t, err, "GetUpdateById should succeed")
-	require.NotNil(t, txResp, "response should not be nil")
-	require.NotNil(t, txResp.Transaction, "transaction should not be nil")
+	query := client.NewContractQuery[MappyContract](cl)
+	contracts, err := query.FindContractsByTemplate(ctx, party, mappyContract.GetTemplateID())
+	require.NoError(t, err, "FindContractsByTemplate should succeed")
+	require.NotEmpty(t, contracts, "should find at least one contract")
 
 	var foundTypedContract bool
-	for _, event := range txResp.Transaction.Events {
-		if event.Created != nil && event.Created.CreateArguments != nil {
-			foundTypedContract = true
-			var contract MappyContract
-			err = ledger.RecordToStruct(event.Created.CreateArguments, &contract)
-			require.NoError(t, err, "RecordToStruct should succeed")
-
-			log.Info().
-				Str("operator", string(contract.Operator)).
-				Interface("value", contract.Value).
-				Msg("successfully retrieved typed MappyContract")
-
-			require.Equal(t, PARTY(party), contract.Operator, "operator should match")
-			require.NotNil(t, contract.Value, "value should not be nil")
-			require.Equal(t, "value1", contract.Value["key1"], "key1 should have correct value")
-			require.Equal(t, "value2", contract.Value["key2"], "key2 should have correct value")
+	for _, c := range contracts {
+		if c.ContractID != createdIDs[0] {
+			continue
 		}
+		foundTypedContract = true
+		contract := c.Data
+
+		log.Info().
+			Str("operator", string(contract.Operator)).
+			Interface("value", contract.Value).
+			Msg("successfully retrieved typed MappyContract")
+
+		require.Equal(t, PARTY(party), contract.Operator, "operator should match")
+		require.NotNil(t, contract.Value, "value should not be nil")
+		require.Equal(t, "value1", contract.Value["key1"], "key1 should have correct value")
+		require.Equal(t, "value2", contract.Value["key2"], "key2 should have correct value")
 	}
-	require.True(t, foundTypedContract, "should find at least one typed created event")
+	require.True(t, foundTypedContract, "should find the created contract")
 }
 
 func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
@@ -399,53 +389,44 @@ func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
 		}
 	}
 
-	createUpdateID, err := getUpdateIDFromContractCreate(ctx, party, packageID, cl, mappyContract)
+	createdIDs, err := createContract(ctx, party, packageID, cl, mappyContract)
 	require.NoError(t, err)
-	require.NotEmpty(t, createUpdateID, "should have a valid create updateID")
+	require.NotEmpty(t, createdIDs, "should have created a contract")
 
-	txResp, err := cl.UpdateService.GetUpdateById(ctx, &model.GetUpdateByIDRequest{
-		UpdateID: createUpdateID,
-		UpdateFormat: &model.EventFormat{
-			FiltersByParty: map[string]*model.Filters{
-				party: {},
-			},
-			Verbose: true,
-		},
-	})
-	require.NoError(t, err, "GetUpdateById should succeed")
-	require.NotNil(t, txResp, "response should not be nil")
-	require.NotNil(t, txResp.Transaction, "transaction should not be nil")
+	query := client.NewContractQuery[OneOfEverything](cl)
+	contracts, err := query.FindContractsByTemplate(ctx, party, mappyContract.GetTemplateID())
+	require.NoError(t, err, "FindContractsByTemplate should succeed")
+	require.NotEmpty(t, contracts, "should find at least one contract")
 
 	var foundTypedContract bool
-	for _, event := range txResp.Transaction.Events {
-		if event.Created != nil && event.Created.CreateArguments != nil {
-			foundTypedContract = true
-			var contract OneOfEverything
-			err = ledger.RecordToStruct(event.Created.CreateArguments, &contract)
-			require.NoError(t, err, "RecordToStruct should succeed")
-
-			log.Info().
-				Str("operator", string(contract.Operator)).
-				Bool("someBoolean", bool(contract.SomeBoolean)).
-				Int64("someInteger", int64(contract.SomeInteger)).
-				Str("someText", string(contract.SomeText)).
-				Msg("successfully retrieved typed OneOfEverything contract")
-
-			require.Equal(t, PARTY(party), contract.Operator, "operator should match")
-			require.True(t, bool(contract.SomeBoolean), "someBoolean should be true")
-			require.Equal(t, INT64(190), contract.SomeInteger, "someInteger should be 190")
-			require.Equal(t, TEXT("some text"), contract.SomeText, "someText should match")
-			require.NotNil(t, contract.SomeDecimal, "someDecimal should not be nil")
-			require.NotNil(t, contract.SomeMeasurement, "someMeasurement should not be nil")
-			require.NotNil(t, contract.SomeMaybe, "someMaybe should not be nil")
-			require.Equal(t, INT64(42), *contract.SomeMaybe, "someMaybe value should be 42")
-			require.Nil(t, contract.SomeMaybeNot, "someMaybeNot should be nil")
-			require.NotNil(t, contract.SomeSimpleList, "someSimpleList should not be nil")
-			require.Len(t, contract.SomeSimpleList, 3, "someSimpleList should have 3 elements")
-			require.Equal(t, ColorRed, contract.SomeEnum, "someEnum should be ColorRed")
+	for _, c := range contracts {
+		if c.ContractID != createdIDs[0] {
+			continue
 		}
+		foundTypedContract = true
+		contract := c.Data
+
+		log.Info().
+			Str("operator", string(contract.Operator)).
+			Bool("someBoolean", bool(contract.SomeBoolean)).
+			Int64("someInteger", int64(contract.SomeInteger)).
+			Str("someText", string(contract.SomeText)).
+			Msg("successfully retrieved typed OneOfEverything contract")
+
+		require.Equal(t, PARTY(party), contract.Operator, "operator should match")
+		require.True(t, bool(contract.SomeBoolean), "someBoolean should be true")
+		require.Equal(t, INT64(190), contract.SomeInteger, "someInteger should be 190")
+		require.Equal(t, TEXT("some text"), contract.SomeText, "someText should match")
+		require.NotNil(t, contract.SomeDecimal, "someDecimal should not be nil")
+		require.NotNil(t, contract.SomeMeasurement, "someMeasurement should not be nil")
+		require.NotNil(t, contract.SomeMaybe, "someMaybe should not be nil")
+		require.Equal(t, INT64(42), *contract.SomeMaybe, "someMaybe value should be 42")
+		require.Nil(t, contract.SomeMaybeNot, "someMaybeNot should be nil")
+		require.NotNil(t, contract.SomeSimpleList, "someSimpleList should not be nil")
+		require.Len(t, contract.SomeSimpleList, 3, "someSimpleList should have 3 elements")
+		require.Equal(t, ColorRed, contract.SomeEnum, "someEnum should be ColorRed")
 	}
-	require.True(t, foundTypedContract, "should find at least one typed created event")
+	require.True(t, foundTypedContract, "should find the created contract")
 }
 
 func TestAmuletsTransfer(t *testing.T) {
@@ -1054,33 +1035,4 @@ func createContractWithUpdateID(ctx context.Context, party, packageID string, cl
 	log.Info().Strs("contractIDs", contractIDs).Msg("extracted contract IDs from transaction")
 
 	return contractIDs, createResponse.UpdateID, nil
-}
-
-func getUpdateIDFromContractCreate(ctx context.Context, party, packageID string, cl *client.DamlBindingClient, template Template) (string, error) {
-	createCommands := []*model.Command{
-		{
-			Command: createCommandWithPackageID(template, packageID),
-		},
-	}
-
-	createSubmissionReq := &model.SubmitAndWaitRequest{
-		Commands: &model.Commands{
-			WorkflowID:   "create-for-typed-test-" + time.Now().Format("20060102150405"),
-			UserID:       user,
-			CommandID:    "create-typed-" + time.Now().Format("20060102150405"),
-			ActAs:        []string{party},
-			SubmissionID: "create-typed-sub-" + time.Now().Format("20060102150405"),
-			DeduplicationPeriod: model.DeduplicationDuration{
-				Duration: 60 * time.Second,
-			},
-			Commands: createCommands,
-		},
-	}
-
-	createResponse, err := cl.CommandService.SubmitAndWait(ctx, createSubmissionReq)
-	if err != nil {
-		return "", fmt.Errorf("failed to create contract for typed test: %w", err)
-	}
-
-	return createResponse.UpdateID, nil
 }
