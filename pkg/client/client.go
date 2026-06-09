@@ -8,8 +8,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
-
-	"github.com/noders-team/go-daml/pkg/auth"
 )
 
 type Client struct {
@@ -27,7 +25,7 @@ func NewClient(config *Config) *Client {
 func (c *Client) Connect(ctx context.Context) (*Connection, error) {
 	opts := c.buildDialOptions()
 
-	conn, err := grpc.DialContext(ctx, c.config.Address, opts...)
+	conn, err := grpc.NewClient(c.config.Address, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to DAML ledger: %w", err)
 	}
@@ -36,9 +34,9 @@ func (c *Client) Connect(ctx context.Context) (*Connection, error) {
 
 	var adminConn *grpc.ClientConn
 	if c.config.AdminAddress != "" {
-		adminConn, err = grpc.DialContext(ctx, c.config.AdminAddress, opts...)
+		adminConn, err = grpc.NewClient(c.config.AdminAddress, opts...)
 		if err != nil {
-			c.conn.Close()
+			_ = c.conn.Close()
 			return nil, fmt.Errorf("failed to connect to DAML admin endpoint: %w", err)
 		}
 		c.adminConn = adminConn
@@ -68,18 +66,18 @@ func (c *Client) buildDialOptions() []grpc.DialOption {
 		creds := credentials.NewTLS(tlsConfig)
 		opts = append(opts, grpc.WithTransportCredentials(creds))
 
-		if c.config.Auth != nil {
-			bearerAuth := c.createBearerAuth()
-			opts = append(opts, grpc.WithPerRPCCredentials(bearerAuth))
+		auth := c.config.Auth
+		if auth != nil {
+			opts = append(opts, grpc.WithPerRPCCredentials(auth.TokenProvider))
 		}
 	} else {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
-		if c.config.Auth != nil {
-			bearerAuth := c.createBearerAuth()
+		auth := c.config.Auth
+		if auth != nil {
 			opts = append(opts,
-				grpc.WithUnaryInterceptor(bearerAuth.UnaryInterceptor()),
-				grpc.WithStreamInterceptor(bearerAuth.StreamInterceptor()),
+				grpc.WithUnaryInterceptor(auth.TokenProvider.UnaryInterceptor()),
+				grpc.WithStreamInterceptor(auth.TokenProvider.StreamInterceptor()),
 			)
 		}
 	}
@@ -97,13 +95,6 @@ func (c *Client) buildTLSConfig() *tls.Config {
 	}
 
 	return tlsConfig
-}
-
-func (c *Client) createBearerAuth() *auth.BearerTokenAuth {
-	if c.config.Auth.TokenProvider != nil {
-		return auth.NewBearerTokenProvider(c.config.Auth.TokenProvider)
-	}
-	return auth.NewBearerToken(c.config.Auth.Token)
 }
 
 type Connection struct {

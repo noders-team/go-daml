@@ -10,14 +10,16 @@ type DamlClient struct {
 	config *Config
 }
 
-func NewDamlClient(token string, grpcAddress string) *DamlClient {
+type TlsConfig struct {
+	Certificate string
+}
+
+func NewDamlClient(grpcAddress string, provider auth.TokenProvider) *DamlClient {
 	config := &Config{
 		Address: grpcAddress,
 	}
-	if token != "" {
-		config.Auth = &AuthConfig{
-			Token: token,
-		}
+	config.Auth = &AuthConfig{
+		TokenProvider: provider,
 	}
 	return &DamlClient{
 		config: config,
@@ -44,29 +46,4 @@ func (c *DamlClient) Build(ctx context.Context) (*DamlBindingClient, error) {
 	}
 
 	return NewDamlBindingClient(c, conn), nil
-}
-
-type TlsConfig struct {
-	Certificate string
-}
-
-func Connect(ctx context.Context, address string, opts ...ConfigOption) (*Connection, error) {
-	allOpts := append([]ConfigOption{WithAddress(address)}, opts...)
-	config := NewConfig(allOpts...)
-	client := NewClient(config)
-	return client.Connect(ctx)
-}
-
-func ConnectWithToken(ctx context.Context, address, token string, opts ...ConfigOption) (*Connection, error) {
-	allOpts := append([]ConfigOption{WithAddress(address), WithToken(token)}, opts...)
-	config := NewConfig(allOpts...)
-	client := NewClient(config)
-	return client.Connect(ctx)
-}
-
-func ConnectWithTokenProvider(ctx context.Context, address string, provider auth.TokenProvider, opts ...ConfigOption) (*Connection, error) {
-	allOpts := append([]ConfigOption{WithAddress(address), WithTokenProvider(provider)}, opts...)
-	config := NewConfig(allOpts...)
-	client := NewClient(config)
-	return client.Connect(ctx)
 }
