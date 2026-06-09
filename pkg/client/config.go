@@ -20,7 +20,6 @@ type TLSConfig struct {
 }
 
 type AuthConfig struct {
-	Token         string
 	TokenProvider auth.TokenProvider
 }
 
@@ -41,15 +40,6 @@ func WithAdminAddress(addr string) ConfigOption {
 func WithTLS(tls *TLSConfig) ConfigOption {
 	return func(c *Config) {
 		c.TLS = tls
-	}
-}
-
-func WithToken(token string) ConfigOption {
-	return func(c *Config) {
-		if c.Auth == nil {
-			c.Auth = &AuthConfig{}
-		}
-		c.Auth.Token = token
 	}
 }
 

@@ -78,6 +78,7 @@ go tool go-daml ...
 ```go
 import (
     "context"
+    "github.com/noders-team/go-daml/pkg/auth"
     "github.com/noders-team/go-daml/pkg/client"
     "github.com/rs/zerolog/log"
 )
@@ -87,7 +88,7 @@ grpcAddress := "localhost:6865"
 adminAddress := "localhost:6866"
 tlsConfig := client.TlsConfig{}
 
-cl, err := client.NewDamlClient(bearerToken, grpcAddress).
+cl, err := client.NewDamlClient(grpcAddress, auth.NewBearerTokenProvider(bearerToken)).
     WithAdminAddress(adminAddress).
     WithTLSConfig(tlsConfig).
     Build(context.Background())
@@ -102,6 +103,40 @@ cl.UserMng.CreateUser(ctx, userRequest)
 cl.PartyMng.AllocateParty(ctx, partyRequest)
 cl.TopologyManagerWrite.GenerateTransactions(ctx, request)
 ```
+
+### Authentication
+
+`NewDamlClient(address, provider)` takes an `auth.TokenProvider`, which the client uses to
+inject a bearer token on every gRPC call. The SDK ships two implementations:
+
+- **`auth.NewBearerTokenProvider(token)`** — a static, pre-issued JWT.
+- **`auth.NewKeycloakTokenProvider(cfg)`** — fetches a token from Keycloak via the
+  client-credentials grant and transparently caches/refreshes it before expiry.
+
+```go
+import (
+    "github.com/noders-team/go-daml/pkg/auth"
+    "github.com/noders-team/go-daml/pkg/client"
+)
+
+kc, err := auth.NewKeycloakTokenProvider(auth.KeycloakConfig{
+    OIDCURL:      "https://keycloak.example.com/realms/canton",
+    ClientID:     "ledger-app",
+    ClientSecret: "super-secret",
+    Audience:     "https://canton.network.global",
+})
+if err != nil {
+    log.Fatal().Err(err).Msg("failed to create keycloak token provider")
+}
+
+cl, err := client.NewDamlClient(grpcAddress, kc).
+    WithTLSConfig(client.TlsConfig{}).
+    Build(context.Background())
+```
+
+`TokenURL` may be supplied directly instead of `OIDCURL`; when only `OIDCURL` is set, the
+token endpoint is derived as `<OIDCURL>/protocol/openid-connect/token`. See
+[`examples/keycloak_app`](examples/keycloak_app) for a complete runnable program.
 
 ### Code Generation
 
@@ -184,7 +219,7 @@ The Go DAML SDK is organized into the following modules:
 - **`pkg/client/`**: DAML ledger gRPC client implementation
   - **Builder pattern** for flexible client configuration
   - Connection management with TLS support
-  - Authentication via Bearer tokens with automatic injection
+  - Pluggable `auth.TokenProvider` (static bearer token or Keycloak) with automatic token injection
   - Service factory exposing all ledger and admin services
   - gRPC interceptors for authentication and error handling
 
@@ -216,7 +251,7 @@ The Go DAML SDK is organized into the following modules:
   - **Time Service**: Control ledger time for testing
 
 - **`pkg/model/`**: Common data models and type definitions for ledger and admin operations
-- **`pkg/auth/`**: Authentication mechanisms (Bearer token interceptor)
+- **`pkg/auth/`**: Authentication mechanisms — `TokenProvider` interface with static bearer-token and Keycloak (OIDC client-credentials) implementations, injected via gRPC interceptors
 - **`pkg/codec/`**: JSON codec for DAML types with custom marshaling/unmarshaling
 - **`pkg/errors/`**: DAML-specific error handling with categorized error types
 - **`pkg/types/`**: DAML type system definitions
@@ -237,6 +272,7 @@ The Go DAML SDK is organized into the following modules:
 ### Examples
 - **`examples/admin_app/`**: Administrative operations examples
 - **`examples/ledger_app/`**: Ledger interaction examples
+- **`examples/keycloak_app/`**: Keycloak (OIDC client-credentials) authentication example
 
 ## SDK Usage Examples
 
@@ -247,6 +283,7 @@ package main
 import (
     "context"
     "os"
+    "github.com/noders-team/go-daml/pkg/auth"
     "github.com/noders-team/go-daml/pkg/client"
     "github.com/rs/zerolog/log"
 )
@@ -264,7 +301,7 @@ func main() {
     
     tlsConfig := client.TlsConfig{}
     
-    cl, err := client.NewDamlClient(bearerToken, grpcAddress).
+    cl, err := client.NewDamlClient(grpcAddress, auth.NewBearerTokenProvider(bearerToken)).
         WithTLSConfig(tlsConfig).
         Build(context.Background())
     if err != nil {
@@ -294,13 +331,14 @@ package main
 
 import (
     "context"
+    "github.com/noders-team/go-daml/pkg/auth"
     "github.com/noders-team/go-daml/pkg/client"
     "github.com/noders-team/go-daml/pkg/model"
     "github.com/rs/zerolog/log"
 )
 
 func main() {
-    cl, err := client.NewDamlClient("token", "localhost:8080").
+    cl, err := client.NewDamlClient("localhost:8080", auth.NewBearerTokenProvider("token")).
         Build(context.Background())
     if err != nil {
         log.Fatal().Err(err).Msg("failed to build client")
@@ -339,6 +377,7 @@ package main
 import (
     "context"
     "os"
+    "github.com/noders-team/go-daml/pkg/auth"
     "github.com/noders-team/go-daml/pkg/client"
     "github.com/noders-team/go-daml/pkg/model"
     "github.com/rs/zerolog/log"
@@ -353,7 +392,7 @@ func main() {
     bearerToken := os.Getenv("BEARER_TOKEN")
     tlsConfig := client.TlsConfig{}
     
-    cl, err := client.NewDamlClient(bearerToken, grpcAddress).
+    cl, err := client.NewDamlClient(grpcAddress, auth.NewBearerTokenProvider(bearerToken)).
         WithTLSConfig(tlsConfig).
         Build(context.Background())
     if err != nil {
@@ -401,6 +440,7 @@ package main
 import (
     "context"
     "os"
+    "github.com/noders-team/go-daml/pkg/auth"
     "github.com/noders-team/go-daml/pkg/client"
     "github.com/noders-team/go-daml/pkg/model"
     "github.com/rs/zerolog/log"
@@ -411,7 +451,7 @@ func main() {
     adminAddress := "localhost:6866"
     bearerToken := os.Getenv("BEARER_TOKEN")
 
-    cl, err := client.NewDamlClient(bearerToken, ledgerAddress).
+    cl, err := client.NewDamlClient(ledgerAddress, auth.NewBearerTokenProvider(bearerToken)).
         WithAdminAddress(adminAddress).
         Build(context.Background())
     if err != nil {
@@ -469,12 +509,13 @@ package main
 
 import (
     "context"
+    "github.com/noders-team/go-daml/pkg/auth"
     "github.com/noders-team/go-daml/pkg/client"
     "github.com/rs/zerolog/log"
 )
 
 func main() {
-    cl, err := client.NewDamlClient("token", "localhost:6865").
+    cl, err := client.NewDamlClient("localhost:6865", auth.NewBearerTokenProvider("token")).
         Build(context.Background())
     if err != nil {
         log.Fatal().Err(err).Msg("failed to build client")
@@ -543,7 +584,7 @@ The client automatically routes services to the appropriate connection:
 ### Usage
 
 ```go
-cl, err := client.NewDamlClient(token, "localhost:6865").
+cl, err := client.NewDamlClient("localhost:6865", auth.NewBearerTokenProvider(token)).
     WithAdminAddress("localhost:6866").  // Optional: if not provided, all services use main address
     Build(ctx)
 
