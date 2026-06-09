@@ -42,8 +42,8 @@ type keycloakTokenProvider struct {
 
 func NewKeycloakTokenProvider(cfg KeycloakConfig) (*keycloakTokenProvider, error) {
 	tokenURL := cfg.TokenURL
-	if tokenURL == "" {
-		base := strings.TrimRight(tokenURL, "/")
+	if tokenURL == "" && cfg.OIDCURL != "" {
+		base := strings.TrimRight(cfg.OIDCURL, "/")
 		tokenURL = base + "/protocol/openid-connect/token"
 	}
 

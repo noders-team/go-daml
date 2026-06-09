@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/noders-team/go-daml/pkg/auth"
 	"github.com/noders-team/go-daml/pkg/client"
 	"github.com/noders-team/go-daml/pkg/model"
 	"github.com/ory/dockertest/v3"
@@ -49,7 +50,7 @@ func Setup(ctx context.Context) error {
 
 		resDaml, grpcAddr, adminAddr = initDamlSandbox(ctx, dockerPool)
 
-		builder := client.NewDamlClient("", grpcAddr).WithAdminAddress(adminAddr)
+		builder := client.NewDamlClient(grpcAddr, auth.NewBearerTokenProvider("")).WithAdminAddress(adminAddr)
 		if strings.HasSuffix(grpcAddr, ":443") {
 			tlsConfig := client.TlsConfig{}
 			builder = builder.WithTLSConfig(tlsConfig)

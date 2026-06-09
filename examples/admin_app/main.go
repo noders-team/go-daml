@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/noders-team/go-daml/pkg/auth"
 	"github.com/noders-team/go-daml/pkg/client"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -25,7 +26,7 @@ func main() {
 
 	tlsConfig := client.TlsConfig{}
 
-	cl, err := client.NewDamlClient(bearerToken, grpcAddress).
+	cl, err := client.NewDamlClient(grpcAddress, auth.NewBearerTokenProvider(bearerToken)).
 		WithTLSConfig(tlsConfig).
 		Build(context.Background())
 	if err != nil {
