@@ -3,7 +3,7 @@ module github.com/noders-team/go-daml
 go 1.25.0
 
 require (
-	github.com/digital-asset/dazl-client/v8 v8.9.0
+	github.com/digital-asset/dazl-client/v8 v8.9.1-0.20260608175856-7b28907708ae
 	github.com/ory/dockertest/v3 v3.12.0
 	github.com/rs/zerolog v1.34.0
 	github.com/shopspring/decimal v1.4.0

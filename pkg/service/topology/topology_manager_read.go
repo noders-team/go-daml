@@ -15,6 +15,9 @@ import (
 
 type TopologyManagerRead interface {
 	ListNamespaceDelegation(ctx context.Context, req *model.ListNamespaceDelegationRequest) (*model.ListNamespaceDelegationResponse, error)
+	// Deprecated: party-to-key mappings are deprecated in Canton. Use
+	// ListPartyToParticipant; protocol signing keys now live in the
+	// PartyToParticipant mapping for externally signed parties.
 	ListPartyToKeyMapping(ctx context.Context, req *model.ListPartyToKeyMappingRequest) (*model.ListPartyToKeyMappingResponse, error)
 	ListPartyToParticipant(ctx context.Context, req *model.ListPartyToParticipantRequest) (*model.ListPartyToParticipantResponse, error)
 }
@@ -41,6 +44,9 @@ func (c *topologyManagerRead) ListNamespaceDelegation(ctx context.Context, req *
 	return listNamespaceDelegationResponseFromProto(resp), nil
 }
 
+// Deprecated: party-to-key mappings are deprecated in Canton. Use
+// ListPartyToParticipant; protocol signing keys now live in the PartyToParticipant
+// mapping for externally signed parties.
 func (c *topologyManagerRead) ListPartyToKeyMapping(ctx context.Context, req *model.ListPartyToKeyMappingRequest) (*model.ListPartyToKeyMappingResponse, error) {
 	protoReq := listPartyToKeyMappingRequestToProto(req)
 
