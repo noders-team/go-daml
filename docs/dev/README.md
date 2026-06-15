@@ -18,6 +18,7 @@ one module:
 | [minimal-examples.md](./minimal-examples.md) | Copy-paste minimal snippets for every service: commands, state, events, updates, admin, topology. |
 | [compatibility.md](./compatibility.md) | Compatibility matrix: Go versions, Ledger API / DAML-LF / Canton ranges, and Python DAZL interop notes (LF/protobuf and JSON/OpenAPI flows). |
 | [troubleshooting.md](./troubleshooting.md) | Common integration failures (auth, connection, template IDs, streaming) and how to diagnose them. |
+| [triage-and-sla.md](./triage-and-sla.md) | Issue triage process, severity levels (S1–S4), and target response times (e.g. initial response within 3 business days for critical integration issues). |
 
 ## Quick map of the SDK
 
