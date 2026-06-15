@@ -3,7 +3,7 @@ module github.com/noders-team/go-daml
 go 1.25.0
 
 require (
-	github.com/digital-asset/dazl-client/v8 v8.9.0
+	github.com/digital-asset/dazl-client/v8 v8.9.1-0.20260608175856-7b28907708ae
 	github.com/ory/dockertest/v3 v3.12.0
 	github.com/rs/zerolog v1.34.0
 	github.com/shopspring/decimal v1.4.0
@@ -51,3 +51,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/digital-asset/dazl-client/v8 => github.com/noders-team/dazl-client/v8 v8.0.0-20260612135029-cb4221f50ef6
