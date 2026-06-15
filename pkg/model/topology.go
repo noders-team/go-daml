@@ -35,11 +35,13 @@ type ListNamespaceDelegationResponse struct {
 	Results []*NamespaceDelegationResult
 }
 
+// Deprecated: party-to-key mappings are deprecated in Canton; see PartyToKeyMapping.
 type ListPartyToKeyMappingRequest struct {
 	BaseQuery   *BaseQuery
 	FilterParty string
 }
 
+// Deprecated: party-to-key mappings are deprecated in Canton; see PartyToKeyMapping.
 type ListPartyToKeyMappingResponse struct {
 	Results []*PartyToKeyMappingResult
 }
@@ -122,13 +124,18 @@ type TopologyMapping interface {
 }
 
 type NamespaceDelegationMapping struct {
-	Namespace        string
-	TargetKey        PublicKey
+	Namespace string
+	TargetKey PublicKey
+	// Deprecated: is_root_delegation is deprecated in Canton. A root delegation is
+	// now expressed through the namespace delegation restriction (the ability to
+	// sign all mappings); see the NamespaceDelegation restriction in protocol v30.
 	IsRootDelegation bool
 }
 
 func (*NamespaceDelegationMapping) isTopologyMapping() {}
 
+// Deprecated: PartyToKeyMapping is deprecated in Canton. Protocol signing keys for
+// externally signed parties now live in PartyToParticipantMapping.SigningKeys.
 type PartyToKeyMapping struct {
 	Party       string
 	Threshold   uint32
@@ -137,6 +144,8 @@ type PartyToKeyMapping struct {
 
 func (*PartyToKeyMapping) isTopologyMapping() {}
 
+// Deprecated: key scheme is deprecated in Canton crypto; use SigningKeySpec
+// (the key's algorithm is now carried by KeySpec, not Scheme).
 type SigningKeyScheme int32
 
 const (
@@ -168,9 +177,11 @@ const (
 )
 
 type PublicKey struct {
-	Format  int32
-	Key     []byte
-	ID      string
+	Format int32
+	Key    []byte
+	ID     string
+	// Deprecated: key scheme is deprecated in Canton crypto; use KeySpec instead
+	// (the algorithm is now carried by the key spec, not the scheme).
 	Scheme  int32
 	KeySpec int32
 	Usage   []int32
@@ -195,6 +206,7 @@ type NamespaceDelegationResult struct {
 	Item    *NamespaceDelegationMapping
 }
 
+// Deprecated: party-to-key mappings are deprecated in Canton; see PartyToKeyMapping.
 type PartyToKeyMappingResult struct {
 	Context *BaseResult
 	Item    *PartyToKeyMapping

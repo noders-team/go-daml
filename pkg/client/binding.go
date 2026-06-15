@@ -26,6 +26,7 @@ type DamlBindingClient struct {
 	CommandService               ledger.CommandService
 	CommandSubmission            ledger.CommandSubmission
 	EventQuery                   ledger.EventQuery
+	ContractService              ledger.ContractService
 	PackageService               ledger.PackageService
 	StateService                 ledger.StateService
 	UpdateService                ledger.UpdateService
@@ -55,6 +56,7 @@ func NewDamlBindingClient(client *DamlClient, conn *Connection) *DamlBindingClie
 		CommandService:               ledger.NewCommandServiceClient(grpc),
 		CommandSubmission:            ledger.NewCommandSubmissionClient(grpc),
 		EventQuery:                   ledger.NewEventQueryClient(grpc),
+		ContractService:              ledger.NewContractServiceClient(grpc),
 		PackageService:               ledger.NewPackageServiceClient(grpc),
 		StateService:                 ledger.NewStateServiceClient(grpc),
 		UpdateService:                ledger.NewUpdateServiceClient(grpc),

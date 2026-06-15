@@ -160,6 +160,15 @@ type CreatedEvent struct {
 	PackageName      string
 }
 
+type GetContractRequest struct {
+	ContractID      string
+	QueryingParties []string
+}
+
+type GetContractResponse struct {
+	CreatedEvent *CreatedEvent
+}
+
 type InterfaceView struct {
 	InterfaceID string
 	ViewStatus  *ViewStatus
