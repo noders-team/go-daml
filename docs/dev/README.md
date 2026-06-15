@@ -16,6 +16,7 @@ one module:
 | [getting-started.md](./getting-started.md) | Install, build, connect a client, create your first contract. |
 | [code-generation.md](./code-generation.md) | The `godaml` CLI: every generated shape (templates, choices, records, variants, enums), the two-pass flow, DAML-LF versions, naming rules. |
 | [minimal-examples.md](./minimal-examples.md) | Copy-paste minimal snippets for every service: commands, state, events, updates, admin, topology. |
+| [compatibility.md](./compatibility.md) | Compatibility matrix: Go versions, Ledger API / DAML-LF / Canton ranges, and Python DAZL interop notes (LF/protobuf and JSON/OpenAPI flows). |
 | [troubleshooting.md](./troubleshooting.md) | Common integration failures (auth, connection, template IDs, streaming) and how to diagnose them. |
 
 ## Quick map of the SDK
