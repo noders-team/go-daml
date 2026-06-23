@@ -21,20 +21,38 @@ func NewContractQuery[T any](client *DamlBindingClient) *ContractQuery[T] {
 
 type Contract[T any] struct {
 	ContractID string
+	TemplateID string
+	CreatedAt  *time.Time
 	Data       T
 }
 
 func (c *ContractQuery[T]) FindContractsByTemplate(ctx context.Context, partyID, templateID string) ([]Contract[T], error) {
-	var results []Contract[T]
-	err := c.scanActiveContractsByTemplate(ctx, contractQuery{
+	return c.collect(ctx, contractQuery{
 		partyID:    partyID,
 		templateID: templateID,
-	}, func(evt activeContractEvent) (bool, error) {
+	})
+}
+
+func (c *ContractQuery[T]) FindContractsByTemplateAnyParty(ctx context.Context, templateID string) ([]Contract[T], error) {
+	return c.collect(ctx, contractQuery{
+		templateID: templateID,
+		anyParty:   true,
+	})
+}
+
+func (c *ContractQuery[T]) collect(ctx context.Context, query contractQuery) ([]Contract[T], error) {
+	var results []Contract[T]
+	err := c.scanActiveContractsByTemplate(ctx, query, func(evt activeContractEvent) (bool, error) {
 		var t T
 		if err := ledger.RecordToStruct(evt.arguments, &t); err != nil {
 			return false, fmt.Errorf("decode contract %s: %w", evt.contractID, err)
 		}
-		results = append(results, Contract[T]{ContractID: evt.contractID, Data: t})
+		results = append(results, Contract[T]{
+			ContractID: evt.contractID,
+			TemplateID: evt.templateID,
+			CreatedAt:  evt.createdAt,
+			Data:       t,
+		})
 		return false, nil
 	})
 	if err != nil {
