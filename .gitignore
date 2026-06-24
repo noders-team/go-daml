@@ -11,3 +11,8 @@ coverage.out
 .qoderignore
 test-data/test_unzipped
 bin/*
+
+# VitePress docs site
+docs/node_modules
+docs/.vitepress/dist
+docs/.vitepress/cache
