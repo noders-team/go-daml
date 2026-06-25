@@ -284,10 +284,10 @@ func argsToMap(args interface{}) map[string]interface{} {
 {{$moduleName := .ModuleName}}
 
 // {{capitalise $interfaceName}}InterfaceID returns the interface ID for the {{capitalise $interfaceName}} interface
-func {{capitalise $interfaceName}}InterfaceID(packageID *string) string {
+func {{capitalise $interfaceName}}InterfaceID(packageRef *string) string {
 	pkgName := {{$pkgConst}}
-	if packageID != nil {
-		pkgName = *packageID
+	if packageRef != nil {
+		pkgName = *packageRef
 	}
 	return fmt.Sprintf("#%s:%s:%s", pkgName, "{{$moduleName}}", "{{capitalise $damlName}}")
 }
