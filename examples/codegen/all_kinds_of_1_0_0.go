@@ -1,20 +1,12 @@
 package codegen_test
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
-	"strings"
 
 	"github.com/noders-team/go-daml/pkg/codec"
 	"github.com/noders-team/go-daml/pkg/model"
 	. "github.com/noders-team/go-daml/pkg/types"
-)
-
-var (
-	_ = errors.New
-	_ = big.NewInt
-	_ = strings.NewReader
 )
 
 const SDKVersion = "3.3.0-snapshot.20250507.0"

@@ -433,7 +433,7 @@ func TestAmuletsTransfer(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
-	log.Info().Str("interfacePackageID", interfaces.PackageID).Msg("Using interface package ID")
+	log.Info().Str("interfacePackageName", interfaces.GetPackageName()).Msg("Using interface package name")
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 

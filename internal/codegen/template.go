@@ -4,11 +4,11 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
-	"go/format"
 	"strings"
 	"text/template"
 
 	"github.com/noders-team/go-daml/internal/codegen/model"
+	"golang.org/x/tools/imports"
 )
 
 type tmplData struct {
@@ -49,8 +49,8 @@ func Bind(pkg string, packageName string, pkgVersion string, sdkVersion string, 
 	if err := tmpl.Execute(buffer, data); err != nil {
 		return "", err
 	}
-	// Pass the code through gofmt to clean it up
-	code, err := format.Source(buffer.Bytes())
+	// Format and fix imports (gofmt + goimports) on the generated code
+	code, err := imports.Process("generated.go", buffer.Bytes(), nil)
 	if err != nil {
 		return "", fmt.Errorf("%v\n%s", err, buffer)
 	}

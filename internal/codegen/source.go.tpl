@@ -5,20 +5,10 @@ import (
 	"math/big"
 	"strings"
 	"errors"
-	
-	"github.com/noders-team/go-daml/pkg/model"
-	. "github.com/noders-team/go-daml/pkg/types"
-	"github.com/noders-team/go-daml/pkg/codec"
-)
 
-var (
-	_ = errors.New
-	_ = big.NewInt
-	_ = strings.NewReader
-	_ = fmt.Sprintf
-	_ = codec.NewJsonCodec
-	_ = model.CreateCommand{}
-	_ = NewNumericFromDecimal
+	"github.com/noders-team/go-daml/pkg/model"
+	{{if .Structs}}. "github.com/noders-team/go-daml/pkg/types"{{end}}
+	"github.com/noders-team/go-daml/pkg/codec"
 )
 
 {{if .IsMainDalf}}
