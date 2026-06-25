@@ -60,6 +60,33 @@ func TestBind(t *testing.T) {
 	}
 }
 
+func TestBindDependentDalfUsesVersionedPackageConst(t *testing.T) {
+	structs := map[string]*model.TmplStruct{
+		"RentalProposal": {
+			Name:       "RentalProposal",
+			ModuleName: "Rental",
+			RawType:    "Record",
+			IsTemplate: true,
+			Fields: []*model.TmplField{
+				{Name: "landlord", Type: "string"},
+			},
+		},
+	}
+
+	result, err := Bind("main", "test-package-name", "1.0.0", "2.0.0", structs, false)
+	if err != nil {
+		t.Fatalf("Bind failed: %v", err)
+	}
+
+	if !strings.Contains(result, `const packageNameTestPackageName100 = "test-package-name"`) {
+		t.Error("Generated code does not contain versioned package constant")
+	}
+
+	if !strings.Contains(result, `return fmt.Sprintf("#%s:%s:%s", packageNameTestPackageName100, "Rental", "RentalProposal")`) {
+		t.Error("Generated code does not reference versioned package constant in template IDs")
+	}
+}
+
 func TestCapitalize(t *testing.T) {
 	tests := []struct {
 		input    string
