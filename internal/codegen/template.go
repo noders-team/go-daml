@@ -12,25 +12,31 @@ import (
 )
 
 type tmplData struct {
-	Package     string
-	PackageName string
-	PkgVersion  string
-	SdkVersion  string
-	Structs     map[string]*model.TmplStruct
-	IsMainDalf  bool
+	Package      string
+	PackageName  string
+	PkgConstName string
+	PkgVersion   string
+	SdkVersion   string
+	Structs      map[string]*model.TmplStruct
+	IsMainDalf   bool
 }
 
 //go:embed source.go.tpl
 var tmplSource string
 
 func Bind(pkg string, packageName string, pkgVersion string, sdkVersion string, structs map[string]*model.TmplStruct, isMainDalf bool) (string, error) {
+	pkgConst := "packageName"
+	if !isMainDalf {
+		pkgConst = pkgConstName(packageName, pkgVersion)
+	}
 	data := &tmplData{
-		Package:     pkg,
-		PackageName: packageName,
-		PkgVersion:  pkgVersion,
-		SdkVersion:  sdkVersion,
-		Structs:     structs,
-		IsMainDalf:  isMainDalf,
+		Package:      pkg,
+		PackageName:  packageName,
+		PkgConstName: pkgConst,
+		PkgVersion:   pkgVersion,
+		SdkVersion:   sdkVersion,
+		Structs:      structs,
+		IsMainDalf:   isMainDalf,
 	}
 	buffer := new(bytes.Buffer)
 
@@ -49,6 +55,22 @@ func Bind(pkg string, packageName string, pkgVersion string, sdkVersion string, 
 		return "", fmt.Errorf("%v\n%s", err, buffer)
 	}
 	return string(code), nil
+}
+
+func pkgConstName(baseName, version string) string {
+	raw := baseName
+	if version != "" {
+		raw = baseName + "-" + version
+	}
+	parts := strings.FieldsFunc(raw, func(r rune) bool {
+		return !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9'))
+	})
+	var b strings.Builder
+	b.WriteString("packageName")
+	for _, p := range parts {
+		b.WriteString(strings.ToUpper(p[:1]) + p[1:])
+	}
+	return b.String()
 }
 
 func capitalize(input string) string {

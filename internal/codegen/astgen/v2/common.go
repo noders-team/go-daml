@@ -3,6 +3,7 @@ package v2
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	archive "github.com/digital-asset/dazl-client/v8/go/api/com/digitalasset/daml/lf/archive"
 	daml "github.com/digital-asset/dazl-client/v8/go/api/com/digitalasset/daml/lf/archive/daml_lf_1"
@@ -59,8 +60,7 @@ func (c *codeGenAst) GetInterfaces() (map[string]*model.TmplStruct, error) {
 			continue
 		}
 
-		idx := damlLf1.InternedDottedNames[module.GetNameInternedDname()].SegmentsInternedStr
-		moduleName := damlLf1.InternedStrings[idx[len(idx)-1]]
+		moduleName := c.joinDottedName(&damlLf1, module.GetNameInternedDname())
 
 		interfaces, err := c.getInterfaces(&damlLf1, module, moduleName)
 		if err != nil {
@@ -105,8 +105,7 @@ func (c *codeGenAst) GetTemplateStructs(_ map[string]model.InterfaceMap) (map[st
 			continue
 		}
 
-		idx := damlLf1.InternedDottedNames[module.GetNameInternedDname()].SegmentsInternedStr
-		moduleName := damlLf1.InternedStrings[idx[len(idx)-1]]
+		moduleName := c.joinDottedName(&damlLf1, module.GetNameInternedDname())
 		log.Info().Msgf("processing module %s", moduleName)
 
 		templates, err := c.getTemplates(&damlLf1, module, moduleName)
@@ -142,6 +141,15 @@ func (c *codeGenAst) GetTemplateStructs(_ map[string]model.InterfaceMap) (map[st
 func (c *codeGenAst) getName(pkg *daml.Package, id int32) string {
 	idx := pkg.InternedDottedNames[id].SegmentsInternedStr
 	return pkg.InternedStrings[idx[len(idx)-1]]
+}
+
+func (c *codeGenAst) joinDottedName(pkg *daml.Package, id int32) string {
+	idx := pkg.InternedDottedNames[id].SegmentsInternedStr
+	segs := make([]string, len(idx))
+	for i, s := range idx {
+		segs[i] = pkg.InternedStrings[s]
+	}
+	return strings.Join(segs, ".")
 }
 
 func (c *codeGenAst) getTemplates(pkg *daml.Package, module *daml.Module, moduleName string) (map[string]*model.TmplStruct, error) {

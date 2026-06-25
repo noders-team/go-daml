@@ -15,6 +15,10 @@ var (
 	_ = errors.New
 	_ = big.NewInt
 	_ = strings.NewReader
+	_ = fmt.Sprintf
+	_ = codec.NewJsonCodec
+	_ = model.CreateCommand{}
+	_ = NewNumericFromDecimal
 )
 
 const SDKVersion = "3.3.0-snapshot.20250417.0"
