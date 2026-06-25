@@ -10,6 +10,11 @@ export default defineConfig({
   // Build only the documentation, ignore stray markdown elsewhere in the repo.
   srcExclude: ['**/node_modules/**'],
 
+  // Serve dev/README.md at /dev/ (VitePress does not treat README as an index).
+  rewrites: {
+    'dev/README.md': 'dev/index.md',
+  },
+
   // Pretty URLs without trailing .html
   cleanUrls: true,
 
@@ -18,8 +23,6 @@ export default defineConfig({
 
   themeConfig: {
     nav: [
-      { text: 'Guide', link: '/dev/getting-started' },
-      { text: 'Reference', link: '/dev/code-generation' },
       {
         text: 'GitHub',
         link: 'https://github.com/noders-team/go-daml',
