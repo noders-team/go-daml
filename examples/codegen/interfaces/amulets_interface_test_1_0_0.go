@@ -279,10 +279,10 @@ func (t *TransferableView) UnmarshalJSON(data []byte) error {
 }
 
 // ITransferableInterfaceID returns the interface ID for the ITransferable interface
-func ITransferableInterfaceID(packageID *string) string {
+func ITransferableInterfaceID(packageRef *string) string {
 	pkgName := packageName
-	if packageID != nil {
-		pkgName = *packageID
+	if packageRef != nil {
+		pkgName = *packageRef
 	}
 	return fmt.Sprintf("#%s:%s:%s", pkgName, "Interfaces", "Transferable")
 }
