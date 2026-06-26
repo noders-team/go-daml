@@ -1,26 +1,23 @@
 package interfaces
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
-	"strings"
 
 	"github.com/noders-team/go-daml/pkg/codec"
 	"github.com/noders-team/go-daml/pkg/model"
 	. "github.com/noders-team/go-daml/pkg/types"
 )
 
-var (
-	_ = errors.New
-	_ = big.NewInt
-	_ = strings.NewReader
-)
+const SDKVersion = "3.3.0-snapshot.20250507.0"
 
-const (
-	PackageID  = "8f919735d2daa1abb780808ad1fed686fc9229a039dc659ccb04e5fd5d071c90"
-	SDKVersion = "3.3.0-snapshot.20250507.0"
-)
+const packageName = "amulets-interface-test"
+
+const version = "1.0.0"
+
+func GetPackageName() string { return packageName }
+
+func GetVersion() string { return version }
 
 type Template interface {
 	CreateCommand() *model.CreateCommand
@@ -45,13 +42,13 @@ func argsToMap(args interface{}) map[string]interface{} {
 		return m
 	}
 
-	// Check if the type has a toMap method
+	// Check if the type has a ToMap method
 	type mapper interface {
-		toMap() map[string]interface{}
+		ToMap() map[string]interface{}
 	}
 
 	if mapper, ok := args.(mapper); ok {
-		return mapper.toMap()
+		return mapper.ToMap()
 	}
 
 	return map[string]interface{}{
@@ -68,7 +65,7 @@ type Asset struct {
 
 // GetTemplateID returns the template ID for this template
 func (t Asset) GetTemplateID() string {
-	return fmt.Sprintf("%s:%s:%s", PackageID, "Interfaces", "Asset")
+	return fmt.Sprintf("#%s:%s:%s", packageName, "Interfaces", "Asset")
 }
 
 // CreateCommand returns a CreateCommand for this template
@@ -104,7 +101,7 @@ func (t *Asset) UnmarshalJSON(data []byte) error {
 // Archive exercises the Archive choice on this Asset contract
 func (t Asset) Archive(contractID string) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Interfaces", "Asset"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "Interfaces", "Asset"),
 		ContractID: contractID,
 		Choice:     "Archive",
 		Arguments:  map[string]interface{}{},
@@ -114,7 +111,7 @@ func (t Asset) Archive(contractID string) *model.ExerciseCommand {
 // AssetTransfer exercises the AssetTransfer choice on this Asset contract
 func (t Asset) AssetTransfer(contractID string, args AssetTransfer) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Interfaces", "Asset"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "Interfaces", "Asset"),
 		ContractID: contractID,
 		Choice:     "AssetTransfer",
 		Arguments:  argsToMap(args),
@@ -124,7 +121,7 @@ func (t Asset) AssetTransfer(contractID string, args AssetTransfer) *model.Exerc
 // Transfer exercises the Transfer choice on this Asset contract via the ITransferable interface
 func (t Asset) Transfer(contractID string, args Transfer) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Interfaces", "Transferable"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "Interfaces", "Transferable"),
 		ContractID: contractID,
 		Choice:     "Transfer",
 		Arguments:  argsToMap(args),
@@ -140,11 +137,13 @@ type AssetTransfer struct {
 	NewOwner PARTY `json:"newOwner"`
 }
 
-// toMap converts AssetTransfer to a map for DAML arguments
-func (t AssetTransfer) toMap() map[string]interface{} {
-	return map[string]interface{}{
-		"newOwner": t.NewOwner.ToMap(),
-	}
+// ToMap converts AssetTransfer to a map for DAML arguments
+func (t AssetTransfer) ToMap() map[string]interface{} {
+	m := make(map[string]interface{})
+
+	m["newOwner"] = t.NewOwner.ToMap()
+
+	return m
 }
 
 // MarshalJSON implements custom JSON marshaling for AssetTransfer using JsonCodec
@@ -168,7 +167,7 @@ type Token struct {
 
 // GetTemplateID returns the template ID for this template
 func (t Token) GetTemplateID() string {
-	return fmt.Sprintf("%s:%s:%s", PackageID, "Interfaces", "Token")
+	return fmt.Sprintf("#%s:%s:%s", packageName, "Interfaces", "Token")
 }
 
 // CreateCommand returns a CreateCommand for this template
@@ -206,7 +205,7 @@ func (t *Token) UnmarshalJSON(data []byte) error {
 // Archive exercises the Archive choice on this Token contract
 func (t Token) Archive(contractID string) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Interfaces", "Token"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "Interfaces", "Token"),
 		ContractID: contractID,
 		Choice:     "Archive",
 		Arguments:  map[string]interface{}{},
@@ -216,7 +215,7 @@ func (t Token) Archive(contractID string) *model.ExerciseCommand {
 // Transfer exercises the Transfer choice on this Token contract via the ITransferable interface
 func (t Token) Transfer(contractID string, args Transfer) *model.ExerciseCommand {
 	return &model.ExerciseCommand{
-		TemplateID: fmt.Sprintf("%s:%s:%s", PackageID, "Interfaces", "Transferable"),
+		TemplateID: fmt.Sprintf("#%s:%s:%s", packageName, "Interfaces", "Transferable"),
 		ContractID: contractID,
 		Choice:     "Transfer",
 		Arguments:  argsToMap(args),
@@ -232,11 +231,13 @@ type Transfer struct {
 	NewOwner PARTY `json:"newOwner"`
 }
 
-// toMap converts Transfer to a map for DAML arguments
-func (t Transfer) toMap() map[string]interface{} {
-	return map[string]interface{}{
-		"newOwner": t.NewOwner.ToMap(),
-	}
+// ToMap converts Transfer to a map for DAML arguments
+func (t Transfer) ToMap() map[string]interface{} {
+	m := make(map[string]interface{})
+
+	m["newOwner"] = t.NewOwner.ToMap()
+
+	return m
 }
 
 // MarshalJSON implements custom JSON marshaling for Transfer using JsonCodec
@@ -256,11 +257,13 @@ type TransferableView struct {
 	Owner PARTY `json:"owner"`
 }
 
-// toMap converts TransferableView to a map for DAML arguments
-func (t TransferableView) toMap() map[string]interface{} {
-	return map[string]interface{}{
-		"owner": t.Owner.ToMap(),
-	}
+// ToMap converts TransferableView to a map for DAML arguments
+func (t TransferableView) ToMap() map[string]interface{} {
+	m := make(map[string]interface{})
+
+	m["owner"] = t.Owner.ToMap()
+
+	return m
 }
 
 // MarshalJSON implements custom JSON marshaling for TransferableView using JsonCodec
@@ -276,10 +279,10 @@ func (t *TransferableView) UnmarshalJSON(data []byte) error {
 }
 
 // ITransferableInterfaceID returns the interface ID for the ITransferable interface
-func ITransferableInterfaceID(packageID *string) string {
-	pkgID := PackageID
-	if packageID != nil {
-		pkgID = *packageID
+func ITransferableInterfaceID(packageRef *string) string {
+	pkgName := packageName
+	if packageRef != nil {
+		pkgName = *packageRef
 	}
-	return fmt.Sprintf("%s:%s:%s", pkgID, "Interfaces", "Transferable")
+	return fmt.Sprintf("#%s:%s:%s", pkgName, "Interfaces", "Transferable")
 }

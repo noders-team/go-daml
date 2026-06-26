@@ -80,8 +80,7 @@ func (c *codeGenAst) GetInterfaces() (map[string]*model.TmplStruct, error) {
 			continue
 		}
 
-		idx := damlLf.InternedDottedNames[module.GetNameInternedDname()].SegmentsInternedStr
-		moduleName := damlLf.InternedStrings[idx[len(idx)-1]]
+		moduleName := c.joinDottedName(&damlLf, module.GetNameInternedDname())
 
 		interfaces, err := c.getInterfaces(&damlLf, module, moduleName)
 		if err != nil {
@@ -126,8 +125,7 @@ func (c *codeGenAst) GetTemplateStructs(ifcByModule map[string]model.InterfaceMa
 			continue
 		}
 
-		idx := damlLf.InternedDottedNames[module.GetNameInternedDname()].SegmentsInternedStr
-		moduleName := damlLf.InternedStrings[idx[len(idx)-1]]
+		moduleName := c.joinDottedName(&damlLf, module.GetNameInternedDname())
 		log.Info().Msgf("processing module %s", moduleName)
 
 		dataTypes, err := c.getDataTypes(&damlLf, module, moduleName)
@@ -154,6 +152,15 @@ func (c *codeGenAst) GetTemplateStructs(ifcByModule map[string]model.InterfaceMa
 func (c *codeGenAst) getName(pkg *daml.Package, id int32) string {
 	idx := pkg.InternedDottedNames[id].SegmentsInternedStr
 	return pkg.InternedStrings[idx[len(idx)-1]]
+}
+
+func (c *codeGenAst) joinDottedName(pkg *daml.Package, id int32) string {
+	idx := pkg.InternedDottedNames[id].SegmentsInternedStr
+	segs := make([]string, len(idx))
+	for i, s := range idx {
+		segs[i] = pkg.InternedStrings[s]
+	}
+	return strings.Join(segs, ".")
 }
 
 func (c *codeGenAst) getTemplates(
@@ -245,7 +252,7 @@ func (c *codeGenAst) getTemplates(
 				if impl.Interface != nil {
 					interfaceName := "I" + c.getName(pkg, impl.Interface.GetNameInternedDname())
 					tmplStruct.Implements = append(tmplStruct.Implements, interfaceName)
-					ifcModuleName := c.getName(pkg, impl.Interface.Module.ModuleNameInternedDname)
+					ifcModuleName := c.joinDottedName(pkg, impl.Interface.Module.ModuleNameInternedDname)
 					log.Debug().Msgf("template %s -implements interface: %s location %s", templateName, interfaceName, ifcModuleName)
 
 					if interfaceStruct, exists := interfaces[ifcModuleName][interfaceName]; exists {
@@ -313,7 +320,7 @@ func (c *codeGenAst) getInterfaces(pkg *daml.Package, module *daml.Module, modul
 	for _, iface := range module.Interfaces {
 		originalName := c.getName(pkg, iface.TyconInternedDname)
 		interfaceName := "I" + originalName
-		location := c.getName(pkg, iface.Location.Module.GetModuleNameInternedDname())
+		location := c.joinDottedName(pkg, iface.Location.Module.GetModuleNameInternedDname())
 		log.Debug().Msgf("processing interface: %s, original name %s location %s", interfaceName, originalName, location)
 
 		tmplStruct := model.TmplStruct{

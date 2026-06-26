@@ -207,7 +207,7 @@ func CodegenDalfs(dalfToProcess []string, unzippedPath string, pkgFile string, d
 			continue
 		}
 
-		pkg, err := GetAST(dalfContent, dalfManifest, ifcByModule)
+		pkg, err := GetAST(dalfContent, dalfManifest, dalf, ifcByModule)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate AST: %w", err)
 		}
@@ -310,7 +310,7 @@ func GetInterfaces(payload []byte, manifest *model.Manifest) (map[string]*model.
 	return gen.GetInterfaces()
 }
 
-func GetAST(payload []byte, manifest *model.Manifest, ifcByModule map[string]model.InterfaceMap) (*model.Package, error) {
+func GetAST(payload []byte, manifest *model.Manifest, dalf string, ifcByModule map[string]model.InterfaceMap) (*model.Package, error) {
 	var version string
 	if strings.HasPrefix(manifest.SdkVersion, astgen.V3) {
 		version = astgen.V3
@@ -330,15 +330,12 @@ func GetAST(payload []byte, manifest *model.Manifest, ifcByModule map[string]mod
 		return nil, err
 	}
 
-	packageID := getPackageID(manifest.MainDalf)
+	packageID := getPackageID(dalf)
 	if packageID == "" {
-		return nil, fmt.Errorf("could not extract package ID from MainDalf: %s", manifest.MainDalf)
+		return nil, fmt.Errorf("could not extract package ID from dalf: %s", dalf)
 	}
 
-	packageName := strings.ToLower(manifest.Name)
-	if packageName == "" {
-		packageName = getPackageName(manifest.MainDalf)
-	}
+	packageName := getPackageName(dalf)
 	baseName, pkgVer := splitNameVersion(packageName)
 
 	return &model.Package{

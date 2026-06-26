@@ -22,7 +22,9 @@ SMOKE_DARS=$(wildcard test-data/*.dar)
 SMOKE_PKG=smoketest
 
 # Build flags
-LDFLAGS=-ldflags "-s -w"
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null)
+VERSION_PKG=github.com/noders-team/go-daml/internal/codegen
+LDFLAGS=-ldflags "-s -w -X $(VERSION_PKG).Version=$(VERSION)"
 BUILD_FLAGS=-trimpath
 
 # Default target

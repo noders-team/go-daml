@@ -57,83 +57,67 @@ type Metadata struct {
 	CreatedAt    *time.Time
 }
 
-func NormalizeDAMLType(damlType string) string {
-	switch {
-	// Handle both v1/v2 format (prim:TYPE) and v3 format (TYPE)
-	case strings.Contains(damlType, "prim:PARTY") || damlType == "PARTY":
-		return "PARTY"
-	case strings.Contains(damlType, "prim:TEXT") || damlType == "TEXT":
-		return "TEXT"
-	case strings.Contains(damlType, "prim:INT64") || damlType == "INT64":
-		return "INT64"
-	case strings.Contains(damlType, "prim:BOOL") || damlType == "BOOL":
-		return "BOOL"
-	case strings.Contains(damlType, "prim:DECIMAL") || damlType == "DECIMAL":
-		return "DECIMAL"
-	case strings.Contains(damlType, "prim:NUMERIC") || damlType == "NUMERIC":
-		return "NUMERIC"
-	case strings.Contains(damlType, "prim:DATE") || damlType == "DATE":
-		return "DATE"
-	case strings.Contains(damlType, "prim:TIMESTAMP") || damlType == "TIMESTAMP":
-		return "TIMESTAMP"
-	case strings.Contains(damlType, "prim:UNIT") || damlType == "UNIT":
-		return "UNIT"
-	case strings.Contains(damlType, "prim:LIST") || damlType == "LIST":
-		return "LIST"
-	case strings.Contains(damlType, "prim:MAP") || damlType == "MAP":
-		return "MAP"
-	case strings.Contains(damlType, "prim:OPTIONAL") || damlType == "OPTIONAL":
-		return "OPTIONAL"
-	case strings.Contains(damlType, "prim:CONTRACT_ID") || damlType == "CONTRACT_ID":
-		return "CONTRACT_ID"
-	case strings.Contains(damlType, "prim:GENMAP") || damlType == "GENMAP":
-		return "GENMAP"
-	case strings.Contains(damlType, "prim:TEXTMAP") || damlType == "TEXTMAP":
-		return "TEXTMAP"
-	case strings.Contains(damlType, "prim:BIGNUMERIC") || damlType == "BIGNUMERIC":
-		return "BIGNUMERIC"
-	case strings.Contains(damlType, "prim:ROUNDING_MODE") || damlType == "ROUNDING_MODE":
-		return "ROUNDING_MODE"
-	case strings.Contains(damlType, "prim:ANY") || damlType == "ANY":
-		return "ANY"
-	case strings.Contains(damlType, "RelTime") || strings.Contains(damlType, "RELTIME"):
-		return "RELTIME"
-	case strings.Contains(damlType, "Set") && !strings.Contains(damlType, "Settle") && !strings.Contains(damlType, "Setup"):
-		return "SET"
-	case strings.HasPrefix(damlType, "TUPLE2["):
-		return damlType
-	case strings.HasPrefix(damlType, "TUPLE3["):
-		return damlType
-	case strings.HasPrefix(damlType, "[]TUPLE2[") || strings.HasPrefix(damlType, "[]TUPLE3["):
-		return damlType
-	case strings.HasPrefix(damlType, "*TUPLE2[") || strings.HasPrefix(damlType, "*TUPLE3["):
-		return damlType
-	case strings.HasPrefix(damlType, "*[]TUPLE2[") || strings.HasPrefix(damlType, "*[]TUPLE3["):
-		return damlType
-	case strings.Contains(damlType, "Tuple2") || strings.Contains(damlType, "TUPLE2"):
-		return "TUPLE2"
-	case strings.Contains(damlType, "Tuple3") || strings.Contains(damlType, "TUPLE3"):
-		return "TUPLE3"
-	case damlType == "enum":
-		return "string"
-	case damlType == "19":
-		return "GENMAP"
-	case damlType == "20":
-		return "TEXTMAP"
-	case strings.Contains(damlType, "var:{var_interned_str:"):
-		return "interface{}"
-	case damlType == "prim:{}" || damlType == "{}":
-		return "UNIT"
-	case damlType == "Archive":
-		return "UNIT"
-	case strings.HasPrefix(damlType, "[]") && len(damlType) > 2:
-		return damlType
-	case strings.HasPrefix(damlType, "*") && len(damlType) > 1:
-		return damlType
-	default:
-		// log.Warn().Msgf("unknown daml type %s, using as-is", damlType)
-		// Remove underscores from type names to match struct naming convention
-		// e.g., "TransferInstruction_Accept" -> "TransferInstructionAccept"
-		return strings.ReplaceAll(damlType, "_", "")
+var primTypes = []string{
+	"PARTY", "TEXT", "INT64", "BOOL", "DECIMAL", "NUMERIC", "DATE",
+	"TIMESTAMP", "UNIT", "LIST", "MAP", "OPTIONAL", "CONTRACT_ID",
+	"GENMAP", "TEXTMAP", "BIGNUMERIC", "ROUNDING_MODE", "ANY",
+}
+
+var tuplePref = []string{
+	"TUPLE2[", "TUPLE3[",
+	"[]TUPLE2[", "[]TUPLE3[",
+	"*TUPLE2[", "*TUPLE3[",
+	"*[]TUPLE2[", "*[]TUPLE3[",
+}
+
+type typeRule struct {
+	match func(string) bool
+	norm  func(string) string
+}
+
+func constNorm(v string) func(string) string {
+	return func(string) string { return v }
+}
+
+func asIs(d string) string { return d }
+
+func hasAnyPref(s string, prefs []string) bool {
+	for _, p := range prefs {
+		if strings.HasPrefix(s, p) {
+			return true
+		}
 	}
+	return false
+}
+
+var typeRules = []typeRule{
+	{func(d string) bool { return strings.Contains(d, "RelTime") || strings.Contains(d, "RELTIME") }, constNorm("RELTIME")},
+	{func(d string) bool {
+		return strings.Contains(d, "Set") && !strings.Contains(d, "Settle") && !strings.Contains(d, "Setup")
+	}, constNorm("SET")},
+	{func(d string) bool { return hasAnyPref(d, tuplePref) }, asIs},
+	{func(d string) bool { return strings.Contains(d, "Tuple2") || strings.Contains(d, "TUPLE2") }, constNorm("TUPLE2")},
+	{func(d string) bool { return strings.Contains(d, "Tuple3") || strings.Contains(d, "TUPLE3") }, constNorm("TUPLE3")},
+	{func(d string) bool { return d == "enum" }, constNorm("string")},
+	{func(d string) bool { return d == "19" }, constNorm("GENMAP")},
+	{func(d string) bool { return d == "20" }, constNorm("TEXTMAP")},
+	{func(d string) bool { return strings.Contains(d, "var:{var_interned_str:") }, constNorm("interface{}")},
+	{func(d string) bool { return d == "prim:{}" || d == "{}" }, constNorm("UNIT")},
+	{func(d string) bool { return d == "Archive" }, constNorm("UNIT")},
+	{func(d string) bool { return strings.HasPrefix(d, "[]") && len(d) > 2 }, asIs},
+	{func(d string) bool { return strings.HasPrefix(d, "*") && len(d) > 1 }, asIs},
+}
+
+func NormalizeDAMLType(damlType string) string {
+	for _, name := range primTypes {
+		if damlType == name || strings.Contains(damlType, "prim:"+name) {
+			return name
+		}
+	}
+	for _, rule := range typeRules {
+		if rule.match(damlType) {
+			return rule.norm(damlType)
+		}
+	}
+	return strings.ReplaceAll(damlType, "_", "")
 }

@@ -8,6 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func init() {
+	Version = "test"
+}
+
 func TestGetMainDalf(t *testing.T) {
 	srcPath := "../../test-data/test.dar"
 	output := "../../test-data/test_unzipped"
@@ -33,7 +37,7 @@ func TestGetMainDalf(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, dalfContent)
 
-	ast, err := GetAST(dalfContent, manifest, nil)
+	ast, err := GetAST(dalfContent, manifest, manifest.MainDalf, nil)
 	require.Nil(t, err)
 	require.NotEmpty(t, ast.Structs)
 
@@ -97,7 +101,7 @@ func TestGetMainDalfAllTypes(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, dalfContent)
 
-	ast, err := GetAST(dalfContent, manifest, nil)
+	ast, err := GetAST(dalfContent, manifest, manifest.MainDalf, nil)
 	require.Nil(t, err)
 	require.NotEmpty(t, ast.Structs)
 
@@ -242,7 +246,7 @@ func TestGetMainDalfV3(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, dalfContent)
 
-	ast, err := GetAST(dalfContent, manifest, nil)
+	ast, err := GetAST(dalfContent, manifest, manifest.MainDalf, nil)
 	require.Nil(t, err)
 	require.NotEmpty(t, ast.Structs)
 
