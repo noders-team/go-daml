@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build (${{ matrix.goos }}/${{ matrix.goarch }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: .go-version
+          cache: true
+
+      - name: Build godaml ${{ github.ref_name }}
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '0'
+        run: |
+          make build VERSION="${GITHUB_REF_NAME}"
+          mv bin/godaml "bin/godaml-${GOOS}-${GOARCH}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: godaml-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: bin/godaml-${{ matrix.goos }}-${{ matrix.goarch }}
+          if-no-files-found: error

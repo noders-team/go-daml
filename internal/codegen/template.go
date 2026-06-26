@@ -17,6 +17,7 @@ type tmplData struct {
 	PkgConstName string
 	PkgVersion   string
 	SdkVersion   string
+	Version      string
 	Structs      map[string]*model.TmplStruct
 	IsMainDalf   bool
 }
@@ -35,6 +36,7 @@ func Bind(pkg string, packageName string, pkgVersion string, sdkVersion string, 
 		PkgConstName: pkgConst,
 		PkgVersion:   pkgVersion,
 		SdkVersion:   sdkVersion,
+		Version:      codegenVersion(),
 		Structs:      structs,
 		IsMainDalf:   isMainDalf,
 	}

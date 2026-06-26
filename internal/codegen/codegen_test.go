@@ -8,6 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func init() {
+	Version = "test"
+}
+
 func TestGetMainDalf(t *testing.T) {
 	srcPath := "../../test-data/test.dar"
 	output := "../../test-data/test_unzipped"
