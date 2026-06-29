@@ -7,10 +7,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	cryptov30 "github.com/digital-asset/dazl-client/v8/go/api/com/digitalasset/canton/crypto/v30"
-	protov30 "github.com/digital-asset/dazl-client/v8/go/api/com/digitalasset/canton/protocol/v30"
-	topov30 "github.com/digital-asset/dazl-client/v8/go/api/com/digitalasset/canton/topology/admin/v30"
 	"github.com/noders-team/go-daml/pkg/model"
+	cryptov30 "github.com/noders-team/go-daml/proto/com/digitalasset/canton/crypto/v30"
+	protov30 "github.com/noders-team/go-daml/proto/com/digitalasset/canton/protocol/v30"
+	topov30 "github.com/noders-team/go-daml/proto/com/digitalasset/canton/topology/admin/v30"
 )
 
 type TopologyManagerWrite interface {

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	archive "github.com/digital-asset/dazl-client/v8/go/api/com/digitalasset/daml/lf/archive"
-	daml "github.com/digital-asset/dazl-client/v8/go/api/com/digitalasset/daml/lf/archive/daml_lf_1"
 	"github.com/noders-team/go-daml/internal/codegen/model"
+	archive "github.com/noders-team/go-daml/proto/com/digitalasset/daml/lf/archive"
+	daml "github.com/noders-team/go-daml/proto/com/digitalasset/daml/lf/archive/daml_lf_1"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/proto"
 )

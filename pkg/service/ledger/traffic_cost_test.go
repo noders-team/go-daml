@@ -3,7 +3,7 @@ package ledger
 import (
 	"testing"
 
-	v2 "github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2"
+	v2 "github.com/noders-team/go-daml/proto/com/daml/ledger/api/v2"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
