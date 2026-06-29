@@ -5,8 +5,8 @@ import (
 
 	"google.golang.org/grpc"
 
-	v2 "github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2"
 	"github.com/noders-team/go-daml/pkg/model"
+	v2 "github.com/noders-team/go-daml/proto/com/daml/ledger/api/v2"
 )
 
 type CommandService interface {

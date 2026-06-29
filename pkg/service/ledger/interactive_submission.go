@@ -6,8 +6,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/digital-asset/dazl-client/v8/go/api/com/daml/ledger/api/v2/interactive"
 	"github.com/noders-team/go-daml/pkg/model"
+	"github.com/noders-team/go-daml/proto/com/daml/ledger/api/v2/interactive"
 )
 
 type InteractiveSubmissionService interface {

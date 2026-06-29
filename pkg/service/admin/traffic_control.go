@@ -3,7 +3,7 @@ package admin
 import (
 	"context"
 
-	participantv30 "github.com/digital-asset/dazl-client/v8/go/api/com/digitalasset/canton/admin/participant/v30"
+	participantv30 "github.com/noders-team/go-daml/proto/com/digitalasset/canton/admin/participant/v30"
 	"google.golang.org/grpc"
 )
 

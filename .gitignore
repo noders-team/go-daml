@@ -12,3 +12,4 @@ coverage.out
 test-data/test_unzipped
 bin/*
 .generated
+proto/.cache

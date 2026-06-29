@@ -116,15 +116,13 @@ deps:
 	$(GOMOD) download
 	$(GOMOD) tidy
 
-# Generate proto files (if needed)
+# Generate DAML/Canton Ledger API gRPC bindings into proto/
 .PHONY: proto
 proto:
-	@echo "Generating proto files..."
-	@if [ -d "proto" ]; then \
-		protoc --go_out=. --go_opt=paths=source_relative \
-		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
-		proto/*.proto; \
-	fi
+	@echo "Generating proto bindings..."
+	bash proto/generate.sh
+	go mod tidy
+	go mod vendor
 
 # Format code
 .PHONY: fmt
@@ -180,7 +178,7 @@ help:
 	@echo "  test-coverage - Run tests with coverage report"
 	@echo "  clean         - Clean build artifacts"
 	@echo "  deps          - Download and tidy dependencies"
-	@echo "  proto         - Generate proto files"
+	@echo "  proto         - Generate Ledger API gRPC bindings into proto/ (needs protoc, protoc-gen-go, protoc-gen-go-grpc)"
 	@echo "  fmt           - Format code"
 	@echo "  lint          - Lint code (requires golangci-lint)"
 	@echo "  vet           - Vet code"
