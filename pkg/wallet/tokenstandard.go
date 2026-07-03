@@ -427,7 +427,7 @@ func (t *tokenStandardController) ListHoldingUtxos(ctx context.Context, includeL
 }
 
 func (t *tokenStandardController) FetchPendingTransferInstructionView(ctx context.Context) ([]*TransferInstruction, error) {
-	contracts, err := t.ListContractsByInterface(ctx, "Splice.TransferInstruction:TransferInstruction")
+	contracts, err := t.ListContractsByInterface(ctx, TRANSFER_INSTRUCTION_INTERFACE_ID)
 	if err != nil {
 		return nil, err
 	}
@@ -495,34 +495,13 @@ func (t *tokenStandardController) CreateTransfer(
 	inputUtxos []string,
 	expiryDate *time.Time,
 ) (*CreateTransferResult, error) {
-	if t.scanProxy == nil {
-		return nil, fmt.Errorf("scan-proxy client not configured; call SetScanProxyClient")
-	}
-
 	if len(inputUtxos) == 0 {
 		return nil, fmt.Errorf("no utxos available for transfer")
 	}
 
-	amuletRules, err := t.scanProxy.GetAmuletRules(ctx)
+	amuletRules, round, dsoParty, disclosed, err := t.amuletTransferContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get AmuletRules from scan-proxy: %w", err)
-	}
-	round, err := t.scanProxy.GetActiveOpenMiningRound(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get open mining round from scan-proxy: %w", err)
-	}
-	if round == nil {
-		return nil, fmt.Errorf("no active open mining round available")
-	}
-	dsoParty, err := t.scanProxy.GetDSOPartyID(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DSO party from scan-proxy: %w", err)
-	}
-
-	inputs := make([]gen.TransferInput, 0, len(inputUtxos))
-	for _, utxo := range inputUtxos {
-		cid := types.CONTRACT_ID(utxo)
-		inputs = append(inputs, gen.TransferInput{InputAmulet: &cid})
+		return nil, err
 	}
 
 	// AmuletRules_Transfer has no executeBefore field; an expiry is expressed by
@@ -533,6 +512,79 @@ func (t *tokenStandardController) CreateTransfer(
 			Holders:   []types.PARTY{types.PARTY(receiver)},
 			ExpiresAt: types.TIMESTAMP(*expiryDate),
 		}
+	}
+
+	cmd := buildAmuletTransferCommand(sender, receiver, amount, inputUtxos, amuletRules, round, dsoParty, outputLock)
+
+	return &CreateTransferResult{
+		Command:            cmd,
+		DisclosedContracts: disclosed,
+	}, nil
+}
+
+// amuletRulesContract fetches the current AmuletRules contract from the
+// scan-proxy (contract id + template id + disclosed blob).
+func (t *tokenStandardController) amuletRulesContract(ctx context.Context) (*client.ScanContract, error) {
+	if t.scanProxy == nil {
+		return nil, fmt.Errorf("scan-proxy client not configured; call SetScanProxyClient")
+	}
+	rules, err := t.scanProxy.GetAmuletRules(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get AmuletRules from scan-proxy: %w", err)
+	}
+	return rules, nil
+}
+
+// amuletTransferContext fetches the AmuletRules and active OpenMiningRound
+// contracts and the DSO party from the scan-proxy, returning both contracts as
+// disclosed contracts for an AmuletRules_Transfer submission.
+func (t *tokenStandardController) amuletTransferContext(ctx context.Context) (amuletRules, round *client.ScanContract, dsoParty string, disclosed []*damlModel.DisclosedContract, err error) {
+	if t.scanProxy == nil {
+		return nil, nil, "", nil, fmt.Errorf("scan-proxy client not configured; call SetScanProxyClient")
+	}
+
+	amuletRules, err = t.scanProxy.GetAmuletRules(ctx)
+	if err != nil {
+		return nil, nil, "", nil, fmt.Errorf("failed to get AmuletRules from scan-proxy: %w", err)
+	}
+	round, err = t.scanProxy.GetActiveOpenMiningRound(ctx)
+	if err != nil {
+		return nil, nil, "", nil, fmt.Errorf("failed to get open mining round from scan-proxy: %w", err)
+	}
+	if round == nil {
+		return nil, nil, "", nil, fmt.Errorf("no active open mining round available")
+	}
+	dsoParty, err = t.scanProxy.GetDSOPartyID(ctx)
+	if err != nil {
+		return nil, nil, "", nil, fmt.Errorf("failed to get DSO party from scan-proxy: %w", err)
+	}
+
+	disclosed = make([]*damlModel.DisclosedContract, 0, 2)
+	if dc := amuletRules.ToDisclosed(); dc != nil {
+		disclosed = append(disclosed, dc)
+	}
+	if dc := round.ToDisclosed(); dc != nil {
+		disclosed = append(disclosed, dc)
+	}
+	return amuletRules, round, dsoParty, disclosed, nil
+}
+
+// buildAmuletTransferCommand builds an AmuletRules_Transfer command via the
+// generated gen_clients method. Moving several inputHoldingCids into a single
+// output to the same party is how holdings are merged. The AmuletRules template
+// id from scan is used so it matches the disclosed contract.
+func buildAmuletTransferCommand(
+	sender, receiver PartyID,
+	amount decimal.Decimal,
+	inputCids []string,
+	amuletRules, round *client.ScanContract,
+	dsoParty string,
+	outputLock *gen.TimeLock,
+) *damlModel.Command {
+	inputs := make([]gen.TransferInput, 0, len(inputCids))
+	for _, utxo := range inputCids {
+		cid := types.CONTRACT_ID(utxo)
+		inputs = append(inputs, gen.TransferInput{InputAmulet: &cid})
 	}
 
 	expectedDso := types.PARTY(dsoParty)
@@ -558,19 +610,7 @@ func (t *tokenStandardController) CreateTransfer(
 
 	exercise := gen.AmuletRules{}.AmuletRulesTransfer(amuletRules.ContractID, choiceArgs)
 	exercise.TemplateID = amuletRules.TemplateID
-
-	disclosed := make([]*damlModel.DisclosedContract, 0, 2)
-	if dc := amuletRules.ToDisclosed(); dc != nil {
-		disclosed = append(disclosed, dc)
-	}
-	if dc := round.ToDisclosed(); dc != nil {
-		disclosed = append(disclosed, dc)
-	}
-
-	return &CreateTransferResult{
-		Command:            &damlModel.Command{Command: exercise},
-		DisclosedContracts: disclosed,
-	}, nil
+	return &damlModel.Command{Command: exercise}
 }
 
 type CreateTapResult struct {
@@ -625,7 +665,7 @@ func (t *tokenStandardController) ExerciseTransferInstructionChoice(
 	exerciseCmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			ContractID: transferInstructionCid,
-			TemplateID: "Splice.TransferInstruction:TransferInstruction",
+			TemplateID: TRANSFER_INSTRUCTION_INTERFACE_ID,
 			Choice:     choice,
 			Arguments:  map[string]interface{}{},
 		},
@@ -649,7 +689,7 @@ func (t *tokenStandardController) ListHoldingTransactions(ctx context.Context, b
 				Inclusive: &damlModel.InclusiveFilters{
 					InterfaceFilters: []*damlModel.InterfaceFilter{
 						{
-							InterfaceID:             "Splice.Holding:Holding", // TODO fix it
+							InterfaceID:             HOLDING_INTERFACE_ID,
 							IncludeCreatedEventBlob: true,
 						},
 					},
@@ -774,6 +814,13 @@ func (t *tokenStandardController) MergeHoldingUtxos(ctx context.Context,
 		}
 	}
 
+	// Fetch AmuletRules / OpenMiningRound / DSO once and reuse across every batch
+	// (mirrors ambo's mergeInstrument, which resolves the app context once).
+	amuletRules, round, dsoParty, disclosed, err := t.amuletTransferContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	utxosByInstrument := make(map[string][]*HoldingUTXO)
 	for _, utxo := range utxos {
 		key := utxo.InstrumentID + "::" + utxo.InstrumentAdmin
@@ -781,16 +828,9 @@ func (t *tokenStandardController) MergeHoldingUtxos(ctx context.Context,
 	}
 
 	var allCommands []*damlModel.Command
-	var allDisclosed []*damlModel.DisclosedContract
 	transferInputUtxoLimit := 100
 
 	for _, group := range utxosByInstrument {
-		if len(group) == 0 {
-			continue
-		}
-
-		instrumentID := group[0].InstrumentID
-		instrumentAdmin := group[0].InstrumentAdmin
 		transfers := (len(group) + transferInputUtxoLimit - 1) / transferInputUtxoLimit
 
 		for i := 0; i < transfers; i++ {
@@ -800,33 +840,17 @@ func (t *tokenStandardController) MergeHoldingUtxos(ctx context.Context,
 				end = len(group)
 			}
 
-			inputUtxosSlice := group[start:end]
 			var totalAmount decimal.Decimal
 			var inputCids []string
-
-			for _, utxo := range inputUtxosSlice {
+			for _, utxo := range group[start:end] {
 				totalAmount = totalAmount.Add(utxo.Amount)
 				inputCids = append(inputCids, utxo.ContractID)
 			}
 
-			result, err := t.CreateTransfer(ctx, partyID, partyID, totalAmount, instrumentID, instrumentAdmin, inputCids, "merge-utxos", nil, nil)
-			if err != nil {
-				return nil, err
-			}
-
-			allCommands = append(allCommands, result.Command)
-			allDisclosed = append(allDisclosed, result.DisclosedContracts...)
+			// A self-transfer of all inputs into a single output merges them.
+			cmd := buildAmuletTransferCommand(partyID, partyID, totalAmount, inputCids, amuletRules, round, dsoParty, nil)
+			allCommands = append(allCommands, cmd)
 		}
-	}
-
-	uniqueDisclosed := make(map[string]*damlModel.DisclosedContract)
-	for _, dc := range allDisclosed {
-		uniqueDisclosed[dc.ContractID] = dc
-	}
-
-	disclosed := make([]*damlModel.DisclosedContract, 0, len(uniqueDisclosed))
-	for _, dc := range uniqueDisclosed {
-		disclosed = append(disclosed, dc)
 	}
 
 	return &MergeUtxosResult{
@@ -836,7 +860,7 @@ func (t *tokenStandardController) MergeHoldingUtxos(ctx context.Context,
 }
 
 func (t *tokenStandardController) FetchPendingAllocationInstructionView(ctx context.Context) ([]*AllocationInstruction, error) {
-	contracts, err := t.ListContractsByInterface(ctx, "Splice.Allocation:AllocationInstruction")
+	contracts, err := t.ListContractsByInterface(ctx, ALLOCATION_INSTRUCTION_INTERFACE_ID)
 	if err != nil {
 		return nil, err
 	}
@@ -867,7 +891,7 @@ func (t *tokenStandardController) FetchPendingAllocationInstructionView(ctx cont
 }
 
 func (t *tokenStandardController) FetchPendingAllocationRequestView(ctx context.Context) ([]*AllocationRequest, error) {
-	contracts, err := t.ListContractsByInterface(ctx, "Splice.Allocation:AllocationRequest")
+	contracts, err := t.ListContractsByInterface(ctx, ALLOCATION_REQUEST_INTERFACE_ID)
 	if err != nil {
 		return nil, err
 	}
@@ -898,7 +922,7 @@ func (t *tokenStandardController) FetchPendingAllocationRequestView(ctx context.
 }
 
 func (t *tokenStandardController) FetchPendingAllocationView(ctx context.Context) ([]*Allocation, error) {
-	contracts, err := t.ListContractsByInterface(ctx, "Splice.Allocation:Allocation")
+	contracts, err := t.ListContractsByInterface(ctx, ALLOCATION_INTERFACE_ID)
 	if err != nil {
 		return nil, err
 	}
@@ -942,7 +966,7 @@ func (t *tokenStandardController) CreateAllocationInstruction(
 ) (*CreateTransferResult, error) {
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
-			TemplateID: "Splice.Allocation:AllocationFactory",
+			TemplateID: ALLOCATION_FACTORY_INTERFACE_ID,
 			Choice:     "CreateAllocationInstruction",
 			Arguments: map[string]interface{}{
 				"specification": allocationSpecification,
@@ -967,7 +991,7 @@ func (t *tokenStandardController) ExerciseAllocationChoice(
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			ContractID: allocationCid,
-			TemplateID: "Splice.Allocation:Allocation",
+			TemplateID: ALLOCATION_INTERFACE_ID,
 			Choice:     choice,
 			Arguments:  map[string]interface{}{},
 		},
@@ -987,7 +1011,7 @@ func (t *tokenStandardController) ExerciseAllocationInstructionChoice(
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			ContractID: allocationInstructionCid,
-			TemplateID: "Splice.Allocation:AllocationInstruction",
+			TemplateID: ALLOCATION_INSTRUCTION_INTERFACE_ID,
 			Choice:     choice,
 			Arguments:  map[string]interface{}{},
 		},
@@ -1008,7 +1032,7 @@ func (t *tokenStandardController) ExerciseAllocationRequestChoice(
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			ContractID: allocationRequestCid,
-			TemplateID: "Splice.Allocation:AllocationRequest",
+			TemplateID: ALLOCATION_REQUEST_INTERFACE_ID,
 			Choice:     choice,
 			Arguments: map[string]interface{}{
 				"actor": string(actor),
@@ -1038,7 +1062,7 @@ func (t *tokenStandardController) CreateTransferUsingDelegateProxy(
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			ContractID: proxyCid,
-			TemplateID: "Splice.DelegateProxy:DelegateProxy",
+			TemplateID: FEATURED_APP_DELEGATE_PROXY_INTERFACE_ID,
 			Choice:     "CreateTransfer",
 			Arguments: map[string]interface{}{
 				"featuredAppRightCid": featuredAppRightCid,
@@ -1071,7 +1095,7 @@ func (t *tokenStandardController) ExerciseTransferInstructionChoiceWithDelegate(
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			ContractID: proxyCid,
-			TemplateID: "Splice.DelegateProxy:DelegateProxy",
+			TemplateID: FEATURED_APP_DELEGATE_PROXY_INTERFACE_ID,
 			Choice:     "ExerciseTransferInstructionChoice",
 			Arguments: map[string]interface{}{
 				"transferInstructionCid": transferInstructionCid,
@@ -1238,9 +1262,15 @@ func (t *tokenStandardController) BuyMemberTraffic(
 		return nil, err
 	}
 
+	amuletRules, err := t.amuletRulesContract(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
-			TemplateID: "Splice.AmuletRules:AmuletRules",
+			TemplateID: amuletRules.TemplateID,
+			ContractID: amuletRules.ContractID,
 			Choice:     "AmuletRules_BuyMemberTraffic",
 			Arguments: map[string]interface{}{
 				"buyer":          string(buyer),
@@ -1253,9 +1283,14 @@ func (t *tokenStandardController) BuyMemberTraffic(
 		},
 	}
 
+	disclosed := make([]*damlModel.DisclosedContract, 0, 1)
+	if dc := amuletRules.ToDisclosed(); dc != nil {
+		disclosed = append(disclosed, dc)
+	}
+
 	return &CreateTransferResult{
 		Command:            cmd,
-		DisclosedContracts: []*damlModel.DisclosedContract{},
+		DisclosedContracts: disclosed,
 	}, nil
 }
 
@@ -1289,9 +1324,15 @@ func (t *tokenStandardController) SelfGrantFeatureAppRights(ctx context.Context)
 		return nil, err
 	}
 
+	amuletRules, err := t.amuletRulesContract(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
-			TemplateID: "Splice.AmuletRules:AmuletRules",
+			TemplateID: amuletRules.TemplateID,
+			ContractID: amuletRules.ContractID,
 			Choice:     "AmuletRules_DevNet_FeatureApp",
 			Arguments: map[string]interface{}{
 				"provider":       string(partyID),
@@ -1300,9 +1341,14 @@ func (t *tokenStandardController) SelfGrantFeatureAppRights(ctx context.Context)
 		},
 	}
 
+	disclosed := make([]*damlModel.DisclosedContract, 0, 1)
+	if dc := amuletRules.ToDisclosed(); dc != nil {
+		disclosed = append(disclosed, dc)
+	}
+
 	return &CreateTransferResult{
 		Command:            cmd,
-		DisclosedContracts: []*damlModel.DisclosedContract{},
+		DisclosedContracts: disclosed,
 	}, nil
 }
 
@@ -1318,25 +1364,23 @@ func (t *tokenStandardController) LookupFeaturedApps(ctx context.Context, maxRet
 	if err != nil {
 		return nil, err
 	}
+	if t.scanProxy == nil {
+		return nil, fmt.Errorf("scan-proxy client not configured; call SetScanProxyClient")
+	}
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		contracts, err := t.ListContractsByInterface(ctx, "Splice.Amulet:FeaturedAppRight")
-		if err == nil && len(contracts) > 0 {
-			for _, contract := range contracts {
-				args, ok := contract.CreateArguments.(map[string]interface{})
-				if !ok {
-					continue
-				}
-
-				if provider, ok := args["provider"].(string); ok && provider == string(partyID) {
-					return &FeaturedAppRight{
-						TemplateID:       contract.TemplateID,
-						ContractID:       contract.ContractID,
-						Payload:          args,
-						CreatedEventBlob: contract.CreatedEventBlob,
-					}, nil
-				}
+		contract, err := t.scanProxy.GetFeaturedAppByProvider(ctx, string(partyID))
+		if err == nil && contract != nil {
+			var blob []byte
+			if dc := contract.ToDisclosed(); dc != nil {
+				blob = dc.CreatedEventBlob
 			}
+			return &FeaturedAppRight{
+				TemplateID:       contract.TemplateID,
+				ContractID:       contract.ContractID,
+				Payload:          contract.Payload,
+				CreatedEventBlob: blob,
+			}, nil
 		}
 
 		t.logger.Info().Int("attempt", attempt).Msg("Lookup featured apps returned undefined, retrying again...")
@@ -1448,7 +1492,7 @@ func (t *tokenStandardController) UseMergeDelegations(ctx context.Context, walle
 				string(walletParty): {
 					Inclusive: &damlModel.InclusiveFilters{
 						TemplateFilters: []*damlModel.TemplateFilter{
-							{TemplateID: "Splice.MergeDelegation:MergeDelegation"},
+							{TemplateID: MERGE_DELEGATION_TEMPLATE_ID},
 						},
 					},
 				},
@@ -1489,7 +1533,7 @@ func (t *tokenStandardController) UseMergeDelegations(ctx context.Context, walle
 
 	batchCmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
-			TemplateID: "Splice.BatchMergeUtility:BatchMergeUtility",
+			TemplateID: MERGE_DELEGATION_BATCH_MERGE_UTILITY,
 			Choice:     "BatchMergeUtility_BatchMerge",
 			Arguments: map[string]interface{}{
 				"mergeCalls": mergeCalls,
@@ -1511,7 +1555,7 @@ func (t *tokenStandardController) CreateBatchMergeUtility(ctx context.Context) (
 
 	return &damlModel.Command{
 		Command: &damlModel.CreateCommand{
-			TemplateID: "Splice.BatchMergeUtility:BatchMergeUtility",
+			TemplateID: MERGE_DELEGATION_BATCH_MERGE_UTILITY,
 			Arguments: map[string]interface{}{
 				"operator": string(partyID),
 			},
@@ -1652,7 +1696,7 @@ func (t *tokenStandardController) CreateMergeDelegationProposal(ctx context.Cont
 
 	return &damlModel.Command{
 		Command: &damlModel.CreateCommand{
-			TemplateID: "Splice.MergeDelegationProposal:MergeDelegationProposal",
+			TemplateID: MERGE_DELEGATION_PROPOSAL_TEMPLATE_ID,
 			Arguments: map[string]interface{}{
 				"delegation": map[string]interface{}{
 					"operator": string(delegate),
@@ -1680,7 +1724,7 @@ func (t *tokenStandardController) LookupMergeDelegationProposal(ctx context.Cont
 				string(ownerParty): {
 					Inclusive: &damlModel.InclusiveFilters{
 						TemplateFilters: []*damlModel.TemplateFilter{
-							{TemplateID: "Splice.MergeDelegationProposal:MergeDelegationProposal"},
+							{TemplateID: MERGE_DELEGATION_PROPOSAL_TEMPLATE_ID},
 						},
 					},
 				},
@@ -1727,7 +1771,7 @@ func (t *tokenStandardController) ApproveMergeDelegationProposal(ctx context.Con
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			ContractID: proposal.ContractID,
-			TemplateID: "Splice.MergeDelegationProposal:MergeDelegationProposal",
+			TemplateID: MERGE_DELEGATION_PROPOSAL_TEMPLATE_ID,
 			Choice:     "MergeDelegationProposal_Accept",
 			Arguments:  map[string]interface{}{},
 		},
