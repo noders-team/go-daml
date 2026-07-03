@@ -40,6 +40,20 @@ func (c *ContractQuery[T]) FindContractsByTemplateAnyParty(ctx context.Context, 
 	})
 }
 
+func (c *ContractQuery[T]) FindContractsByInterface(ctx context.Context, partyID, interfaceID string) ([]Contract[T], error) {
+	return c.collect(ctx, contractQuery{
+		partyID:     partyID,
+		interfaceID: interfaceID,
+	})
+}
+
+func (c *ContractQuery[T]) FindContractsByInterfaceAnyParty(ctx context.Context, interfaceID string) ([]Contract[T], error) {
+	return c.collect(ctx, contractQuery{
+		interfaceID: interfaceID,
+		anyParty:    true,
+	})
+}
+
 func (c *ContractQuery[T]) collect(ctx context.Context, query contractQuery) ([]Contract[T], error) {
 	var results []Contract[T]
 	err := c.scanActiveContractsByTemplate(ctx, query, func(evt activeContractEvent) (bool, error) {
@@ -62,9 +76,10 @@ func (c *ContractQuery[T]) collect(ctx context.Context, query contractQuery) ([]
 }
 
 type contractQuery struct {
-	partyID    string
-	templateID string
-	anyParty   bool
+	partyID     string
+	templateID  string
+	interfaceID string
+	anyParty    bool
 }
 
 type activeContractEvent struct {
@@ -99,10 +114,23 @@ func (c *ContractQuery[T]) scanActiveContractsByTemplate(
 				continue
 			}
 			evt := entry.ActiveContract.CreatedEvent
+			arguments := evt.CreateArguments
+			if query.interfaceID != "" {
+				arguments = nil
+				for _, iv := range evt.InterfaceViews {
+					if iv.ViewValue != nil {
+						arguments = iv.ViewValue
+						break
+					}
+				}
+				if arguments == nil {
+					continue
+				}
+			}
 			stop, err := onEvent(activeContractEvent{
 				contractID: evt.ContractID,
 				templateID: evt.TemplateID,
-				arguments:  evt.CreateArguments,
+				arguments:  arguments,
 				createdAt:  evt.CreatedAt,
 			})
 			if err != nil {
@@ -128,11 +156,16 @@ func (c *ContractQuery[T]) newActiveContractsRequest(ctx context.Context, query 
 	}
 
 	eventFormat := &model.EventFormat{Verbose: true}
-	filter := &model.Filters{
-		Inclusive: &model.InclusiveFilters{
-			TemplateFilters: []*model.TemplateFilter{{TemplateID: query.templateID}},
-		},
+	inclusive := &model.InclusiveFilters{}
+	if query.interfaceID != "" {
+		inclusive.InterfaceFilters = []*model.InterfaceFilter{{
+			InterfaceID:          query.interfaceID,
+			IncludeInterfaceView: true,
+		}}
+	} else {
+		inclusive.TemplateFilters = []*model.TemplateFilter{{TemplateID: query.templateID}}
 	}
+	filter := &model.Filters{Inclusive: inclusive}
 	if query.anyParty {
 		eventFormat.FiltersForAnyParty = filter
 	} else {
