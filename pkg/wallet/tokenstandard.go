@@ -35,7 +35,6 @@ const (
 )
 
 type TokenStandardController interface {
-	SetScanProxyClient(sp *client.ScanProxyClient)
 	ListHoldingUtxos(ctx context.Context, includeLocked bool, limit int) ([]*HoldingUTXO, error)
 	GetInputHoldingsCids(
 		ctx context.Context,
@@ -54,6 +53,7 @@ type TokenStandardController interface {
 		expiryDate *time.Time,
 	) (*CreateTransferResult, error)
 	CreateTransferInstruction(ctx context.Context, cid string, choice string) (*CreateTransferResult, error)
+	GetBalance(ctx context.Context) (decimal.Decimal, error)
 }
 
 type tokenStandardController struct {
@@ -69,11 +69,7 @@ type tokenStandardController struct {
 	logger                     zerolog.Logger
 }
 
-func (t *tokenStandardController) SetScanProxyClient(sp *client.ScanProxyClient) {
-	t.scanProxy = sp
-}
-
-func NewTokenStandardController(userID string, damlClient *client.DamlBindingClient) (TokenStandardController, error) {
+func NewTokenStandardController(userID string, damlClient *client.DamlBindingClient, sp *client.ScanProxyClient) (TokenStandardController, error) {
 	logger := log.Logger.With().
 		Str("component", "token-standard-controller").
 		Str("userID", userID).
@@ -83,6 +79,7 @@ func NewTokenStandardController(userID string, damlClient *client.DamlBindingCli
 		damlClient: damlClient,
 		userID:     userID,
 		logger:     logger,
+		scanProxy:  sp,
 	}, nil
 }
 
@@ -262,61 +259,28 @@ func (t *tokenStandardController) GetBalance(ctx context.Context) (decimal.Decim
 		return decimal.Zero, err
 	}
 
-	filterByParty := map[string]*damlModel.Filters{
-		string(partyID): {
-			Inclusive: &damlModel.InclusiveFilters{
-				TemplateFilters: []*damlModel.TemplateFilter{
-					{
-						TemplateID:              "3ca1343ab26b453d38c8adb70dca5f1ead8440c42b59b68f070786955cbf9ec1:Splice.Amulet:Amulet",
-						IncludeCreatedEventBlob: false, // TODO no hardcoded values
-					},
-				},
-			},
-		},
+	contracts, err := client.NewContractQuery[gen.HoldingView](t.damlClient).
+		FindContractsByInterface(ctx, string(partyID), gen.IHoldingInterfaceID(nil))
+	if err != nil {
+		return decimal.Zero, fmt.Errorf("failed to query holdings: %w", err)
 	}
-
-	req := &damlModel.GetActiveContractsRequest{
-		EventFormat: &damlModel.EventFormat{
-			Verbose:        true,
-			FiltersByParty: filterByParty,
-		},
-	}
-
-	stream, errChan := t.damlClient.StateService.GetActiveContracts(ctx, req)
 
 	balance := decimal.Zero
-
-	for {
-		select {
-		case resp, ok := <-stream:
-			if !ok {
-				t.logger.Debug().
-					Str("partyID", string(partyID)).
-					Str("balance", balance.String()).
-					Msg("balance retrieved")
-				return balance, nil
-			}
-			if entry, ok := resp.ContractEntry.(*damlModel.ActiveContractEntry); ok {
-				if entry.ActiveContract != nil && entry.ActiveContract.CreatedEvent != nil {
-					contract := entry.ActiveContract.CreatedEvent
-					if amountVal, ok := contract.CreateArguments.(map[string]interface{})["amount"]; ok {
-						if amountStr, ok := amountVal.(string); ok {
-							amount, err := decimal.NewFromString(amountStr)
-							if err == nil {
-								balance = balance.Add(amount)
-							}
-						}
-					}
-				}
-			}
-		case err := <-errChan:
-			if err != nil {
-				return decimal.Zero, fmt.Errorf("failed to get balance: %w", err)
-			}
-		case <-ctx.Done():
-			return decimal.Zero, ctx.Err()
+	now := time.Now()
+	for _, c := range contracts {
+		if t.isHoldingLocked(c.Data, now) {
+			continue
 		}
+		balance = balance.Add(t.numericToDecimal(c.Data.Amount))
 	}
+
+	t.logger.Debug().
+		Str("partyID", string(partyID)).
+		Int("holdings", len(contracts)).
+		Str("balance", balance.String()).
+		Msg("balance retrieved via Holding interface query")
+
+	return balance, nil
 }
 
 func (t *tokenStandardController) ListContractsByInterface(ctx context.Context, interfaceID string) ([]*damlModel.CreatedEvent, error) {
@@ -370,14 +334,14 @@ func (t *tokenStandardController) ListContractsByInterface(ctx context.Context, 
 	}
 }
 
-func numericToDecimal(n types.NUMERIC) decimal.Decimal {
+func (t *tokenStandardController) numericToDecimal(n types.NUMERIC) decimal.Decimal {
 	if n == nil {
 		return decimal.Zero
 	}
 	return decimal.NewFromBigInt((*big.Int)(n), -10)
 }
 
-func lockToMap(l *gen.Lock) map[string]interface{} {
+func (t *tokenStandardController) lockToMap(l *gen.Lock) map[string]interface{} {
 	if l == nil {
 		return nil
 	}
@@ -403,16 +367,16 @@ func (t *tokenStandardController) ListHoldingUtxos(ctx context.Context, includeL
 	now := time.Now()
 	result := make([]*HoldingUTXO, 0, len(contracts))
 	for _, c := range contracts {
-		if !includeLocked && IsHoldingLocked(c.Data, now) {
+		if !includeLocked && t.isHoldingLocked(c.Data, now) {
 			continue
 		}
 		result = append(result, &HoldingUTXO{
 			ContractID:      c.ContractID,
-			Amount:          numericToDecimal(c.Data.Amount),
+			Amount:          t.numericToDecimal(c.Data.Amount),
 			InstrumentID:    string(c.Data.InstrumentId.Id),
 			InstrumentAdmin: string(c.Data.InstrumentId.Admin),
 			Owner:           string(c.Data.Owner),
-			Lock:            lockToMap(c.Data.Lock),
+			Lock:            t.lockToMap(c.Data.Lock),
 		})
 		if limit > 0 && len(result) >= limit {
 			break
@@ -1846,9 +1810,7 @@ func injectContext(ctxData map[string]interface{}) map[string]interface{} {
 	}
 }
 
-// IsHoldingLocked reports whether a holding is currently locked, mirroring
-// TokenStandardService.isHoldingLocked.
-func IsHoldingLocked(view gen.HoldingView, now time.Time) bool {
+func (t *tokenStandardController) isHoldingLocked(view gen.HoldingView, now time.Time) bool {
 	if view.Lock == nil {
 		return false
 	}
