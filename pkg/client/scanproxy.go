@@ -8,12 +8,15 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/noders-team/go-daml/pkg/auth"
 	"github.com/noders-team/go-daml/pkg/model"
+	"github.com/noders-team/go-daml/pkg/types"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/shopspring/decimal"
 )
 
 // ScanProxyClient is an HTTP client for the Splice scan-proxy API. It exposes
@@ -92,6 +95,24 @@ type DSOResponse struct {
 	DSO *ScanContractEntry `json:"dso"`
 }
 
+type TransferInstructionChoiceContext struct {
+	ChoiceContextData  map[string]interface{}
+	DisclosedContracts []*model.DisclosedContract
+}
+
+type scanAnyValue struct {
+	tag   string
+	value interface{}
+}
+
+func (v scanAnyValue) GetVariantTag() string {
+	return v.tag
+}
+
+func (v scanAnyValue) GetVariantValue() interface{} {
+	return v.value
+}
+
 func NewScanProxyClient(baseURL string, provider auth.TokenProvider) *ScanProxyClient {
 	logger := log.Logger.With().Str("component", "scan-proxy-client").Logger()
 
@@ -149,6 +170,175 @@ func (s *ScanProxyClient) do(ctx context.Context, method, path string, body, res
 
 func (s *ScanProxyClient) get(ctx context.Context, path string, result interface{}) error {
 	return s.do(ctx, http.MethodGet, path, nil, result)
+}
+
+func (s *ScanProxyClient) post(ctx context.Context, path string, body, result interface{}) error {
+	return s.do(ctx, http.MethodPost, path, body, result)
+}
+
+func (s *ScanProxyClient) GetTransferInstructionChoiceContext(ctx context.Context, transferInstructionID, choicePath string) (*TransferInstructionChoiceContext, error) {
+	path := fmt.Sprintf(
+		"/v0/scan-proxy/registry/transfer-instruction/v1/%s/choice-contexts/%s",
+		url.PathEscape(transferInstructionID),
+		choicePath,
+	)
+	var resp struct {
+		ChoiceContextData struct {
+			Values map[string]json.RawMessage `json:"values"`
+		} `json:"choiceContextData"`
+		DisclosedContracts []struct {
+			TemplateID       string `json:"templateId"`
+			ContractID       string `json:"contractId"`
+			CreatedEventBlob string `json:"createdEventBlob"`
+			SynchronizerID   string `json:"synchronizerId"`
+		} `json:"disclosedContracts"`
+	}
+	if err := s.post(ctx, path, map[string]interface{}{}, &resp); err != nil {
+		return nil, fmt.Errorf("failed to get transfer instruction choice context: %w", err)
+	}
+
+	values := make(map[string]interface{}, len(resp.ChoiceContextData.Values))
+	for key, raw := range resp.ChoiceContextData.Values {
+		value, err := decodeScanAnyValue(raw)
+		if err != nil {
+			return nil, fmt.Errorf("decode transfer instruction choice context %q: %w", key, err)
+		}
+		values[key] = value
+	}
+
+	disclosed := make([]*model.DisclosedContract, 0, len(resp.DisclosedContracts))
+	for _, dc := range resp.DisclosedContracts {
+		if dc.TemplateID == "" || dc.ContractID == "" || dc.CreatedEventBlob == "" {
+			return nil, fmt.Errorf("invalid disclosed contract in transfer instruction choice context")
+		}
+		blob, err := base64.StdEncoding.DecodeString(dc.CreatedEventBlob)
+		if err != nil {
+			return nil, fmt.Errorf("decode disclosed contract blob for %s: %w", dc.ContractID, err)
+		}
+		disclosed = append(disclosed, &model.DisclosedContract{
+			TemplateID:       dc.TemplateID,
+			ContractID:       dc.ContractID,
+			CreatedEventBlob: blob,
+			SynchronizerID:   dc.SynchronizerID,
+		})
+	}
+
+	return &TransferInstructionChoiceContext{
+		ChoiceContextData:  values,
+		DisclosedContracts: disclosed,
+	}, nil
+}
+
+func decodeScanAnyValue(raw json.RawMessage) (scanAnyValue, error) {
+	var tagged struct {
+		Tag   string          `json:"tag"`
+		Value json.RawMessage `json:"value"`
+	}
+	if err := json.Unmarshal(raw, &tagged); err != nil {
+		return scanAnyValue{}, fmt.Errorf("unmarshal tagged AnyValue: %w", err)
+	}
+	if tagged.Tag == "" {
+		return scanAnyValue{}, fmt.Errorf("missing AnyValue tag")
+	}
+
+	switch tagged.Tag {
+	case "AV_Text":
+		var v string
+		if err := json.Unmarshal(tagged.Value, &v); err != nil {
+			return scanAnyValue{}, err
+		}
+		return scanAnyValue{tag: tagged.Tag, value: types.TEXT(v)}, nil
+	case "AV_ContractId":
+		var v string
+		if err := json.Unmarshal(tagged.Value, &v); err != nil {
+			return scanAnyValue{}, err
+		}
+		return scanAnyValue{tag: tagged.Tag, value: types.CONTRACT_ID(v)}, nil
+	case "AV_Party":
+		var v string
+		if err := json.Unmarshal(tagged.Value, &v); err != nil {
+			return scanAnyValue{}, err
+		}
+		return scanAnyValue{tag: tagged.Tag, value: types.PARTY(v)}, nil
+	case "AV_Bool":
+		var v bool
+		if err := json.Unmarshal(tagged.Value, &v); err != nil {
+			return scanAnyValue{}, err
+		}
+		return scanAnyValue{tag: tagged.Tag, value: types.BOOL(v)}, nil
+	case "AV_Int":
+		var v int64
+		if err := json.Unmarshal(tagged.Value, &v); err != nil {
+			return scanAnyValue{}, err
+		}
+		return scanAnyValue{tag: tagged.Tag, value: types.INT64(v)}, nil
+	case "AV_Decimal":
+		var v string
+		if err := json.Unmarshal(tagged.Value, &v); err != nil {
+			return scanAnyValue{}, err
+		}
+		d, err := decimal.NewFromString(v)
+		if err != nil {
+			return scanAnyValue{}, err
+		}
+		return scanAnyValue{tag: tagged.Tag, value: types.NewNumericFromDecimal(d)}, nil
+	case "AV_Date":
+		var v string
+		if err := json.Unmarshal(tagged.Value, &v); err != nil {
+			return scanAnyValue{}, err
+		}
+		t, err := time.Parse("2006-01-02", v)
+		if err != nil {
+			return scanAnyValue{}, err
+		}
+		return scanAnyValue{tag: tagged.Tag, value: types.DATE(t)}, nil
+	case "AV_Time":
+		var v string
+		if err := json.Unmarshal(tagged.Value, &v); err != nil {
+			return scanAnyValue{}, err
+		}
+		t, err := time.Parse(time.RFC3339Nano, v)
+		if err != nil {
+			return scanAnyValue{}, err
+		}
+		return scanAnyValue{tag: tagged.Tag, value: types.TIMESTAMP(t)}, nil
+	case "AV_RelTime":
+		var micros int64
+		if err := json.Unmarshal(tagged.Value, &micros); err != nil {
+			var text string
+			if textErr := json.Unmarshal(tagged.Value, &text); textErr != nil {
+				return scanAnyValue{}, err
+			}
+			duration, parseErr := time.ParseDuration(text)
+			if parseErr != nil {
+				return scanAnyValue{}, parseErr
+			}
+			return scanAnyValue{tag: tagged.Tag, value: types.RELTIME(duration)}, nil
+		}
+		return scanAnyValue{tag: tagged.Tag, value: types.RELTIME(time.Duration(micros) * time.Microsecond)}, nil
+	case "AV_List":
+		var rawItems []json.RawMessage
+		if err := json.Unmarshal(tagged.Value, &rawItems); err != nil {
+			return scanAnyValue{}, err
+		}
+		values := make([]interface{}, len(rawItems))
+		for i, rawItem := range rawItems {
+			value, err := decodeScanAnyValue(rawItem)
+			if err != nil {
+				return scanAnyValue{}, err
+			}
+			values[i] = value
+		}
+		return scanAnyValue{tag: tagged.Tag, value: values}, nil
+	case "AV_Map":
+		values := types.TEXTMAP{}
+		if err := json.Unmarshal(tagged.Value, &values); err != nil {
+			return scanAnyValue{}, err
+		}
+		return scanAnyValue{tag: tagged.Tag, value: values}, nil
+	default:
+		return scanAnyValue{}, fmt.Errorf("unsupported AnyValue tag %q", tagged.Tag)
+	}
 }
 
 // GetAmuletRules returns the current AmuletRules contract.

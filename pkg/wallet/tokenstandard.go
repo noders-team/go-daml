@@ -53,6 +53,7 @@ type TokenStandardController interface {
 		inputUtxos []string,
 		expiryDate *time.Time,
 	) (*CreateTransferResult, error)
+	CreateTransferInstruction(ctx context.Context, cid string, choice string) (*CreateTransferResult, error)
 }
 
 type tokenStandardController struct {
@@ -1471,82 +1472,6 @@ func (t *tokenStandardController) CreateAndSubmitTapInternal(
 	}, nil
 }
 
-func (t *tokenStandardController) UseMergeDelegations(ctx context.Context, walletParty PartyID, nodeLimit int) (*CreateTransferResult, error) {
-	if nodeLimit == 0 {
-		nodeLimit = 200
-	}
-
-	utxos, err := t.ListHoldingUtxos(ctx, true, 100)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(utxos) < 10 {
-		return nil, fmt.Errorf("utxos are less than 10, found %d", len(utxos))
-	}
-
-	req := &damlModel.GetActiveContractsRequest{
-		EventFormat: &damlModel.EventFormat{
-			Verbose: true,
-			FiltersByParty: map[string]*damlModel.Filters{
-				string(walletParty): {
-					Inclusive: &damlModel.InclusiveFilters{
-						TemplateFilters: []*damlModel.TemplateFilter{
-							{TemplateID: MERGE_DELEGATION_TEMPLATE_ID},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	stream, errChan := t.damlClient.StateService.GetActiveContracts(ctx, req)
-
-	var mergeDelegationCid string
-	select {
-	case resp := <-stream:
-		if entry, ok := resp.ContractEntry.(*damlModel.ActiveContractEntry); ok {
-			if entry.ActiveContract != nil && entry.ActiveContract.CreatedEvent != nil {
-				mergeDelegationCid = entry.ActiveContract.CreatedEvent.ContractID
-			}
-		}
-	case err := <-errChan:
-		return nil, err
-	}
-
-	if mergeDelegationCid == "" {
-		return nil, fmt.Errorf("merge delegation contract not found")
-	}
-
-	mergeResult, err := t.MergeHoldingUtxos(ctx, nodeLimit, walletParty, utxos)
-	if err != nil {
-		return nil, err
-	}
-
-	var mergeCalls []map[string]interface{}
-	for _, cmd := range mergeResult.Commands {
-		mergeCalls = append(mergeCalls, map[string]interface{}{
-			"delegationCid": mergeDelegationCid,
-			"choiceArg":     cmd,
-		})
-	}
-
-	batchCmd := &damlModel.Command{
-		Command: &damlModel.ExerciseCommand{
-			TemplateID: MERGE_DELEGATION_BATCH_MERGE_UTILITY,
-			Choice:     "BatchMergeUtility_BatchMerge",
-			Arguments: map[string]interface{}{
-				"mergeCalls": mergeCalls,
-			},
-		},
-	}
-
-	return &CreateTransferResult{
-		Command:            batchCmd,
-		DisclosedContracts: mergeResult.DisclosedContracts,
-	}, nil
-}
-
 func (t *tokenStandardController) CreateBatchMergeUtility(ctx context.Context) (*damlModel.Command, error) {
 	partyID, err := t.GetPartyID()
 	if err != nil {
@@ -1912,8 +1837,12 @@ func injectContext(ctxData map[string]interface{}) map[string]interface{} {
 		ctxData = map[string]interface{}{}
 	}
 	return map[string]interface{}{
-		"context": ctxData,
-		"meta":    gen.Metadata{Values: types.TEXTMAP{}}.ToMap(),
+		"context": map[string]interface{}{
+			"values": map[string]interface{}{"_type": "textmap", "value": ctxData},
+		},
+		"meta": map[string]interface{}{
+			"values": map[string]interface{}{"_type": "textmap", "value": map[string]interface{}{}},
+		},
 	}
 }
 
@@ -2023,7 +1952,7 @@ func (t *tokenStandardController) GetInputHoldingsCidsForAmount(amount decimal.D
 }
 
 func (t *tokenStandardController) BuildTransferChoiceArgs(
-	ctx context.Context,
+	_ context.Context,
 	sender PartyID,
 	receiver PartyID,
 	amount decimal.Decimal,
@@ -2034,14 +1963,8 @@ func (t *tokenStandardController) BuildTransferChoiceArgs(
 	expiryDate *time.Time,
 	meta types.TEXTMAP,
 ) (*gen.TransferFactoryTransfer, error) {
-	cids := inputUtxos
-	if len(cids) == 0 {
-		amt := amount
-		selected, err := t.GetInputHoldingsCids(ctx, sender, string(instrumentAdmin), instrumentID, &amt)
-		if err != nil {
-			return nil, err
-		}
-		cids = selected
+	if len(inputUtxos) == 0 {
+		return nil, fmt.Errorf("no input utxos provided")
 	}
 
 	now := time.Now()
@@ -2064,7 +1987,7 @@ func (t *tokenStandardController) BuildTransferChoiceArgs(
 			InstrumentId:     gen.InstrumentId{Admin: types.PARTY(instrumentAdmin), Id: types.TEXT(instrumentID)},
 			RequestedAt:      types.TIMESTAMP(now.Add(-requestedAtSkew)),
 			ExecuteBefore:    types.TIMESTAMP(executeBefore),
-			InputHoldingCids: toContractIDs(cids),
+			InputHoldingCids: toContractIDs(inputUtxos),
 			Meta:             gen.Metadata{Values: metaVals},
 		},
 		ExtraArgs: emptyExtraArgs(),
@@ -2089,50 +2012,32 @@ func (t *tokenStandardController) CreateTransferFromContext(
 	}, choiceContext.DisclosedContracts), nil
 }
 
-func (t *tokenStandardController) transferInstructionFromContext(
-	transferInstructionCid string,
-	choice string,
-	choiceContext *ChoiceContext,
-) *CreateTransferResult {
+func (t *tokenStandardController) CreateTransferInstruction(ctx context.Context, cid string, choice string) (*CreateTransferResult, error) {
+	choices := map[string]string{
+		"accept":   "TransferInstruction_Accept",
+		"reject":   "TransferInstruction_Reject",
+		"withdraw": "TransferInstruction_Withdraw",
+	}
+	damlChoice, found := choices[strings.ToLower(choice)]
+	if !found {
+		return nil, fmt.Errorf("wrong choice: %s", choice)
+	}
+
+	scanChoiceContext, err := t.scanProxy.GetTransferInstructionChoiceContext(ctx, cid, strings.ToLower(choice))
+	if err != nil {
+		return nil, fmt.Errorf("fetch transfer instruction choice context: %w", err)
+	}
+
+	choiceContext := &ChoiceContext{
+		ChoiceContextData:  scanChoiceContext.ChoiceContextData,
+		DisclosedContracts: scanChoiceContext.DisclosedContracts,
+	}
 	return newExerciseResult(&damlModel.ExerciseCommand{
 		TemplateID: gen.ITransferInstructionInterfaceID(nil),
-		ContractID: transferInstructionCid,
-		Choice:     choice,
+		ContractID: cid,
+		Choice:     damlChoice,
 		Arguments:  map[string]interface{}{"extraArgs": injectContext(choiceContext.ChoiceContextData)},
-	}, choiceContext.DisclosedContracts)
-}
-
-// CreateAcceptTransferInstructionFromContext mirrors
-// TransferService.createAcceptTransferInstructionFromContext.
-func (t *tokenStandardController) CreateAcceptTransferInstructionFromContext(cid string, choiceContext *ChoiceContext) *CreateTransferResult {
-	return t.transferInstructionFromContext(cid, "TransferInstruction_Accept", choiceContext)
-}
-
-// CreateRejectTransferInstructionFromContext mirrors
-// TransferService.createRejectTransferInstructionFromContext.
-func (t *tokenStandardController) CreateRejectTransferInstructionFromContext(cid string, choiceContext *ChoiceContext) *CreateTransferResult {
-	return t.transferInstructionFromContext(cid, "TransferInstruction_Reject", choiceContext)
-}
-
-// CreateWithdrawTransferInstructionFromContext mirrors
-// TransferService.createWithdrawTransferInstructionFromContext.
-func (t *tokenStandardController) CreateWithdrawTransferInstructionFromContext(cid string, choiceContext *ChoiceContext) *CreateTransferResult {
-	return t.transferInstructionFromContext(cid, "TransferInstruction_Withdraw", choiceContext)
-}
-
-// CreateTransferInstruction dispatches to the accept/reject/withdraw builder for
-// a prefetched context, mirroring TransferService.createTransferInstruction.
-func (t *tokenStandardController) CreateTransferInstruction(cid string, choice string, choiceContext *ChoiceContext) (*CreateTransferResult, error) {
-	switch choice {
-	case "Accept":
-		return t.CreateAcceptTransferInstructionFromContext(cid, choiceContext), nil
-	case "Reject":
-		return t.CreateRejectTransferInstructionFromContext(cid, choiceContext), nil
-	case "Withdraw":
-		return t.CreateWithdrawTransferInstructionFromContext(cid, choiceContext), nil
-	default:
-		return nil, fmt.Errorf("unknown transfer instruction choice %q", choice)
-	}
+	}, choiceContext.DisclosedContracts), nil
 }
 
 // BuildAllocationFactoryChoiceArgs assembles AllocationFactory_Allocate choice
@@ -2296,77 +2201,6 @@ func (t *tokenStandardController) CreateWithdrawAllocationRequest(allocationRequ
 	}, nil)
 }
 
-// Deprecated: requires the token-standard registry HTTP API
-// (POST /registry/transfer-instruction/v1/transfer-factory); use
-// CreateTransferFromContext with a context obtained out of band.
-func (t *tokenStandardController) FetchTransferFactoryChoiceContext(ctx context.Context, choiceArgs *gen.TransferFactoryTransfer) (*ChoiceContext, error) {
-	return t.registryUnavailable("transfer-instruction/v1/transfer-factory")
-}
-
-// Deprecated: requires the token-standard registry HTTP API
-// (POST /registry/transfer-instruction/v1/{id}/choice-contexts/accept).
-func (t *tokenStandardController) FetchAcceptTransferInstructionChoiceContext(ctx context.Context, transferInstructionCid string) (*ChoiceContext, error) {
-	return t.registryUnavailable("transfer-instruction/v1/{id}/choice-contexts/accept")
-}
-
-// Deprecated: requires the token-standard registry HTTP API
-// (POST /registry/transfer-instruction/v1/{id}/choice-contexts/reject).
-func (t *tokenStandardController) FetchRejectTransferInstructionChoiceContext(ctx context.Context, transferInstructionCid string) (*ChoiceContext, error) {
-	return t.registryUnavailable("transfer-instruction/v1/{id}/choice-contexts/reject")
-}
-
-// Deprecated: requires the token-standard registry HTTP API
-// (POST /registry/transfer-instruction/v1/{id}/choice-contexts/withdraw).
-func (t *tokenStandardController) FetchWithdrawTransferInstructionChoiceContext(ctx context.Context, transferInstructionCid string) (*ChoiceContext, error) {
-	return t.registryUnavailable("transfer-instruction/v1/{id}/choice-contexts/withdraw")
-}
-
-// Deprecated: requires the token-standard registry HTTP API
-// (POST /registry/allocation-instruction/v1/allocation-factory).
-func (t *tokenStandardController) FetchAllocationFactoryChoiceContext(ctx context.Context, choiceArgs *gen.AllocationFactoryAllocate) (*ChoiceContext, error) {
-	return t.registryUnavailable("allocation-instruction/v1/allocation-factory")
-}
-
-// Deprecated: requires the token-standard registry HTTP API
-// (POST /registry/allocations/v1/{id}/choice-contexts/execute-transfer).
-func (t *tokenStandardController) FetchExecuteTransferChoiceContext(ctx context.Context, allocationCid string) (*ChoiceContext, error) {
-	return t.registryUnavailable("allocations/v1/{id}/choice-contexts/execute-transfer")
-}
-
-// Deprecated: requires the token-standard registry HTTP API
-// (POST /registry/allocations/v1/{id}/choice-contexts/withdraw).
-func (t *tokenStandardController) FetchWithdrawAllocationChoiceContext(ctx context.Context, allocationCid string) (*ChoiceContext, error) {
-	return t.registryUnavailable("allocations/v1/{id}/choice-contexts/withdraw")
-}
-
-// Deprecated: requires the token-standard registry HTTP API
-// (POST /registry/allocations/v1/{id}/choice-contexts/cancel).
-func (t *tokenStandardController) FetchCancelAllocationChoiceContext(ctx context.Context, allocationCid string) (*ChoiceContext, error) {
-	return t.registryUnavailable("allocations/v1/{id}/choice-contexts/cancel")
-}
-
-// Deprecated: requires the token-standard registry HTTP API; combines
-// listInstruments + getInstrumentAdmin which are not reachable via the ledger client.
-func (t *tokenStandardController) InstrumentsToAsset(ctx context.Context) ([]map[string]interface{}, error) {
-	return nil, t.registryError("metadata/v1/instruments")
-}
-
-// Deprecated: requires the token-standard registry HTTP API; iterates
-// InstrumentsToAsset across registries.
-func (t *tokenStandardController) RegistriesToAssets(ctx context.Context, registryUrls []string) ([]map[string]interface{}, error) {
-	return nil, t.registryError("metadata/v1/instruments")
-}
-
-func (t *tokenStandardController) registryUnavailable(path string) (*ChoiceContext, error) {
-	return nil, t.registryError(path)
-}
-
-func (t *tokenStandardController) registryError(path string) error {
-	url, _ := t.GetTransferFactoryRegistryUrl()
-	t.logger.Warn().Str("registryUrl", url).Str("path", path).Msg("token-standard registry HTTP call not available via ledger client")
-	return fmt.Errorf("registry API call (%s) not implemented - requires HTTP client", path)
-}
-
 // ---------------------------------------------------------------------------
 // Registry composite create* methods (mirror the TS create* wrappers).
 // Each accepts an optional prefetched choice context: when supplied the command
@@ -2398,36 +2232,16 @@ func (t *tokenStandardController) CreateStandardTransfer(
 		return nil, fmt.Errorf("choice context is required")
 	}
 
+	if len(inputUtxos) == 0 {
+		return nil, fmt.Errorf("no input utxos provided")
+	}
+
 	choiceArgs, err := t.BuildTransferChoiceArgs(ctx, sender, receiver, amount, instrumentAdmin, instrumentID, inputUtxos, memo, expiryDate, meta)
 	if err != nil {
 		return nil, err
 	}
 
 	return t.CreateTransferFromContext(factoryID, choiceArgs, choiceContext)
-}
-
-// CreateAcceptTransferInstruction mirrors TransferService.createAcceptTransferInstruction.
-func (t *tokenStandardController) CreateAcceptTransferInstruction(cid string, choiceContext *ChoiceContext) (*CreateTransferResult, error) {
-	if choiceContext != nil {
-		return t.CreateAcceptTransferInstructionFromContext(cid, choiceContext), nil
-	}
-	return nil, t.registryError("transfer-instruction/v1/{id}/choice-contexts/accept")
-}
-
-// CreateRejectTransferInstruction mirrors TransferService.createRejectTransferInstruction.
-func (t *tokenStandardController) CreateRejectTransferInstruction(cid string, choiceContext *ChoiceContext) (*CreateTransferResult, error) {
-	if choiceContext != nil {
-		return t.CreateRejectTransferInstructionFromContext(cid, choiceContext), nil
-	}
-	return nil, t.registryError("transfer-instruction/v1/{id}/choice-contexts/reject")
-}
-
-// CreateWithdrawTransferInstruction mirrors TransferService.createWithdrawTransferInstruction.
-func (t *tokenStandardController) CreateWithdrawTransferInstruction(cid string, choiceContext *ChoiceContext) (*CreateTransferResult, error) {
-	if choiceContext != nil {
-		return t.CreateWithdrawTransferInstructionFromContext(cid, choiceContext), nil
-	}
-	return nil, t.registryError("transfer-instruction/v1/{id}/choice-contexts/withdraw")
 }
 
 // CreateStandardAllocationInstruction mirrors AllocationService.createAllocationInstruction.
@@ -2474,11 +2288,17 @@ func (t *tokenStandardController) CreateCancelAllocation(allocationCid string, c
 	return nil, t.registryError("allocations/v1/{id}/choice-contexts/cancel")
 }
 
+func (t *tokenStandardController) registryError(path string) error {
+	url, _ := t.GetTransferFactoryRegistryUrl()
+	t.logger.Warn().Str("registryUrl", url).Str("path", path).Msg("token-standard registry HTTP call not available via ledger client")
+	return fmt.Errorf("registry API call (%s) not implemented - requires HTTP client", path)
+}
+
 // ---------------------------------------------------------------------------
 // Featured-app delegate-proxy choices.
 // ---------------------------------------------------------------------------
 
-func beneficiariesToArgs(bs []Beneficiary) []interface{} {
+func beneficiariesToArgs(bs []*Beneficiary) []interface{} {
 	out := make([]interface{}, len(bs))
 	for i, b := range bs {
 		out[i] = map[string]interface{}{
@@ -2489,7 +2309,7 @@ func beneficiariesToArgs(bs []Beneficiary) []interface{} {
 	return out
 }
 
-func validateBeneficiaryWeights(bs []Beneficiary) error {
+func (t *tokenStandardController) validateWeight(bs []*Beneficiary) error {
 	var sum float64
 	for _, b := range bs {
 		sum += b.Weight
@@ -2516,7 +2336,7 @@ func (t *tokenStandardController) wrapDelegateProxy(
 	choice string,
 	inner *damlModel.ExerciseCommand,
 	featuredAppRightCid string,
-	beneficiaries []Beneficiary,
+	beneficiaries []*Beneficiary,
 	disclosed []*damlModel.DisclosedContract,
 ) *CreateTransferResult {
 	choiceArgs := map[string]interface{}{
@@ -2535,9 +2355,6 @@ func (t *tokenStandardController) wrapDelegateProxy(
 	}, disclosed)
 }
 
-// CreateDelegateProxyTransfer mirrors TokenStandardService.createDelegateProxyTransfer.
-// The inner TransferFactory_Transfer requires a registry choice context, so it
-// must be supplied via choiceContext (see the Deprecated Fetch* methods).
 func (t *tokenStandardController) CreateDelegateProxyTransfer(
 	ctx context.Context,
 	proxyCid string,
@@ -2547,7 +2364,7 @@ func (t *tokenStandardController) CreateDelegateProxyTransfer(
 	amount decimal.Decimal,
 	instrumentAdmin PartyID,
 	instrumentID string,
-	beneficiaries []Beneficiary,
+	beneficiaries []*Beneficiary,
 	inputUtxos []string,
 	memo string,
 	expiryDate *time.Time,
@@ -2558,7 +2375,12 @@ func (t *tokenStandardController) CreateDelegateProxyTransfer(
 	if choiceContext == nil {
 		return nil, t.registryError("transfer-instruction/v1/transfer-factory")
 	}
-	if err := validateBeneficiaryWeights(beneficiaries); err != nil {
+
+	if len(inputUtxos) == 0 {
+		return nil, fmt.Errorf("no input utxos provided")
+	}
+
+	if err := t.validateWeight(beneficiaries); err != nil {
 		return nil, err
 	}
 
@@ -2575,156 +2397,4 @@ func (t *tokenStandardController) CreateDelegateProxyTransfer(
 		return nil, err
 	}
 	return t.wrapDelegateProxy(proxyCid, "DelegateProxy_TransferFactory_Transfer", ec, featuredAppRightCid, beneficiaries, inner.DisclosedContracts), nil
-}
-
-// ExerciseDelegateProxyTransferInstructionAccept mirrors
-// TransferService.exerciseDelegateProxyTransferInstructionAccept.
-func (t *tokenStandardController) ExerciseDelegateProxyTransferInstructionAccept(
-	proxyCid string,
-	transferInstructionCid string,
-	featuredAppRightCid string,
-	beneficiaries []Beneficiary,
-	choiceContext *ChoiceContext,
-) (*CreateTransferResult, error) {
-	if err := validateBeneficiaryWeights(beneficiaries); err != nil {
-		return nil, err
-	}
-	inner, err := t.CreateAcceptTransferInstruction(transferInstructionCid, choiceContext)
-	if err != nil {
-		return nil, err
-	}
-	ec, err := unwrapExercise(inner)
-	if err != nil {
-		return nil, err
-	}
-	return t.wrapDelegateProxy(proxyCid, "DelegateProxy_TransferInstruction_Accept", ec, featuredAppRightCid, beneficiaries, inner.DisclosedContracts), nil
-}
-
-// ExerciseDelegateProxyTransferInstructionReject mirrors
-// TransferService.exerciseDelegateProxyTransferInstructionReject.
-func (t *tokenStandardController) ExerciseDelegateProxyTransferInstructionReject(
-	proxyCid string,
-	transferInstructionCid string,
-	featuredAppRightCid string,
-	beneficiaries []Beneficiary,
-	choiceContext *ChoiceContext,
-) (*CreateTransferResult, error) {
-	if err := validateBeneficiaryWeights(beneficiaries); err != nil {
-		return nil, err
-	}
-	inner, err := t.CreateRejectTransferInstruction(transferInstructionCid, choiceContext)
-	if err != nil {
-		return nil, err
-	}
-	ec, err := unwrapExercise(inner)
-	if err != nil {
-		return nil, err
-	}
-	return t.wrapDelegateProxy(proxyCid, "DelegateProxy_TransferInstruction_Reject", ec, featuredAppRightCid, beneficiaries, inner.DisclosedContracts), nil
-}
-
-// ExerciseDelegateProxyTransferInstructionWithdraw mirrors
-// TransferService.exerciseDelegateProxyTransferInstructioWithdraw.
-func (t *tokenStandardController) ExerciseDelegateProxyTransferInstructionWithdraw(
-	proxyCid string,
-	transferInstructionCid string,
-	featuredAppRightCid string,
-	beneficiaries []Beneficiary,
-	choiceContext *ChoiceContext,
-) (*CreateTransferResult, error) {
-	if err := validateBeneficiaryWeights(beneficiaries); err != nil {
-		return nil, err
-	}
-	inner, err := t.CreateWithdrawTransferInstruction(transferInstructionCid, choiceContext)
-	if err != nil {
-		return nil, err
-	}
-	ec, err := unwrapExercise(inner)
-	if err != nil {
-		return nil, err
-	}
-	return t.wrapDelegateProxy(proxyCid, "DelegateProxy_TransferInstruction_Withdraw", ec, featuredAppRightCid, beneficiaries, inner.DisclosedContracts), nil
-}
-
-// ExerciseDelegateProxyTransferInstructionAcceptForExchange mirrors
-// TokenStandardService.exerciseDelegateProxyTransferInstructionAccept, which
-// accepts on behalf of a single exchange party (weight 1.0).
-func (t *tokenStandardController) ExerciseDelegateProxyTransferInstructionAcceptForExchange(
-	exchangeParty PartyID,
-	proxyCid string,
-	transferInstructionCid string,
-	featuredAppRightCid string,
-	choiceContext *ChoiceContext,
-) (*CreateTransferResult, error) {
-	return t.ExerciseDelegateProxyTransferInstructionAccept(
-		proxyCid,
-		transferInstructionCid,
-		featuredAppRightCid,
-		[]Beneficiary{{Beneficiary: exchangeParty, Weight: 1.0}},
-		choiceContext,
-	)
-}
-
-// ---------------------------------------------------------------------------
-// Pure helpers.
-// ---------------------------------------------------------------------------
-
-// FilterHoldingsByInstrument mirrors CoreService.filterHoldingsByInstrument.
-func FilterHoldingsByInstrument(holdings []*PrettyContract[gen.HoldingView], instrumentAdmin, instrumentID string) []*PrettyContract[gen.HoldingView] {
-	out := make([]*PrettyContract[gen.HoldingView], 0, len(holdings))
-	for _, h := range holdings {
-		if string(h.InterfaceView.InstrumentId.Id) == instrumentID &&
-			string(h.InterfaceView.InstrumentId.Admin) == instrumentAdmin {
-			out = append(out, h)
-		}
-	}
-	return out
-}
-
-// ToQualifiedMemberId mirrors CoreService.toQualifiedMemberId.
-func ToQualifiedMemberId(memberID string) (string, error) {
-	if memberID == "" {
-		return "", fmt.Errorf("memberId is required")
-	}
-	if strings.HasPrefix(memberID, "PAR::") || strings.HasPrefix(memberID, "MED::") {
-		return memberID, nil
-	}
-	return "PAR::" + memberID, nil
-}
-
-// ---------------------------------------------------------------------------
-// Transaction rendering (registry/tx-parser dependent).
-// ---------------------------------------------------------------------------
-
-// Deprecated: requires the token-standard registry client (TokenStandardClient);
-// not reachable through the ledger client.
-func (t *tokenStandardController) GetTokenStandardClient(registryURL string) error {
-	return t.registryError("token-standard-client")
-}
-
-// Deprecated: requires the core-tx-parser transaction renderer, which has no Go
-// port; use ListHoldingTransactions for the raw ledger updates.
-func (t *tokenStandardController) ToPrettyTransactions(ctx context.Context, partyID PartyID) ([]map[string]interface{}, error) {
-	return nil, fmt.Errorf("pretty transaction rendering requires the core-tx-parser, which has no Go port")
-}
-
-// Deprecated: requires the core-tx-parser transaction renderer, which has no Go port.
-func (t *tokenStandardController) ToPrettyTransaction(ctx context.Context, updateID string, partyID PartyID) (map[string]interface{}, error) {
-	return nil, fmt.Errorf("pretty transaction rendering requires the core-tx-parser, which has no Go port")
-}
-
-// Deprecated: requires the core-tx-parser transaction renderer, which has no Go port.
-func (t *tokenStandardController) ToPrettyTransferObjects(ctx context.Context, updateID string, partyID PartyID) ([]map[string]interface{}, error) {
-	return nil, fmt.Errorf("pretty transfer objects require the core-tx-parser, which has no Go port")
-}
-
-// Deprecated: requires the core-tx-parser transaction renderer, which has no Go port.
-func (t *tokenStandardController) ToPrettyTransactionsPerParty(ctx context.Context, parties []PartyID) (map[PartyID][]map[string]interface{}, error) {
-	return nil, fmt.Errorf("pretty transaction rendering requires the core-tx-parser, which has no Go port")
-}
-
-// Deprecated: requires the core-tx-parser transaction renderer, which has no Go
-// port; use GetTransactionById for the raw ledger transaction.
-func (t *tokenStandardController) GetTransferObjectsById(ctx context.Context, updateID string, partyID PartyID) ([]map[string]interface{}, error) {
-	return nil, fmt.Errorf("transfer objects require the core-tx-parser, which has no Go port")
 }
