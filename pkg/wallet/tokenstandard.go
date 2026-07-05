@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/noders-team/go-daml/pkg/client"
+	"github.com/noders-team/go-daml/pkg/model"
 	damlModel "github.com/noders-team/go-daml/pkg/model"
 	"github.com/noders-team/go-daml/pkg/types"
 	gen "github.com/noders-team/go-daml/pkg/wallet/gen_clients"
@@ -54,6 +55,7 @@ type TokenStandardController interface {
 	) (*CreateTransferResult, error)
 	CreateTransferInstruction(ctx context.Context, cid string, choice string) (*CreateTransferResult, error)
 	GetBalance(ctx context.Context) (decimal.Decimal, error)
+	FetchPendingTransferInstructionView(ctx context.Context) ([]*model.TransferInstruction, error)
 }
 
 type tokenStandardController struct {
@@ -391,40 +393,33 @@ func (t *tokenStandardController) ListHoldingUtxos(ctx context.Context, includeL
 	return result, nil
 }
 
-func (t *tokenStandardController) FetchPendingTransferInstructionView(ctx context.Context) ([]*TransferInstruction, error) {
-	contracts, err := t.ListContractsByInterface(ctx, TRANSFER_INSTRUCTION_INTERFACE_ID)
+func (t *tokenStandardController) FetchPendingTransferInstructionView(ctx context.Context) ([]*model.TransferInstruction, error) {
+	partyID, err := t.GetPartyID()
 	if err != nil {
 		return nil, err
 	}
 
-	var instructions []*TransferInstruction
+	contracts, err := client.NewContractQuery[gen.TransferInstructionView](t.damlClient).
+		FindContractsByInterface(ctx, string(partyID), gen.ITransferInstructionInterfaceID(nil))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query transfer instructions: %w", err)
+	}
+
+	instructions := make([]*model.TransferInstruction, 0, len(contracts))
 	for _, contract := range contracts {
-		args, ok := contract.CreateArguments.(map[string]interface{})
-		if !ok {
+		view := contract.Data
+		if view.Status.TransferPendingReceiverAcceptance == nil {
 			continue
 		}
 
-		instruction := &TransferInstruction{
+		instructions = append(instructions, &model.TransferInstruction{
 			ContractID:       contract.ContractID,
 			CreatedEventBlob: contract.CreatedEventBlob,
-		}
-
-		if sender, ok := args["sender"].(string); ok {
-			instruction.Sender = sender
-		}
-		if receiver, ok := args["receiver"].(string); ok {
-			instruction.Receiver = receiver
-		}
-		if amountVal, ok := args["amount"]; ok {
-			if amountStr, ok := amountVal.(string); ok {
-				instruction.Amount, _ = decimal.NewFromString(amountStr)
-			}
-		}
-		if memo, ok := args["memo"].(string); ok {
-			instruction.Memo = memo
-		}
-
-		instructions = append(instructions, instruction)
+			Sender:           string(view.Transfer.Sender),
+			Receiver:         string(view.Transfer.Receiver),
+			Amount:           t.numericToDecimal(view.Transfer.Amount),
+			Memo:             view.Transfer.Meta.Values[MemoKey],
+		})
 	}
 
 	return instructions, nil
@@ -1687,15 +1682,6 @@ type HoldingUTXO struct {
 	InstrumentAdmin  string
 	Owner            string
 	Lock             map[string]interface{}
-	CreatedEventBlob []byte
-}
-
-type TransferInstruction struct {
-	ContractID       string
-	Sender           string
-	Receiver         string
-	Amount           decimal.Decimal
-	Memo             string
 	CreatedEventBlob []byte
 }
 
