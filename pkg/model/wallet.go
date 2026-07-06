@@ -49,3 +49,30 @@ type FeaturedAppRight struct {
 	CreatedEventBlob []byte
 	CreatedAt        string
 }
+
+type MergeUtxosResult struct {
+	Commands           []*Command
+	DisclosedContracts []*DisclosedContract
+}
+
+type Allocation struct {
+	ContractID       string
+	Provider         string
+	Receiver         string
+	Amount           decimal.Decimal
+	CreatedEventBlob []byte
+}
+
+// ChoiceContext mirrors the registry choice-context payload consumed by the
+// *FromContext builders. It is normally produced by a token-standard registry
+// HTTP call and passed in by the caller.
+type ChoiceContext struct {
+	ChoiceContextData  map[string]interface{}
+	DisclosedContracts []*DisclosedContract
+}
+
+// Beneficiary is a featured-app reward split used by the delegate-proxy choices.
+type Beneficiary struct {
+	Beneficiary string
+	Weight      float64
+}
