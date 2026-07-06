@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"os"
 	"sort"
 	"strings"
 	"sync/atomic"
@@ -59,6 +58,12 @@ type TokenStandardController interface {
 	CreateTransferInstruction(ctx context.Context, cid string, choice string) (*model.CommandRequest, error)
 	GetBalance(ctx context.Context) (decimal.Decimal, error)
 	FetchPendingTransferInstructionView(ctx context.Context) ([]*model.TransferInstruction, error)
+	Lock(
+		ctx context.Context,
+		instrumentAdmin, instrumentID string,
+		amount decimal.Decimal, expiresAt time.Time,
+	) (*model.CommandRequest, error)
+	Unlock(ctx context.Context, lockContractID string) (*model.CommandRequest, error)
 }
 
 type tokenStandardController struct {
@@ -68,9 +73,6 @@ type tokenStandardController struct {
 	partyID                    atomic.Value
 	synchronizerID             atomic.Value
 	transferFactoryRegistryUrl atomic.Value
-	amuletRulesContractID      atomic.Value
-	amuletRulesTemplateID      atomic.Value
-	openMiningRoundContractID  atomic.Value
 	logger                     zerolog.Logger
 }
 
@@ -122,42 +124,6 @@ func (t *tokenStandardController) GetTransferFactoryRegistryUrl() (string, error
 		return "", fmt.Errorf("transferFactoryRegistryUrl not set")
 	}
 	return v.(string), nil
-}
-
-func (t *tokenStandardController) SetAmuletRulesContractID(id string) {
-	t.amuletRulesContractID.Store(id)
-}
-
-func (t *tokenStandardController) GetAmuletRulesContractID() string {
-	v := t.amuletRulesContractID.Load()
-	if v == nil {
-		return ""
-	}
-	return v.(string)
-}
-
-func (t *tokenStandardController) SetAmuletRulesTemplateID(id string) {
-	t.amuletRulesTemplateID.Store(id)
-}
-
-func (t *tokenStandardController) GetAmuletRulesTemplateID() string {
-	v := t.amuletRulesTemplateID.Load()
-	if v == nil {
-		return ""
-	}
-	return v.(string)
-}
-
-func (t *tokenStandardController) SetOpenMiningRoundContractID(id string) {
-	t.openMiningRoundContractID.Store(id)
-}
-
-func (t *tokenStandardController) GetOpenMiningRoundContractID() string {
-	v := t.openMiningRoundContractID.Load()
-	if v == nil {
-		return ""
-	}
-	return v.(string)
 }
 
 func (t *tokenStandardController) Transfer(ctx context.Context, receiver PartyID, amount decimal.Decimal) (*TransferResponse, error) {
@@ -246,32 +212,32 @@ func (t *tokenStandardController) Lock(
 	}, nil
 }
 
-// TODO????
-func (t *tokenStandardController) Unlock(ctx context.Context, lockContractID string) error {
-	_, err := t.GetPartyID()
+func (t *tokenStandardController) Unlock(ctx context.Context, lockContractID string) (*model.CommandRequest, error) {
+	round, err := t.scanProxy.GetActiveOpenMiningRound(ctx)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("failed to get open mining round from scan-proxy: %w", err)
+	}
+	if round == nil {
+		return nil, fmt.Errorf("no active open mining round available")
+	}
+
+	exercise := gen.LockedAmulet{}.LockedAmuletUnlock(lockContractID, gen.LockedAmuletUnlock{
+		OpenRoundCid: types.CONTRACT_ID(round.ContractID),
+	})
+
+	disclosed := make([]*damlModel.DisclosedContract, 0, 1)
+	if dc := round.ToDisclosed(); dc != nil {
+		disclosed = append(disclosed, dc)
 	}
 
 	t.logger.Info().
 		Str("lockContractID", lockContractID).
-		Msg("Unlock amulet operation")
+		Msg("Unlock amulet operation prepared")
 
-	return nil
-}
-
-// TODO????
-func (t *tokenStandardController) Burn(ctx context.Context, amount decimal.Decimal) error {
-	_, err := t.GetPartyID()
-	if err != nil {
-		return err
-	}
-
-	t.logger.Info().
-		Str("amount", amount.String()).
-		Msg("Burn amulet operation")
-
-	return nil
+	return &model.CommandRequest{
+		Command:            &damlModel.Command{Command: exercise},
+		DisclosedContracts: disclosed,
+	}, nil
 }
 
 func (t *tokenStandardController) GetBalance(ctx context.Context) (decimal.Decimal, error) {
@@ -496,8 +462,6 @@ func (t *tokenStandardController) CreateTransfer(
 	}, nil
 }
 
-// amuletRulesContract fetches the current AmuletRules contract from the
-// scan-proxy (contract id + template id + disclosed blob).
 func (t *tokenStandardController) amuletRulesContract(ctx context.Context) (*client.ScanContract, error) {
 	if t.scanProxy == nil {
 		return nil, fmt.Errorf("scan-proxy client not configured; call SetScanProxyClient")
@@ -509,9 +473,6 @@ func (t *tokenStandardController) amuletRulesContract(ctx context.Context) (*cli
 	return rules, nil
 }
 
-// amuletTransferContext fetches the AmuletRules and active OpenMiningRound
-// contracts and the DSO party from the scan-proxy, returning both contracts as
-// disclosed contracts for an AmuletRules_Transfer submission.
 func (t *tokenStandardController) amuletTransferContext(ctx context.Context) (amuletRules, round *client.ScanContract, dsoParty string, disclosed []*damlModel.DisclosedContract, err error) {
 	if t.scanProxy == nil {
 		return nil, nil, "", nil, fmt.Errorf("scan-proxy client not configured; call SetScanProxyClient")
@@ -583,47 +544,42 @@ func (t *tokenStandardController) buildAmuletTransferCommand(
 	return &damlModel.Command{Command: exercise}
 }
 
-type CreateTapResult struct {
-	Command            *damlModel.Command
-	DisclosedContracts []*damlModel.DisclosedContract
-}
-
 func (t *tokenStandardController) CreateTap(
 	ctx context.Context,
 	receiver PartyID,
 	amount decimal.Decimal,
-	instrumentAdmin string,
-	instrumentID string,
-) (*CreateTapResult, error) {
-	amuletRulesTemplateID, amuletRulesContractID, err := t.findAmuletRulesContract(ctx)
+) (*model.CommandRequest, error) {
+	amuletRules, err := t.amuletRulesContract(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find AmuletRules contract: %w", err)
+		return nil, err
 	}
 
-	openMiningRoundContractID := t.GetOpenMiningRoundContractID()
-	if openMiningRoundContractID == "" {
-		openMiningRoundContractID = os.Getenv("OPEN_MINING_ROUND_CONTRACT_ID")
+	round, err := t.scanProxy.GetActiveOpenMiningRound(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get open mining round from scan-proxy: %w", err)
 	}
-	if openMiningRoundContractID == "" {
-		return nil, fmt.Errorf("openMiningRoundContractID not set - OpenMiningRound needs to be bootstrapped first")
-	}
-
-	tapCmd := &damlModel.Command{
-		Command: &damlModel.ExerciseCommand{
-			TemplateID: amuletRulesTemplateID,
-			ContractID: amuletRulesContractID,
-			Choice:     "AmuletRules_DevNet_Tap",
-			Arguments: map[string]interface{}{
-				"receiver":  types.PARTY(string(receiver)),
-				"amount":    decimalToNumeric(amount),
-				"openRound": types.CONTRACT_ID(openMiningRoundContractID),
-			},
-		},
+	if round == nil {
+		return nil, fmt.Errorf("no active open mining round available")
 	}
 
-	return &CreateTapResult{
-		Command:            tapCmd,
-		DisclosedContracts: []*damlModel.DisclosedContract{},
+	exercise := gen.AmuletRules{}.AmuletRulesDevNetTap(amuletRules.ContractID, gen.AmuletRulesDevNetTap{
+		Receiver:  types.PARTY(receiver),
+		Amount:    decimalToNumeric(amount),
+		OpenRound: types.CONTRACT_ID(round.ContractID),
+	})
+	exercise.TemplateID = amuletRules.TemplateID
+
+	disclosed := make([]*damlModel.DisclosedContract, 0, 2)
+	if dc := amuletRules.ToDisclosed(); dc != nil {
+		disclosed = append(disclosed, dc)
+	}
+	if dc := round.ToDisclosed(); dc != nil {
+		disclosed = append(disclosed, dc)
+	}
+
+	return &model.CommandRequest{
+		Command:            &damlModel.Command{Command: exercise},
+		DisclosedContracts: disclosed,
 	}, nil
 }
 
@@ -1282,7 +1238,7 @@ func (t *tokenStandardController) CreateAndSubmitTapInternal(
 	instrumentID string,
 	instrumentAdmin string,
 ) (map[string]interface{}, error) {
-	result, err := t.CreateTap(ctx, receiver, amount, instrumentAdmin, instrumentID)
+	result, err := t.CreateTap(ctx, receiver, amount)
 	if err != nil {
 		return nil, err
 	}
@@ -1329,127 +1285,6 @@ func (t *tokenStandardController) CreateBatchMergeUtility(ctx context.Context) (
 			},
 		},
 	}, nil
-}
-
-func (t *tokenStandardController) findAmuletRulesContract(ctx context.Context) (string, string, error) {
-	templateID := t.GetAmuletRulesTemplateID()
-	contractID := t.GetAmuletRulesContractID()
-
-	if templateID == "" {
-		templateID = os.Getenv("AMULET_RULES_TEMPLATE_ID")
-	}
-	if contractID == "" {
-		contractID = os.Getenv("AMULET_RULES_CONTRACT_ID")
-	}
-
-	if templateID != "" && contractID != "" {
-		t.logger.Info().
-			Str("templateID", templateID).
-			Str("contractID", contractID).
-			Msg("Using AmuletRules contract from configured values")
-		return templateID, contractID, nil
-	}
-
-	packages, err := t.damlClient.PackageMng.ListKnownPackages(ctx)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to list packages: %w", err)
-	}
-
-	var spliceAmuletPkgID string
-	for _, pkg := range packages {
-		if pkg.Name == "splice-amulet" {
-			spliceAmuletPkgID = pkg.PackageID
-			break
-		}
-	}
-
-	if spliceAmuletPkgID == "" {
-		return "", "", fmt.Errorf("splice-amulet package not found")
-	}
-
-	possibleTemplateIDs := []string{
-		fmt.Sprintf("%s:Splice.AmuletRules:AmuletRules", spliceAmuletPkgID),
-		fmt.Sprintf("%s:Splice.Amulet:AmuletRules", spliceAmuletPkgID),
-		fmt.Sprintf("%s:Splice.Amulet.AmuletRules:AmuletRules", spliceAmuletPkgID),
-	}
-
-	partyID, err := t.GetPartyID()
-	if err != nil {
-		return "", "", err
-	}
-
-	for _, templateID := range possibleTemplateIDs {
-		t.logger.Info().
-			Str("templateID", templateID).
-			Str("partyID", string(partyID)).
-			Msg("Trying to find AmuletRules with template ID")
-
-		req := &damlModel.GetActiveContractsRequest{
-			EventFormat: &damlModel.EventFormat{
-				Verbose: true,
-				FiltersByParty: map[string]*damlModel.Filters{
-					string(partyID): {
-						Inclusive: &damlModel.InclusiveFilters{
-							TemplateFilters: []*damlModel.TemplateFilter{
-								{
-									TemplateID:              templateID,
-									IncludeCreatedEventBlob: false,
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-
-		stream, errChan := t.damlClient.StateService.GetActiveContracts(ctx, req)
-
-		var foundContract *damlModel.CreatedEvent
-	streamLoop:
-		for {
-			select {
-			case resp, ok := <-stream:
-				if !ok {
-					if foundContract != nil {
-						t.logger.Info().
-							Str("templateID", templateID).
-							Str("contractID", foundContract.ContractID).
-							Msg("Found AmuletRules contract")
-						return templateID, foundContract.ContractID, nil
-					}
-					t.logger.Debug().
-						Str("templateID", templateID).
-						Str("partyID", string(partyID)).
-						Msg("Stream closed, no contract found with this template ID")
-					break streamLoop
-				}
-				if entry, ok := resp.ContractEntry.(*damlModel.ActiveContractEntry); ok {
-					if entry.ActiveContract != nil && entry.ActiveContract.CreatedEvent != nil {
-						contract := entry.ActiveContract.CreatedEvent
-						t.logger.Info().
-							Str("templateID", templateID).
-							Str("contractID", contract.ContractID).
-							Str("partyID", string(partyID)).
-							Msg("Received contract from stream")
-						foundContract = contract
-					}
-				}
-			case err := <-errChan:
-				if err != nil {
-					t.logger.Warn().
-						Err(err).
-						Str("templateID", templateID).
-						Str("partyID", string(partyID)).
-						Msg("Error querying for template, trying next")
-					break streamLoop
-				}
-			case <-ctx.Done():
-				return "", "", ctx.Err()
-			}
-		}
-	}
-
-	return "", "", fmt.Errorf("AmuletRules contract not found - it may need to be initialized first. Attempted template IDs: %v", possibleTemplateIDs)
 }
 
 func (t *tokenStandardController) CreateMergeDelegationProposal(ctx context.Context, delegate PartyID, metadata map[string]interface{}) (*damlModel.Command, error) {
