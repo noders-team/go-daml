@@ -55,8 +55,8 @@ type TokenStandardController interface {
 		amount decimal.Decimal,
 		inputUtxos []string,
 		expiryDate *time.Time,
-	) (*model.CreateTransferResult, error)
-	CreateTransferInstruction(ctx context.Context, cid string, choice string) (*model.CreateTransferResult, error)
+	) (*model.CommandRequest, error)
+	CreateTransferInstruction(ctx context.Context, cid string, choice string) (*model.CommandRequest, error)
 	GetBalance(ctx context.Context) (decimal.Decimal, error)
 	FetchPendingTransferInstructionView(ctx context.Context) ([]*model.TransferInstruction, error)
 }
@@ -208,25 +208,41 @@ func (t *tokenStandardController) Transfer(ctx context.Context, receiver PartyID
 	}, nil
 }
 
-func (t *tokenStandardController) Lock(ctx context.Context,
+func (t *tokenStandardController) Lock(
+	ctx context.Context,
+	instrumentAdmin, instrumentID string,
 	amount decimal.Decimal, expiresAt time.Time,
-) (*LockResponse, error) {
-	_, err := t.GetPartyID()
+) (*model.CommandRequest, error) {
+	partyID, err := t.GetPartyID()
 	if err != nil {
 		return nil, err
 	}
 
-	contractID := fmt.Sprintf("lock-%d", time.Now().UnixNano())
+	inputCids, err := t.GetInputHoldingsCids(ctx, partyID, instrumentAdmin, instrumentID, &amount)
+	if err != nil {
+		return nil, err
+	}
+
+	amuletRules, round, dsoParty, disclosed, err := t.amuletTransferContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	outputLock := &gen.TimeLock{
+		Holders:   []types.PARTY{types.PARTY(partyID)},
+		ExpiresAt: types.TIMESTAMP(expiresAt),
+	}
+
+	cmd := t.buildAmuletTransferCommand(partyID, partyID, amount, inputCids, amuletRules, round, dsoParty, outputLock)
 
 	t.logger.Info().
 		Str("amount", amount.String()).
 		Time("expiresAt", expiresAt).
-		Msg("Lock amulet operation")
+		Msg("lock amulet operation prepared")
 
-	return &LockResponse{
-		ContractID: contractID,
-		Amount:     amount,
-		ExpiresAt:  expiresAt,
+	return &model.CommandRequest{
+		Command:            cmd,
+		DisclosedContracts: disclosed,
 	}, nil
 }
 
@@ -452,7 +468,7 @@ func (t *tokenStandardController) CreateTransfer(
 	amount decimal.Decimal,
 	inputUtxos []string,
 	expiryDate *time.Time,
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	if len(inputUtxos) == 0 {
 		return nil, fmt.Errorf("no utxos available for transfer")
 	}
@@ -472,9 +488,9 @@ func (t *tokenStandardController) CreateTransfer(
 		}
 	}
 
-	cmd := buildAmuletTransferCommand(sender, receiver, amount, inputUtxos, amuletRules, round, dsoParty, outputLock)
+	cmd := t.buildAmuletTransferCommand(sender, receiver, amount, inputUtxos, amuletRules, round, dsoParty, outputLock)
 
-	return &model.CreateTransferResult{
+	return &model.CommandRequest{
 		Command:            cmd,
 		DisclosedContracts: disclosed,
 	}, nil
@@ -527,11 +543,7 @@ func (t *tokenStandardController) amuletTransferContext(ctx context.Context) (am
 	return amuletRules, round, dsoParty, disclosed, nil
 }
 
-// buildAmuletTransferCommand builds an AmuletRules_Transfer command via the
-// generated gen_clients method. Moving several inputHoldingCids into a single
-// output to the same party is how holdings are merged. The AmuletRules template
-// id from scan is used so it matches the disclosed contract.
-func buildAmuletTransferCommand(
+func (t *tokenStandardController) buildAmuletTransferCommand(
 	sender, receiver PartyID,
 	amount decimal.Decimal,
 	inputCids []string,
@@ -619,7 +631,7 @@ func (t *tokenStandardController) ExerciseTransferInstructionChoice(
 	ctx context.Context,
 	transferInstructionCid string,
 	choice string,
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	exerciseCmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			ContractID: transferInstructionCid,
@@ -629,7 +641,7 @@ func (t *tokenStandardController) ExerciseTransferInstructionChoice(
 		},
 	}
 
-	return &model.CreateTransferResult{
+	return &model.CommandRequest{
 		Command:            exerciseCmd,
 		DisclosedContracts: []*damlModel.DisclosedContract{},
 	}, nil
@@ -709,7 +721,7 @@ func (t *tokenStandardController) MergeHoldingUtxos(ctx context.Context,
 			}
 
 			// A self-transfer of all inputs into a single output merges them.
-			cmd := buildAmuletTransferCommand(partyID, partyID, totalAmount, inputCids, amuletRules, round, dsoParty, nil)
+			cmd := t.buildAmuletTransferCommand(partyID, partyID, totalAmount, inputCids, amuletRules, round, dsoParty, nil)
 			allCommands = append(allCommands, cmd)
 		}
 	}
@@ -814,7 +826,7 @@ func (t *tokenStandardController) CreateAllocationInstruction(
 	expectedAdmin string,
 	inputUtxos []string,
 	requestedAt string,
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			TemplateID: ALLOCATION_FACTORY_INTERFACE_ID,
@@ -828,7 +840,7 @@ func (t *tokenStandardController) CreateAllocationInstruction(
 		},
 	}
 
-	return &model.CreateTransferResult{
+	return &model.CommandRequest{
 		Command:            cmd,
 		DisclosedContracts: []*damlModel.DisclosedContract{},
 	}, nil
@@ -838,7 +850,7 @@ func (t *tokenStandardController) ExerciseAllocationChoice(
 	_ context.Context,
 	allocationCid string,
 	choice string,
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			ContractID: allocationCid,
@@ -848,7 +860,7 @@ func (t *tokenStandardController) ExerciseAllocationChoice(
 		},
 	}
 
-	return &model.CreateTransferResult{
+	return &model.CommandRequest{
 		Command:            cmd,
 		DisclosedContracts: []*damlModel.DisclosedContract{},
 	}, nil
@@ -858,7 +870,7 @@ func (t *tokenStandardController) ExerciseAllocationInstructionChoice(
 	ctx context.Context,
 	allocationInstructionCid string,
 	choice string,
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			ContractID: allocationInstructionCid,
@@ -868,7 +880,7 @@ func (t *tokenStandardController) ExerciseAllocationInstructionChoice(
 		},
 	}
 
-	return &model.CreateTransferResult{
+	return &model.CommandRequest{
 		Command:            cmd,
 		DisclosedContracts: []*damlModel.DisclosedContract{},
 	}, nil
@@ -879,7 +891,7 @@ func (t *tokenStandardController) ExerciseAllocationRequestChoice(
 	allocationRequestCid string,
 	choice string,
 	actor PartyID,
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			ContractID: allocationRequestCid,
@@ -891,7 +903,7 @@ func (t *tokenStandardController) ExerciseAllocationRequestChoice(
 		},
 	}
 
-	return &model.CreateTransferResult{
+	return &model.CommandRequest{
 		Command:            cmd,
 		DisclosedContracts: []*damlModel.DisclosedContract{},
 	}, nil
@@ -909,7 +921,7 @@ func (t *tokenStandardController) CreateTransferUsingDelegateProxy(
 	beneficiaries []map[string]interface{},
 	inputUtxos []string,
 	memo string,
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			ContractID: proxyCid,
@@ -929,7 +941,7 @@ func (t *tokenStandardController) CreateTransferUsingDelegateProxy(
 		},
 	}
 
-	return &model.CreateTransferResult{
+	return &model.CommandRequest{
 		Command:            cmd,
 		DisclosedContracts: []*damlModel.DisclosedContract{},
 	}, nil
@@ -942,7 +954,7 @@ func (t *tokenStandardController) ExerciseTransferInstructionChoiceWithDelegate(
 	proxyCid string,
 	featuredAppRightCid string,
 	beneficiaries []map[string]interface{},
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			ContractID: proxyCid,
@@ -957,7 +969,7 @@ func (t *tokenStandardController) ExerciseTransferInstructionChoiceWithDelegate(
 		},
 	}
 
-	return &model.CreateTransferResult{
+	return &model.CommandRequest{
 		Command:            cmd,
 		DisclosedContracts: []*damlModel.DisclosedContract{},
 	}, nil
@@ -982,7 +994,7 @@ func (t *tokenStandardController) CreateCancelTransferPreapproval(
 	contractID string,
 	templateID string,
 	actor PartyID,
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			ContractID: contractID,
@@ -994,7 +1006,7 @@ func (t *tokenStandardController) CreateCancelTransferPreapproval(
 		},
 	}
 
-	return &model.CreateTransferResult{
+	return &model.CommandRequest{
 		Command:            cmd,
 		DisclosedContracts: []*damlModel.DisclosedContract{},
 	}, nil
@@ -1007,7 +1019,7 @@ func (t *tokenStandardController) CreateRenewTransferPreapproval(
 	provider PartyID,
 	newExpiresAt *time.Time,
 	inputUtxos []string,
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	syncID, err := t.GetSynchronizerID()
 	if err != nil {
 		return nil, err
@@ -1035,7 +1047,7 @@ func (t *tokenStandardController) CreateRenewTransferPreapproval(
 		},
 	}
 
-	return &model.CreateTransferResult{
+	return &model.CommandRequest{
 		Command:            cmd,
 		DisclosedContracts: []*damlModel.DisclosedContract{},
 	}, nil
@@ -1107,7 +1119,7 @@ func (t *tokenStandardController) BuyMemberTraffic(
 	memberId string,
 	inputUtxos []string,
 	migrationId int,
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	syncID, err := t.GetSynchronizerID()
 	if err != nil {
 		return nil, err
@@ -1139,13 +1151,13 @@ func (t *tokenStandardController) BuyMemberTraffic(
 		disclosed = append(disclosed, dc)
 	}
 
-	return &model.CreateTransferResult{
+	return &model.CommandRequest{
 		Command:            cmd,
 		DisclosedContracts: disclosed,
 	}, nil
 }
 
-func (t *tokenStandardController) SelfGrantFeatureAppRights(ctx context.Context) (*model.CreateTransferResult, error) {
+func (t *tokenStandardController) SelfGrantFeatureAppRights(ctx context.Context) (*model.CommandRequest, error) {
 	partyID, err := t.GetPartyID()
 	if err != nil {
 		return nil, err
@@ -1178,7 +1190,7 @@ func (t *tokenStandardController) SelfGrantFeatureAppRights(ctx context.Context)
 		disclosed = append(disclosed, dc)
 	}
 
-	return &model.CreateTransferResult{
+	return &model.CommandRequest{
 		Command:            cmd,
 		DisclosedContracts: disclosed,
 	}, nil
@@ -1512,7 +1524,7 @@ func (t *tokenStandardController) LookupMergeDelegationProposal(ctx context.Cont
 	}
 }
 
-func (t *tokenStandardController) ApproveMergeDelegationProposal(ctx context.Context, ownerParty PartyID) (*model.CreateTransferResult, error) {
+func (t *tokenStandardController) ApproveMergeDelegationProposal(ctx context.Context, ownerParty PartyID) (*model.CommandRequest, error) {
 	proposals, err := t.LookupMergeDelegationProposal(ctx, ownerParty)
 	if err != nil {
 		return nil, err
@@ -1539,7 +1551,7 @@ func (t *tokenStandardController) ApproveMergeDelegationProposal(ctx context.Con
 		CreatedEventBlob: proposal.CreatedEventBlob,
 	}
 
-	return &model.CreateTransferResult{
+	return &model.CommandRequest{
 		Command:            cmd,
 		DisclosedContracts: []*damlModel.DisclosedContract{disclosed},
 	}, nil
@@ -1564,12 +1576,6 @@ type TransferResponse struct {
 	SubmissionID string
 	Amount       decimal.Decimal
 	Receiver     PartyID
-}
-
-type LockResponse struct {
-	ContractID string
-	Amount     decimal.Decimal
-	ExpiresAt  time.Time
 }
 
 // ChoiceContext mirrors the registry choice-context payload consumed by the
@@ -1610,11 +1616,11 @@ func emptyExtraArgs() gen.ExtraArgs {
 	}
 }
 
-func newExerciseResult(cmd *damlModel.ExerciseCommand, disclosed []*damlModel.DisclosedContract) *model.CreateTransferResult {
+func newExerciseResult(cmd *damlModel.ExerciseCommand, disclosed []*damlModel.DisclosedContract) *model.CommandRequest {
 	if disclosed == nil {
 		disclosed = []*damlModel.DisclosedContract{}
 	}
-	return &model.CreateTransferResult{
+	return &model.CommandRequest{
 		Command:            &damlModel.Command{Command: cmd},
 		DisclosedContracts: disclosed,
 	}
@@ -1794,7 +1800,7 @@ func (t *tokenStandardController) CreateTransferFromContext(
 	factoryID string,
 	choiceArgs *gen.TransferFactoryTransfer,
 	choiceContext *ChoiceContext,
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	args := choiceArgs.ToMap()
 	args["extraArgs"] = injectContext(choiceContext.ChoiceContextData)
 
@@ -1806,7 +1812,7 @@ func (t *tokenStandardController) CreateTransferFromContext(
 	}, choiceContext.DisclosedContracts), nil
 }
 
-func (t *tokenStandardController) CreateTransferInstruction(ctx context.Context, cid string, choice string) (*model.CreateTransferResult, error) {
+func (t *tokenStandardController) CreateTransferInstruction(ctx context.Context, cid string, choice string) (*model.CommandRequest, error) {
 	choices := map[string]string{
 		"accept":   "TransferInstruction_Accept",
 		"reject":   "TransferInstruction_Reject",
@@ -1885,7 +1891,7 @@ func (t *tokenStandardController) CreateAllocationInstructionFromContext(
 	factoryID string,
 	choiceArgs *gen.AllocationFactoryAllocate,
 	choiceContext *ChoiceContext,
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	args := choiceArgs.ToMap()
 	args["extraArgs"] = injectContext(choiceContext.ChoiceContextData)
 
@@ -1897,7 +1903,7 @@ func (t *tokenStandardController) CreateAllocationInstructionFromContext(
 	}, choiceContext.DisclosedContracts), nil
 }
 
-func (t *tokenStandardController) allocationFromContext(allocationCid, choice string, choiceContext *ChoiceContext) *model.CreateTransferResult {
+func (t *tokenStandardController) allocationFromContext(allocationCid, choice string, choiceContext *ChoiceContext) *model.CommandRequest {
 	return newExerciseResult(&damlModel.ExerciseCommand{
 		TemplateID: gen.IAllocationInterfaceID(nil),
 		ContractID: allocationCid,
@@ -1908,25 +1914,25 @@ func (t *tokenStandardController) allocationFromContext(allocationCid, choice st
 
 // CreateExecuteTransferAllocationFromContext mirrors
 // AllocationService.createExecuteTransferAllocationFromContext.
-func (t *tokenStandardController) CreateExecuteTransferAllocationFromContext(allocationCid string, choiceContext *ChoiceContext) *model.CreateTransferResult {
+func (t *tokenStandardController) CreateExecuteTransferAllocationFromContext(allocationCid string, choiceContext *ChoiceContext) *model.CommandRequest {
 	return t.allocationFromContext(allocationCid, "Allocation_ExecuteTransfer", choiceContext)
 }
 
 // CreateWithdrawAllocationFromContext mirrors
 // AllocationService.createWithdrawAllocationFromContext.
-func (t *tokenStandardController) CreateWithdrawAllocationFromContext(allocationCid string, choiceContext *ChoiceContext) *model.CreateTransferResult {
+func (t *tokenStandardController) CreateWithdrawAllocationFromContext(allocationCid string, choiceContext *ChoiceContext) *model.CommandRequest {
 	return t.allocationFromContext(allocationCid, "Allocation_Withdraw", choiceContext)
 }
 
 // CreateCancelAllocationFromContext mirrors
 // AllocationService.createCancelAllocationFromContext.
-func (t *tokenStandardController) CreateCancelAllocationFromContext(allocationCid string, choiceContext *ChoiceContext) *model.CreateTransferResult {
+func (t *tokenStandardController) CreateCancelAllocationFromContext(allocationCid string, choiceContext *ChoiceContext) *model.CommandRequest {
 	return t.allocationFromContext(allocationCid, "Allocation_Cancel", choiceContext)
 }
 
 // CreateWithdrawAllocationInstruction mirrors
 // AllocationService.createWithdrawAllocationInstruction (no registry context).
-func (t *tokenStandardController) CreateWithdrawAllocationInstruction(allocationInstructionCid string) *model.CreateTransferResult {
+func (t *tokenStandardController) CreateWithdrawAllocationInstruction(allocationInstructionCid string) *model.CommandRequest {
 	args := gen.AllocationInstructionWithdraw{ExtraArgs: emptyExtraArgs()}
 	return newExerciseResult(&damlModel.ExerciseCommand{
 		TemplateID: gen.IAllocationInstructionInterfaceID(nil),
@@ -1943,7 +1949,7 @@ func (t *tokenStandardController) CreateUpdateAllocationInstruction(
 	extraActors []PartyID,
 	extraArgsContext types.TEXTMAP,
 	extraArgsMeta types.TEXTMAP,
-) *model.CreateTransferResult {
+) *model.CommandRequest {
 	actors := make([]types.PARTY, len(extraActors))
 	for i, a := range extraActors {
 		actors[i] = types.PARTY(a)
@@ -1972,7 +1978,7 @@ func (t *tokenStandardController) CreateUpdateAllocationInstruction(
 
 // CreateRejectAllocationRequest mirrors
 // AllocationService.createRejectAllocationRequest (no registry context).
-func (t *tokenStandardController) CreateRejectAllocationRequest(allocationRequestCid string, actor PartyID) *model.CreateTransferResult {
+func (t *tokenStandardController) CreateRejectAllocationRequest(allocationRequestCid string, actor PartyID) *model.CommandRequest {
 	return newExerciseResult(&damlModel.ExerciseCommand{
 		TemplateID: ALLOCATION_REQUEST_INTERFACE_ID,
 		ContractID: allocationRequestCid,
@@ -1986,7 +1992,7 @@ func (t *tokenStandardController) CreateRejectAllocationRequest(allocationReques
 
 // CreateWithdrawAllocationRequest mirrors
 // AllocationService.createWithdrawAllocationRequest (no registry context).
-func (t *tokenStandardController) CreateWithdrawAllocationRequest(allocationRequestCid string) *model.CreateTransferResult {
+func (t *tokenStandardController) CreateWithdrawAllocationRequest(allocationRequestCid string) *model.CommandRequest {
 	return newExerciseResult(&damlModel.ExerciseCommand{
 		TemplateID: ALLOCATION_REQUEST_INTERFACE_ID,
 		ContractID: allocationRequestCid,
@@ -2021,7 +2027,7 @@ func (t *tokenStandardController) CreateStandardTransfer(
 	meta types.TEXTMAP,
 	factoryID string,
 	choiceContext *ChoiceContext,
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	if choiceContext == nil {
 		return nil, fmt.Errorf("choice context is required")
 	}
@@ -2047,7 +2053,7 @@ func (t *tokenStandardController) CreateStandardAllocationInstruction(
 	requestedAt *time.Time,
 	factoryID string,
 	choiceContext *ChoiceContext,
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	choiceArgs, err := t.BuildAllocationFactoryChoiceArgs(ctx, spec, expectedAdmin, inputUtxos, requestedAt)
 	if err != nil {
 		return nil, err
@@ -2059,7 +2065,7 @@ func (t *tokenStandardController) CreateStandardAllocationInstruction(
 }
 
 // CreateExecuteTransferAllocation mirrors AllocationService.createExecuteTransferAllocation.
-func (t *tokenStandardController) CreateExecuteTransferAllocation(allocationCid string, choiceContext *ChoiceContext) (*model.CreateTransferResult, error) {
+func (t *tokenStandardController) CreateExecuteTransferAllocation(allocationCid string, choiceContext *ChoiceContext) (*model.CommandRequest, error) {
 	if choiceContext != nil {
 		return t.CreateExecuteTransferAllocationFromContext(allocationCid, choiceContext), nil
 	}
@@ -2067,7 +2073,7 @@ func (t *tokenStandardController) CreateExecuteTransferAllocation(allocationCid 
 }
 
 // CreateWithdrawAllocation mirrors AllocationService.createWithdrawAllocation.
-func (t *tokenStandardController) CreateWithdrawAllocation(allocationCid string, choiceContext *ChoiceContext) (*model.CreateTransferResult, error) {
+func (t *tokenStandardController) CreateWithdrawAllocation(allocationCid string, choiceContext *ChoiceContext) (*model.CommandRequest, error) {
 	if choiceContext != nil {
 		return t.CreateWithdrawAllocationFromContext(allocationCid, choiceContext), nil
 	}
@@ -2075,7 +2081,7 @@ func (t *tokenStandardController) CreateWithdrawAllocation(allocationCid string,
 }
 
 // CreateCancelAllocation mirrors AllocationService.createCancelAllocation.
-func (t *tokenStandardController) CreateCancelAllocation(allocationCid string, choiceContext *ChoiceContext) (*model.CreateTransferResult, error) {
+func (t *tokenStandardController) CreateCancelAllocation(allocationCid string, choiceContext *ChoiceContext) (*model.CommandRequest, error) {
 	if choiceContext != nil {
 		return t.CreateCancelAllocationFromContext(allocationCid, choiceContext), nil
 	}
@@ -2114,7 +2120,7 @@ func (t *tokenStandardController) validateWeight(bs []*Beneficiary) error {
 	return nil
 }
 
-func unwrapExercise(res *model.CreateTransferResult) (*damlModel.ExerciseCommand, error) {
+func unwrapExercise(res *model.CommandRequest) (*damlModel.ExerciseCommand, error) {
 	if res == nil || res.Command == nil {
 		return nil, fmt.Errorf("nil command")
 	}
@@ -2132,7 +2138,7 @@ func (t *tokenStandardController) wrapDelegateProxy(
 	featuredAppRightCid string,
 	beneficiaries []*Beneficiary,
 	disclosed []*damlModel.DisclosedContract,
-) *model.CreateTransferResult {
+) *model.CommandRequest {
 	choiceArgs := map[string]interface{}{
 		"cid": types.CONTRACT_ID(inner.ContractID),
 		"proxyArg": map[string]interface{}{
@@ -2165,7 +2171,7 @@ func (t *tokenStandardController) CreateDelegateProxyTransfer(
 	meta types.TEXTMAP,
 	factoryID string,
 	choiceContext *ChoiceContext,
-) (*model.CreateTransferResult, error) {
+) (*model.CommandRequest, error) {
 	if choiceContext == nil {
 		return nil, t.registryError("transfer-instruction/v1/transfer-factory")
 	}

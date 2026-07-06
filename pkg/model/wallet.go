@@ -27,7 +27,7 @@ type AllocationRequest struct {
 	CreatedEventBlob []byte
 }
 
-type CreateTransferResult struct {
+type CommandRequest struct {
 	Command            *Command
 	DisclosedContracts []*DisclosedContract
 }
