@@ -794,14 +794,23 @@ func (t *tokenStandardController) ExerciseAllocationRequestChoice(
 	choice string,
 	actor string,
 ) (*model.CommandRequest, error) {
+	args := map[string]interface{}{}
+	switch choice {
+	case "AllocationRequest_Reject":
+		args["actor"] = types.PARTY(actor)
+		args["extraArgs"] = emptyExtraArgs().ToMap()
+	case "AllocationRequest_Withdraw":
+		args["extraArgs"] = emptyExtraArgs().ToMap()
+	default:
+		return nil, fmt.Errorf("unsupported allocation request choice: %s", choice)
+	}
+
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			ContractID: allocationRequestCid,
 			TemplateID: ALLOCATION_REQUEST_INTERFACE_ID,
 			Choice:     choice,
-			Arguments: map[string]interface{}{
-				"actor": string(actor),
-			},
+			Arguments:  args,
 		},
 	}
 
