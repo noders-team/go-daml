@@ -851,55 +851,58 @@ func (t *tokenStandardController) ExerciseTransferInstructionChoiceWithDelegate(
 func (t *tokenStandardController) BuyMemberTraffic(
 	ctx context.Context,
 	buyer string,
-	ccAmount decimal.Decimal,
+	trafficAmount int64,
 	memberId string,
 	inputUtxos []string,
 	migrationId int,
 ) (*model.CommandRequest, error) {
+	if len(inputUtxos) == 0 {
+		return nil, fmt.Errorf("no utxos available for buy member traffic")
+	}
+
 	syncID, err := t.GetSynchronizerID()
 	if err != nil {
 		return nil, err
 	}
 
-	amuletRules, err := t.amuletRulesContract(ctx)
+	amuletRules, round, dsoParty, disclosed, err := t.amuletTransferContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	cmd := &damlModel.Command{
-		Command: &damlModel.ExerciseCommand{
-			TemplateID: amuletRules.TemplateID,
-			ContractID: amuletRules.ContractID,
-			Choice:     "AmuletRules_BuyMemberTraffic",
-			Arguments: map[string]interface{}{
-				"buyer":          string(buyer),
-				"ccAmount":       ccAmount.String(),
-				"memberId":       memberId,
-				"inputs":         inputUtxos,
-				"migrationId":    migrationId,
-				"synchronizerId": string(syncID),
-			},
-		},
+	inputs := make([]gen.TransferInput, 0, len(inputUtxos))
+	for _, utxo := range inputUtxos {
+		cid := types.CONTRACT_ID(utxo)
+		inputs = append(inputs, gen.TransferInput{InputAmulet: &cid})
 	}
 
-	disclosed := make([]*damlModel.DisclosedContract, 0, 1)
-	if dc := amuletRules.ToDisclosed(); dc != nil {
-		disclosed = append(disclosed, dc)
+	expectedDso := types.PARTY(dsoParty)
+	choiceArgs := gen.AmuletRulesBuyMemberTraffic{
+		Inputs: inputs,
+		Context: gen.TransferContext{
+			OpenMiningRound:     types.CONTRACT_ID(round.ContractID),
+			IssuingMiningRounds: types.GENMAP{},
+			ValidatorRights:     types.GENMAP{},
+		},
+		Provider:       types.PARTY(buyer),
+		MemberId:       types.TEXT(memberId),
+		SynchronizerId: types.TEXT(syncID),
+		MigrationId:    types.INT64(migrationId),
+		TrafficAmount:  types.INT64(trafficAmount),
+		ExpectedDso:    &expectedDso,
 	}
+
+	exercise := gen.AmuletRules{}.AmuletRulesBuyMemberTraffic(amuletRules.ContractID, choiceArgs)
+	exercise.TemplateID = amuletRules.TemplateID
 
 	return &model.CommandRequest{
-		Command:            cmd,
+		Command:            &damlModel.Command{Command: exercise},
 		DisclosedContracts: disclosed,
 	}, nil
 }
 
 func (t *tokenStandardController) SelfGrantFeatureAppRights(ctx context.Context) (*model.CommandRequest, error) {
 	partyID, err := t.GetPartyID()
-	if err != nil {
-		return nil, err
-	}
-
-	syncID, err := t.GetSynchronizerID()
 	if err != nil {
 		return nil, err
 	}
@@ -1203,14 +1206,14 @@ func (t *tokenStandardController) GetInputHoldingsCidsForAmount(amount decimal.D
 
 	sum := largest.Amount
 	cids := []string{largest.ContractID}
-for i := len(sorted) - 1; i >= 0; i-- {
-	if sum.GreaterThanOrEqual(amount) {
-		break
+	for i := len(sorted) - 1; i >= 0; i-- {
+		if sum.GreaterThanOrEqual(amount) {
+			break
+		}
+		h := sorted[i]
+		sum = sum.Add(h.Amount)
+		cids = append(cids, h.ContractID)
 	}
-	h := sorted[i]
-	sum = sum.Add(h.Amount)
-	cids = append(cids, h.ContractID)
-}
 
 	if sum.LessThan(amount) {
 		return nil, fmt.Errorf("sender doesn't have sufficient funds for this transfer. missing amount: %s", amount.Sub(sum).String())
