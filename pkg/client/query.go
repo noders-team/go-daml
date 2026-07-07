@@ -121,7 +121,7 @@ func (c *ContractQuery[T]) scanActiveContractsByTemplate(
 			if query.interfaceID != "" {
 				arguments = nil
 				for _, iv := range evt.InterfaceViews {
-					if iv.ViewValue != nil {
+					if iv.InterfaceID == query.interfaceID && iv.ViewValue != nil {
 						arguments = iv.ViewValue
 						break
 					}

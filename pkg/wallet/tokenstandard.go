@@ -11,7 +11,6 @@ import (
 
 	"github.com/noders-team/go-daml/pkg/client"
 	"github.com/noders-team/go-daml/pkg/model"
-	damlModel "github.com/noders-team/go-daml/pkg/model"
 	"github.com/noders-team/go-daml/pkg/types"
 	gen "github.com/noders-team/go-daml/pkg/wallet/gen_clients"
 	"github.com/rs/zerolog"
@@ -61,7 +60,7 @@ type TokenStandardController interface {
 		amount decimal.Decimal, expiresAt time.Time,
 	) (*model.CommandRequest, error)
 	Unlock(ctx context.Context, lockContractID string) (*model.CommandRequest, error)
-	CreateMergeDelegationProposal(ctx context.Context, delegate string, metadata types.TEXTMAP) (*damlModel.Command, error)
+	CreateMergeDelegationProposal(ctx context.Context, delegate string, metadata types.TEXTMAP) (*model.Command, error)
 	LookupMergeDelegationProposal(ctx context.Context, ownerParty string) ([]client.Contract[gen.MergeDelegationProposal], error)
 	ApproveMergeDelegationProposal(ctx context.Context, ownerParty string) (*model.CommandRequest, error)
 }
@@ -177,7 +176,7 @@ func (t *tokenStandardController) Unlock(ctx context.Context, lockContractID str
 		OpenRoundCid: types.CONTRACT_ID(round.ContractID),
 	})
 
-	disclosed := make([]*damlModel.DisclosedContract, 0, 1)
+	disclosed := make([]*model.DisclosedContract, 0, 1)
 	if dc := round.ToDisclosed(); dc != nil {
 		disclosed = append(disclosed, dc)
 	}
@@ -187,7 +186,7 @@ func (t *tokenStandardController) Unlock(ctx context.Context, lockContractID str
 		Msg("Unlock amulet operation prepared")
 
 	return &model.CommandRequest{
-		Command:            &damlModel.Command{Command: exercise},
+		Command:            &model.Command{Command: exercise},
 		DisclosedContracts: disclosed,
 	}, nil
 }
@@ -222,16 +221,16 @@ func (t *tokenStandardController) GetBalance(ctx context.Context) (decimal.Decim
 	return balance, nil
 }
 
-func (t *tokenStandardController) ListContractsByInterface(ctx context.Context, interfaceID string) ([]*damlModel.CreatedEvent, error) {
+func (t *tokenStandardController) ListContractsByInterface(ctx context.Context, interfaceID string) ([]*model.CreatedEvent, error) {
 	partyID, err := t.GetPartyID()
 	if err != nil {
 		return nil, err
 	}
 
-	filterByParty := map[string]*damlModel.Filters{
+	filterByParty := map[string]*model.Filters{
 		string(partyID): {
-			Inclusive: &damlModel.InclusiveFilters{
-				InterfaceFilters: []*damlModel.InterfaceFilter{
+			Inclusive: &model.InclusiveFilters{
+				InterfaceFilters: []*model.InterfaceFilter{
 					{
 						InterfaceID:             interfaceID,
 						IncludeCreatedEventBlob: true,
@@ -241,8 +240,8 @@ func (t *tokenStandardController) ListContractsByInterface(ctx context.Context, 
 		},
 	}
 
-	req := &damlModel.GetActiveContractsRequest{
-		EventFormat: &damlModel.EventFormat{
+	req := &model.GetActiveContractsRequest{
+		EventFormat: &model.EventFormat{
 			Verbose:        true,
 			FiltersByParty: filterByParty,
 		},
@@ -250,7 +249,7 @@ func (t *tokenStandardController) ListContractsByInterface(ctx context.Context, 
 
 	stream, errChan := t.damlClient.StateService.GetActiveContracts(ctx, req)
 
-	var contracts []*damlModel.CreatedEvent
+	var contracts []*model.CreatedEvent
 
 	for {
 		select {
@@ -258,12 +257,16 @@ func (t *tokenStandardController) ListContractsByInterface(ctx context.Context, 
 			if !ok {
 				return contracts, nil
 			}
-			if entry, ok := resp.ContractEntry.(*damlModel.ActiveContractEntry); ok {
+			if entry, ok := resp.ContractEntry.(*model.ActiveContractEntry); ok {
 				if entry.ActiveContract != nil && entry.ActiveContract.CreatedEvent != nil {
 					contracts = append(contracts, entry.ActiveContract.CreatedEvent)
 				}
 			}
-		case err := <-errChan:
+		case err, open := <-errChan:
+			if !open {
+				errChan = nil
+				continue
+			}
 			if err != nil {
 				return nil, fmt.Errorf("failed to list contracts by interface: %w", err)
 			}
@@ -403,9 +406,6 @@ func (t *tokenStandardController) CreateTransfer(
 }
 
 func (t *tokenStandardController) amuletRulesContract(ctx context.Context) (*client.ScanContract, error) {
-	if t.scanProxy == nil {
-		return nil, fmt.Errorf("scan-proxy client not configured; call SetScanProxyClient")
-	}
 	rules, err := t.scanProxy.GetAmuletRules(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get AmuletRules from scan-proxy: %w", err)
@@ -413,11 +413,7 @@ func (t *tokenStandardController) amuletRulesContract(ctx context.Context) (*cli
 	return rules, nil
 }
 
-func (t *tokenStandardController) amuletTransferContext(ctx context.Context) (amuletRules, round *client.ScanContract, dsoParty string, disclosed []*damlModel.DisclosedContract, err error) {
-	if t.scanProxy == nil {
-		return nil, nil, "", nil, fmt.Errorf("scan-proxy client not configured; call SetScanProxyClient")
-	}
-
+func (t *tokenStandardController) amuletTransferContext(ctx context.Context) (amuletRules, round *client.ScanContract, dsoParty string, disclosed []*model.DisclosedContract, err error) {
 	amuletRules, err = t.scanProxy.GetAmuletRules(ctx)
 	if err != nil {
 		return nil, nil, "", nil, fmt.Errorf("failed to get AmuletRules from scan-proxy: %w", err)
@@ -434,7 +430,7 @@ func (t *tokenStandardController) amuletTransferContext(ctx context.Context) (am
 		return nil, nil, "", nil, fmt.Errorf("failed to get DSO party from scan-proxy: %w", err)
 	}
 
-	disclosed = make([]*damlModel.DisclosedContract, 0, 2)
+	disclosed = make([]*model.DisclosedContract, 0, 2)
 	if dc := amuletRules.ToDisclosed(); dc != nil {
 		disclosed = append(disclosed, dc)
 	}
@@ -451,7 +447,7 @@ func (t *tokenStandardController) buildAmuletTransferCommand(
 	amuletRules, round *client.ScanContract,
 	dsoParty string,
 	outputLock *gen.TimeLock,
-) *damlModel.Command {
+) *model.Command {
 	inputs := make([]gen.TransferInput, 0, len(inputCids))
 	for _, utxo := range inputCids {
 		cid := types.CONTRACT_ID(utxo)
@@ -481,7 +477,7 @@ func (t *tokenStandardController) buildAmuletTransferCommand(
 
 	exercise := gen.AmuletRules{}.AmuletRulesTransfer(amuletRules.ContractID, choiceArgs)
 	exercise.TemplateID = amuletRules.TemplateID
-	return &damlModel.Command{Command: exercise}
+	return &model.Command{Command: exercise}
 }
 
 func (t *tokenStandardController) CreateTap(
@@ -509,7 +505,7 @@ func (t *tokenStandardController) CreateTap(
 	})
 	exercise.TemplateID = amuletRules.TemplateID
 
-	disclosed := make([]*damlModel.DisclosedContract, 0, 2)
+	disclosed := make([]*model.DisclosedContract, 0, 2)
 	if dc := amuletRules.ToDisclosed(); dc != nil {
 		disclosed = append(disclosed, dc)
 	}
@@ -518,7 +514,7 @@ func (t *tokenStandardController) CreateTap(
 	}
 
 	return &model.CommandRequest{
-		Command:            &damlModel.Command{Command: exercise},
+		Command:            &model.Command{Command: exercise},
 		DisclosedContracts: disclosed,
 	}, nil
 }
@@ -528,8 +524,8 @@ func (t *tokenStandardController) ExerciseTransferInstructionChoice(
 	transferInstructionCid string,
 	choice string,
 ) (*model.CommandRequest, error) {
-	exerciseCmd := &damlModel.Command{
-		Command: &damlModel.ExerciseCommand{
+	exerciseCmd := &model.Command{
+		Command: &model.ExerciseCommand{
 			ContractID: transferInstructionCid,
 			TemplateID: TRANSFER_INSTRUCTION_INTERFACE_ID,
 			Choice:     choice,
@@ -539,7 +535,7 @@ func (t *tokenStandardController) ExerciseTransferInstructionChoice(
 
 	return &model.CommandRequest{
 		Command:            exerciseCmd,
-		DisclosedContracts: []*damlModel.DisclosedContract{},
+		DisclosedContracts: []*model.DisclosedContract{},
 	}, nil
 }
 
@@ -596,7 +592,7 @@ func (t *tokenStandardController) MergeHoldingUtxos(ctx context.Context,
 		utxosByInstrument[key] = append(utxosByInstrument[key], utxo)
 	}
 
-	var allCommands []*damlModel.Command
+	var allCommands []*model.Command
 	transferInputUtxoLimit := 100
 
 	for _, group := range utxosByInstrument {
@@ -728,8 +724,8 @@ func (t *tokenStandardController) CreateAllocationInstruction(
 		return nil, fmt.Errorf("invalid requestedAt %q: %w", requestedAt, err)
 	}
 
-	cmd := &damlModel.Command{
-		Command: &damlModel.ExerciseCommand{
+	cmd := &model.Command{
+		Command: &model.ExerciseCommand{
 			TemplateID: ALLOCATION_FACTORY_INTERFACE_ID,
 			Choice:     "AllocationFactory_Allocate",
 			Arguments: map[string]interface{}{
@@ -744,7 +740,7 @@ func (t *tokenStandardController) CreateAllocationInstruction(
 
 	return &model.CommandRequest{
 		Command:            cmd,
-		DisclosedContracts: []*damlModel.DisclosedContract{},
+		DisclosedContracts: []*model.DisclosedContract{},
 	}, nil
 }
 
@@ -753,8 +749,8 @@ func (t *tokenStandardController) ExerciseAllocationChoice(
 	allocationCid string,
 	choice string,
 ) (*model.CommandRequest, error) {
-	cmd := &damlModel.Command{
-		Command: &damlModel.ExerciseCommand{
+	cmd := &model.Command{
+		Command: &model.ExerciseCommand{
 			ContractID: allocationCid,
 			TemplateID: ALLOCATION_INTERFACE_ID,
 			Choice:     choice,
@@ -764,7 +760,7 @@ func (t *tokenStandardController) ExerciseAllocationChoice(
 
 	return &model.CommandRequest{
 		Command:            cmd,
-		DisclosedContracts: []*damlModel.DisclosedContract{},
+		DisclosedContracts: []*model.DisclosedContract{},
 	}, nil
 }
 
@@ -773,8 +769,8 @@ func (t *tokenStandardController) ExerciseAllocationInstructionChoice(
 	allocationInstructionCid string,
 	choice string,
 ) (*model.CommandRequest, error) {
-	cmd := &damlModel.Command{
-		Command: &damlModel.ExerciseCommand{
+	cmd := &model.Command{
+		Command: &model.ExerciseCommand{
 			ContractID: allocationInstructionCid,
 			TemplateID: ALLOCATION_INSTRUCTION_INTERFACE_ID,
 			Choice:     choice,
@@ -784,7 +780,7 @@ func (t *tokenStandardController) ExerciseAllocationInstructionChoice(
 
 	return &model.CommandRequest{
 		Command:            cmd,
-		DisclosedContracts: []*damlModel.DisclosedContract{},
+		DisclosedContracts: []*model.DisclosedContract{},
 	}, nil
 }
 
@@ -805,8 +801,8 @@ func (t *tokenStandardController) ExerciseAllocationRequestChoice(
 		return nil, fmt.Errorf("unsupported allocation request choice: %s", choice)
 	}
 
-	cmd := &damlModel.Command{
-		Command: &damlModel.ExerciseCommand{
+	cmd := &model.Command{
+		Command: &model.ExerciseCommand{
 			ContractID: allocationRequestCid,
 			TemplateID: ALLOCATION_REQUEST_INTERFACE_ID,
 			Choice:     choice,
@@ -816,7 +812,7 @@ func (t *tokenStandardController) ExerciseAllocationRequestChoice(
 
 	return &model.CommandRequest{
 		Command:            cmd,
-		DisclosedContracts: []*damlModel.DisclosedContract{},
+		DisclosedContracts: []*model.DisclosedContract{},
 	}, nil
 }
 
@@ -828,8 +824,8 @@ func (t *tokenStandardController) ExerciseTransferInstructionChoiceWithDelegate(
 	featuredAppRightCid string,
 	beneficiaries []map[string]interface{},
 ) (*model.CommandRequest, error) {
-	cmd := &damlModel.Command{
-		Command: &damlModel.ExerciseCommand{
+	cmd := &model.Command{
+		Command: &model.ExerciseCommand{
 			ContractID: proxyCid,
 			TemplateID: FEATURED_APP_DELEGATE_PROXY_INTERFACE_ID,
 			Choice:     "ExerciseTransferInstructionChoice",
@@ -844,7 +840,7 @@ func (t *tokenStandardController) ExerciseTransferInstructionChoiceWithDelegate(
 
 	return &model.CommandRequest{
 		Command:            cmd,
-		DisclosedContracts: []*damlModel.DisclosedContract{},
+		DisclosedContracts: []*model.DisclosedContract{},
 	}, nil
 }
 
@@ -896,7 +892,7 @@ func (t *tokenStandardController) BuyMemberTraffic(
 	exercise.TemplateID = amuletRules.TemplateID
 
 	return &model.CommandRequest{
-		Command:            &damlModel.Command{Command: exercise},
+		Command:            &model.Command{Command: exercise},
 		DisclosedContracts: disclosed,
 	}, nil
 }
@@ -917,9 +913,9 @@ func (t *tokenStandardController) SelfGrantFeatureAppRights(ctx context.Context)
 	})
 	exercise.TemplateID = amuletRules.TemplateID
 
-	cmd := &damlModel.Command{Command: exercise}
+	cmd := &model.Command{Command: exercise}
 
-	disclosed := make([]*damlModel.DisclosedContract, 0, 1)
+	disclosed := make([]*model.DisclosedContract, 0, 1)
 	if dc := amuletRules.ToDisclosed(); dc != nil {
 		disclosed = append(disclosed, dc)
 	}
@@ -941,9 +937,6 @@ func (t *tokenStandardController) LookupFeaturedApps(ctx context.Context, maxRet
 	partyID, err := t.GetPartyID()
 	if err != nil {
 		return nil, err
-	}
-	if t.scanProxy == nil {
-		return nil, fmt.Errorf("scan-proxy client not configured; call SetScanProxyClient")
 	}
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
@@ -991,11 +984,11 @@ func (t *tokenStandardController) GrantFeatureAppRightsForInternalParty(ctx cont
 		return nil, err
 	}
 
-	submitReq := &damlModel.SubmitRequest{
-		Commands: &damlModel.Commands{
+	submitReq := &model.SubmitRequest{
+		Commands: &model.Commands{
 			UserID:    t.userID,
 			CommandID: fmt.Sprintf("feature-app-%d", time.Now().UnixNano()),
-			Commands:  []*damlModel.Command{result.Command},
+			Commands:  []*model.Command{result.Command},
 			ActAs:     []string{string(partyID)},
 			ReadAs:    []string{},
 		},
@@ -1009,7 +1002,7 @@ func (t *tokenStandardController) GrantFeatureAppRightsForInternalParty(ctx cont
 	return t.LookupFeaturedApps(ctx, 5, 1000)
 }
 
-func (t *tokenStandardController) CreateMergeDelegationProposal(ctx context.Context, delegate string, metadata types.TEXTMAP) (*damlModel.Command, error) {
+func (t *tokenStandardController) CreateMergeDelegationProposal(ctx context.Context, delegate string, metadata types.TEXTMAP) (*model.Command, error) {
 	partyID, err := t.GetPartyID()
 	if err != nil {
 		return nil, err
@@ -1027,7 +1020,7 @@ func (t *tokenStandardController) CreateMergeDelegationProposal(ctx context.Cont
 		},
 	}
 
-	return &damlModel.Command{Command: proposal.CreateCommand()}, nil
+	return &model.Command{Command: proposal.CreateCommand()}, nil
 }
 
 func (t *tokenStandardController) LookupMergeDelegationProposal(ctx context.Context, ownerParty string) ([]client.Contract[gen.MergeDelegationProposal], error) {
@@ -1056,9 +1049,9 @@ func (t *tokenStandardController) ApproveMergeDelegationProposal(ctx context.Con
 	proposal := proposals[0]
 
 	exercise := gen.MergeDelegationProposal{}.MergeDelegationProposalAccept(proposal.ContractID, gen.MergeDelegationProposalAccept{})
-	cmd := &damlModel.Command{Command: exercise}
+	cmd := &model.Command{Command: exercise}
 
-	disclosed := &damlModel.DisclosedContract{
+	disclosed := &model.DisclosedContract{
 		TemplateID:       proposal.TemplateID,
 		ContractID:       proposal.ContractID,
 		CreatedEventBlob: proposal.CreatedEventBlob,
@@ -1066,7 +1059,7 @@ func (t *tokenStandardController) ApproveMergeDelegationProposal(ctx context.Con
 
 	return &model.CommandRequest{
 		Command:            cmd,
-		DisclosedContracts: []*damlModel.DisclosedContract{disclosed},
+		DisclosedContracts: []*model.DisclosedContract{disclosed},
 	}, nil
 }
 
@@ -1086,12 +1079,12 @@ func emptyExtraArgs() gen.ExtraArgs {
 	}
 }
 
-func newExerciseResult(cmd *damlModel.ExerciseCommand, disclosed []*damlModel.DisclosedContract) *model.CommandRequest {
+func newExerciseResult(cmd *model.ExerciseCommand, disclosed []*model.DisclosedContract) *model.CommandRequest {
 	if disclosed == nil {
-		disclosed = []*damlModel.DisclosedContract{}
+		disclosed = []*model.DisclosedContract{}
 	}
 	return &model.CommandRequest{
-		Command:            &damlModel.Command{Command: cmd},
+		Command:            &model.Command{Command: cmd},
 		DisclosedContracts: disclosed,
 	}
 }
@@ -1275,7 +1268,7 @@ func (t *tokenStandardController) CreateTransferFromContext(
 	args := choiceArgs.ToMap()
 	args["extraArgs"] = injectContext(choiceContext.ChoiceContextData)
 
-	return newExerciseResult(&damlModel.ExerciseCommand{
+	return newExerciseResult(&model.ExerciseCommand{
 		TemplateID: gen.ITransferFactoryInterfaceID(nil),
 		ContractID: factoryID,
 		Choice:     "TransferFactory_Transfer",
@@ -1303,7 +1296,7 @@ func (t *tokenStandardController) CreateTransferInstruction(ctx context.Context,
 		ChoiceContextData:  scanChoiceContext.ChoiceContextData,
 		DisclosedContracts: scanChoiceContext.DisclosedContracts,
 	}
-	return newExerciseResult(&damlModel.ExerciseCommand{
+	return newExerciseResult(&model.ExerciseCommand{
 		TemplateID: gen.ITransferInstructionInterfaceID(nil),
 		ContractID: cid,
 		Choice:     damlChoice,
@@ -1366,7 +1359,7 @@ func (t *tokenStandardController) CreateAllocationInstructionFromContext(
 	args := choiceArgs.ToMap()
 	args["extraArgs"] = injectContext(choiceContext.ChoiceContextData)
 
-	return newExerciseResult(&damlModel.ExerciseCommand{
+	return newExerciseResult(&model.ExerciseCommand{
 		TemplateID: gen.IAllocationFactoryInterfaceID(nil),
 		ContractID: factoryID,
 		Choice:     "AllocationFactory_Allocate",
@@ -1375,7 +1368,7 @@ func (t *tokenStandardController) CreateAllocationInstructionFromContext(
 }
 
 func (t *tokenStandardController) allocationFromContext(allocationCid, choice string, choiceContext *model.ChoiceContext) *model.CommandRequest {
-	return newExerciseResult(&damlModel.ExerciseCommand{
+	return newExerciseResult(&model.ExerciseCommand{
 		TemplateID: gen.IAllocationInterfaceID(nil),
 		ContractID: allocationCid,
 		Choice:     choice,
@@ -1405,7 +1398,7 @@ func (t *tokenStandardController) CreateCancelAllocationFromContext(allocationCi
 // AllocationService.createWithdrawAllocationInstruction (no registry context).
 func (t *tokenStandardController) CreateWithdrawAllocationInstruction(allocationInstructionCid string) *model.CommandRequest {
 	args := gen.AllocationInstructionWithdraw{ExtraArgs: emptyExtraArgs()}
-	return newExerciseResult(&damlModel.ExerciseCommand{
+	return newExerciseResult(&model.ExerciseCommand{
 		TemplateID: gen.IAllocationInstructionInterfaceID(nil),
 		ContractID: allocationInstructionCid,
 		Choice:     "AllocationInstruction_Withdraw",
@@ -1439,7 +1432,7 @@ func (t *tokenStandardController) CreateUpdateAllocationInstruction(
 			Meta:    gen.Metadata{Values: extraArgsMeta},
 		},
 	}
-	return newExerciseResult(&damlModel.ExerciseCommand{
+	return newExerciseResult(&model.ExerciseCommand{
 		TemplateID: gen.IAllocationInstructionInterfaceID(nil),
 		ContractID: allocationInstructionCid,
 		Choice:     "AllocationInstruction_Update",
@@ -1450,7 +1443,7 @@ func (t *tokenStandardController) CreateUpdateAllocationInstruction(
 // CreateRejectAllocationRequest mirrors
 // AllocationService.createRejectAllocationRequest (no registry context).
 func (t *tokenStandardController) CreateRejectAllocationRequest(allocationRequestCid string, actor string) *model.CommandRequest {
-	return newExerciseResult(&damlModel.ExerciseCommand{
+	return newExerciseResult(&model.ExerciseCommand{
 		TemplateID: ALLOCATION_REQUEST_INTERFACE_ID,
 		ContractID: allocationRequestCid,
 		Choice:     "AllocationRequest_Reject",
@@ -1464,7 +1457,7 @@ func (t *tokenStandardController) CreateRejectAllocationRequest(allocationReques
 // CreateWithdrawAllocationRequest mirrors
 // AllocationService.createWithdrawAllocationRequest (no registry context).
 func (t *tokenStandardController) CreateWithdrawAllocationRequest(allocationRequestCid string) *model.CommandRequest {
-	return newExerciseResult(&damlModel.ExerciseCommand{
+	return newExerciseResult(&model.ExerciseCommand{
 		TemplateID: ALLOCATION_REQUEST_INTERFACE_ID,
 		ContractID: allocationRequestCid,
 		Choice:     "AllocationRequest_Withdraw",
@@ -1591,11 +1584,11 @@ func (t *tokenStandardController) validateWeight(bs []*model.Beneficiary) error 
 	return nil
 }
 
-func unwrapExercise(res *model.CommandRequest) (*damlModel.ExerciseCommand, error) {
+func unwrapExercise(res *model.CommandRequest) (*model.ExerciseCommand, error) {
 	if res == nil || res.Command == nil {
 		return nil, fmt.Errorf("nil command")
 	}
-	ec, ok := res.Command.Command.(*damlModel.ExerciseCommand)
+	ec, ok := res.Command.Command.(*model.ExerciseCommand)
 	if !ok {
 		return nil, fmt.Errorf("expected an exercise command")
 	}
@@ -1605,10 +1598,10 @@ func unwrapExercise(res *model.CommandRequest) (*damlModel.ExerciseCommand, erro
 func (t *tokenStandardController) wrapDelegateProxy(
 	proxyCid string,
 	choice string,
-	inner *damlModel.ExerciseCommand,
+	inner *model.ExerciseCommand,
 	featuredAppRightCid string,
 	beneficiaries []*model.Beneficiary,
-	disclosed []*damlModel.DisclosedContract,
+	disclosed []*model.DisclosedContract,
 ) *model.CommandRequest {
 	choiceArgs := map[string]interface{}{
 		"cid": types.CONTRACT_ID(inner.ContractID),
@@ -1618,7 +1611,7 @@ func (t *tokenStandardController) wrapDelegateProxy(
 			"choiceArg":           inner.Arguments,
 		},
 	}
-	return newExerciseResult(&damlModel.ExerciseCommand{
+	return newExerciseResult(&model.ExerciseCommand{
 		TemplateID: FEATURED_APP_DELEGATE_PROXY_INTERFACE_ID,
 		ContractID: proxyCid,
 		Choice:     choice,
