@@ -1193,13 +1193,14 @@ func (t *tokenStandardController) GetInputHoldingsCidsForAmount(amount decimal.D
 
 	sum := largest.Amount
 	cids := []string{largest.ContractID}
-	for _, h := range sorted {
-		if sum.GreaterThanOrEqual(amount) {
-			break
-		}
-		sum = sum.Add(h.Amount)
-		cids = append(cids, h.ContractID)
+for i := len(sorted) - 1; i >= 0; i-- {
+	if sum.GreaterThanOrEqual(amount) {
+		break
 	}
+	h := sorted[i]
+	sum = sum.Add(h.Amount)
+	cids = append(cids, h.ContractID)
+}
 
 	if sum.LessThan(amount) {
 		return nil, fmt.Errorf("sender doesn't have sufficient funds for this transfer. missing amount: %s", amount.Sub(sum).String())
