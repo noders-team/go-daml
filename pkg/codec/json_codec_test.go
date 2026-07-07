@@ -448,6 +448,28 @@ func TestJsonCodec_Unmarshall_Collections(t *testing.T) {
 	}
 }
 
+func TestJsonCodec_Unmarshall_TypedMap(t *testing.T) {
+	codec := NewJsonCodec()
+
+	type nested struct {
+		Party PARTY `json:"party"`
+		Text  TEXT  `json:"text"`
+	}
+	type record struct {
+		Values map[string]nested `json:"values"`
+	}
+
+	var result record
+	err := codec.Unmarshall([]byte(`{"values":{"leg-1":{"party":"Alice","text":"first"}}}`), &result)
+	require.NoError(t, err)
+	require.Equal(t, map[string]nested{
+		"leg-1": {
+			Party: PARTY("Alice"),
+			Text:  TEXT("first"),
+		},
+	}, result.Values)
+}
+
 func TestJsonCodec_Unmarshall_Records(t *testing.T) {
 	codec := NewJsonCodec()
 

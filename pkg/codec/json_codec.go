@@ -573,6 +573,10 @@ func (codec *JsonCodec) assignValue(jsonValue interface{}, target reflect.Value)
 		return codec.assignSliceValue(jsonValue, target)
 	}
 
+	if target.Kind() == reflect.Map {
+		return codec.assignTypedMapValue(jsonValue, target)
+	}
+
 	if isTuple2(target) {
 		return codec.assignTuple2Value(jsonValue, target)
 	}
@@ -784,6 +788,27 @@ func (codec *JsonCodec) assignMapValue(jsonValue interface{}, target reflect.Val
 		return nil
 	}
 	return fmt.Errorf("expected object for MAP, got %T", jsonValue)
+}
+
+func (codec *JsonCodec) assignTypedMapValue(jsonValue interface{}, target reflect.Value) error {
+	m, ok := jsonValue.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("expected object for map, got %T", jsonValue)
+	}
+	if target.Type().Key().Kind() != reflect.String {
+		return fmt.Errorf("unsupported map key type: %v", target.Type().Key())
+	}
+
+	result := reflect.MakeMapWithSize(target.Type(), len(m))
+	for k, v := range m {
+		elem := reflect.New(target.Type().Elem()).Elem()
+		if err := codec.assignValue(v, elem); err != nil {
+			return fmt.Errorf("failed to assign map key %s: %w", k, err)
+		}
+		result.SetMapIndex(reflect.ValueOf(k).Convert(target.Type().Key()), elem)
+	}
+	target.Set(result)
+	return nil
 }
 
 func (codec *JsonCodec) assignListValue(jsonValue interface{}, target reflect.Value) error {
