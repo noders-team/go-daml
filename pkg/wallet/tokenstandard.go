@@ -723,15 +723,21 @@ func (t *tokenStandardController) CreateAllocationInstruction(
 	inputUtxos []string,
 	requestedAt string,
 ) (*model.CommandRequest, error) {
+	reqAt, err := time.Parse(time.RFC3339Nano, requestedAt)
+	if err != nil {
+		return nil, fmt.Errorf("invalid requestedAt %q: %w", requestedAt, err)
+	}
+
 	cmd := &damlModel.Command{
 		Command: &damlModel.ExerciseCommand{
 			TemplateID: ALLOCATION_FACTORY_INTERFACE_ID,
-			Choice:     "CreateAllocationInstruction",
+			Choice:     "AllocationFactory_Allocate",
 			Arguments: map[string]interface{}{
-				"specification": allocationSpecification,
-				"expectedAdmin": expectedAdmin,
-				"inputs":        inputUtxos,
-				"requestedAt":   requestedAt,
+				"expectedAdmin":    types.PARTY(expectedAdmin),
+				"allocation":       allocationSpecification,
+				"requestedAt":      types.TIMESTAMP(reqAt),
+				"inputHoldingCids": toContractIDs(inputUtxos),
+				"extraArgs":        emptyExtraArgs().ToMap(),
 			},
 		},
 	}
