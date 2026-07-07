@@ -900,17 +900,12 @@ func (t *tokenStandardController) SelfGrantFeatureAppRights(ctx context.Context)
 		return nil, err
 	}
 
-	cmd := &damlModel.Command{
-		Command: &damlModel.ExerciseCommand{
-			TemplateID: amuletRules.TemplateID,
-			ContractID: amuletRules.ContractID,
-			Choice:     "AmuletRules_DevNet_FeatureApp",
-			Arguments: map[string]interface{}{
-				"provider":       string(partyID),
-				"synchronizerId": string(syncID),
-			},
-		},
-	}
+	exercise := gen.AmuletRules{}.AmuletRulesDevNetFeatureApp(amuletRules.ContractID, gen.AmuletRulesDevNetFeatureApp{
+		Provider: types.PARTY(partyID),
+	})
+	exercise.TemplateID = amuletRules.TemplateID
+
+	cmd := &damlModel.Command{Command: exercise}
 
 	disclosed := make([]*damlModel.DisclosedContract, 0, 1)
 	if dc := amuletRules.ToDisclosed(); dc != nil {
