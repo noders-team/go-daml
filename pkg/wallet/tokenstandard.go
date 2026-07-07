@@ -23,10 +23,6 @@ const (
 	ALLOCATION_INSTRUCTION_INTERFACE_ID      = "#splice-api-token-allocation-instruction-v1:Splice.Api.Token.AllocationInstructionV1:AllocationInstruction"
 	ALLOCATION_REQUEST_INTERFACE_ID          = "#splice-api-token-allocation-request-v1:Splice.Api.Token.AllocationRequestV1:AllocationRequest"
 	ALLOCATION_INTERFACE_ID                  = "#splice-api-token-allocation-v1:Splice.Api.Token.AllocationV1:Allocation"
-	HOLDING_INTERFACE_ID                     = "#splice-api-token-holding-v1:Splice.Api.Token.HoldingV1:Holding"
-	METADATA_INTERFACE_ID                    = "#splice-api-token-metadata-v1:Splice.Api.Token.MetadataV1:AnyContract"
-	TRANSFER_FACTORY_INTERFACE_ID            = "#splice-api-token-transfer-instruction-v1:Splice.Api.Token.TransferInstructionV1:TransferFactory"
-	TRANSFER_INSTRUCTION_INTERFACE_ID        = "#splice-api-token-transfer-instruction-v1:Splice.Api.Token.TransferInstructionV1:TransferInstruction"
 	FEATURED_APP_DELEGATE_PROXY_INTERFACE_ID = "#splice-util-featured-app-proxies:Splice.Util.FeaturedApp.DelegateProxy:DelegateProxy"
 )
 
@@ -63,16 +59,17 @@ type TokenStandardController interface {
 	CreateMergeDelegationProposal(ctx context.Context, delegate string, metadata types.TEXTMAP) (*model.Command, error)
 	LookupMergeDelegationProposal(ctx context.Context, ownerParty string) ([]client.Contract[gen.MergeDelegationProposal], error)
 	ApproveMergeDelegationProposal(ctx context.Context, ownerParty string) (*model.CommandRequest, error)
+	SetPartyID(partyID string)
+	SetSynchronizerID(synchronizerID string)
 }
 
 type tokenStandardController struct {
-	damlClient                 *client.DamlBindingClient
-	scanProxy                  *client.ScanProxyClient
-	userID                     string
-	partyID                    atomic.Value
-	synchronizerID             atomic.Value
-	transferFactoryRegistryUrl atomic.Value
-	logger                     zerolog.Logger
+	damlClient     *client.DamlBindingClient
+	scanProxy      *client.ScanProxyClient
+	userID         string
+	partyID        atomic.Value
+	synchronizerID atomic.Value
+	logger         zerolog.Logger
 }
 
 func NewTokenStandardController(userID string, damlClient *client.DamlBindingClient, sp *client.ScanProxyClient) (TokenStandardController, error) {
@@ -109,18 +106,6 @@ func (t *tokenStandardController) GetSynchronizerID() (string, error) {
 	v := t.synchronizerID.Load()
 	if v == nil {
 		return "", fmt.Errorf("synchronizerID not set")
-	}
-	return v.(string), nil
-}
-
-func (t *tokenStandardController) SetTransferFactoryRegistryUrl(url string) {
-	t.transferFactoryRegistryUrl.Store(url)
-}
-
-func (t *tokenStandardController) GetTransferFactoryRegistryUrl() (string, error) {
-	v := t.transferFactoryRegistryUrl.Load()
-	if v == nil {
-		return "", fmt.Errorf("transferFactoryRegistryUrl not set")
 	}
 	return v.(string), nil
 }
@@ -313,12 +298,13 @@ func (t *tokenStandardController) ListHoldingUtxos(ctx context.Context, includeL
 			continue
 		}
 		result = append(result, &model.HoldingUTXO{
-			ContractID:      c.ContractID,
-			Amount:          t.numericToDecimal(c.Data.Amount),
-			InstrumentID:    string(c.Data.InstrumentId.Id),
-			InstrumentAdmin: string(c.Data.InstrumentId.Admin),
-			Owner:           string(c.Data.Owner),
-			Lock:            t.lockToMap(c.Data.Lock),
+			ContractID:       c.ContractID,
+			Amount:           t.numericToDecimal(c.Data.Amount),
+			InstrumentID:     string(c.Data.InstrumentId.Id),
+			InstrumentAdmin:  string(c.Data.InstrumentId.Admin),
+			Owner:            string(c.Data.Owner),
+			Lock:             t.lockToMap(c.Data.Lock),
+			CreatedEventBlob: c.CreatedEventBlob,
 		})
 		if limit > 0 && len(result) >= limit {
 			break
@@ -527,7 +513,7 @@ func (t *tokenStandardController) ExerciseTransferInstructionChoice(
 	exerciseCmd := &model.Command{
 		Command: &model.ExerciseCommand{
 			ContractID: transferInstructionCid,
-			TemplateID: TRANSFER_INSTRUCTION_INTERFACE_ID,
+			TemplateID: gen.ITransferInstructionInterfaceID(nil),
 			Choice:     choice,
 			Arguments:  map[string]interface{}{},
 		},
@@ -1506,56 +1492,6 @@ func (t *tokenStandardController) CreateStandardTransfer(
 	}
 
 	return t.CreateTransferFromContext(factoryID, choiceArgs, choiceContext)
-}
-
-// CreateStandardAllocationInstruction mirrors AllocationService.createAllocationInstruction.
-func (t *tokenStandardController) CreateStandardAllocationInstruction(
-	ctx context.Context,
-	spec gen.AllocationSpecification,
-	expectedAdmin string,
-	inputUtxos []string,
-	requestedAt *time.Time,
-	factoryID string,
-	choiceContext *model.ChoiceContext,
-) (*model.CommandRequest, error) {
-	choiceArgs, err := t.BuildAllocationFactoryChoiceArgs(ctx, spec, expectedAdmin, inputUtxos, requestedAt)
-	if err != nil {
-		return nil, err
-	}
-	if choiceContext != nil {
-		return t.CreateAllocationInstructionFromContext(factoryID, choiceArgs, choiceContext)
-	}
-	return nil, t.registryError("allocation-instruction/v1/allocation-factory")
-}
-
-// CreateExecuteTransferAllocation mirrors AllocationService.createExecuteTransferAllocation.
-func (t *tokenStandardController) CreateExecuteTransferAllocation(allocationCid string, choiceContext *model.ChoiceContext) (*model.CommandRequest, error) {
-	if choiceContext != nil {
-		return t.CreateExecuteTransferAllocationFromContext(allocationCid, choiceContext), nil
-	}
-	return nil, t.registryError("allocations/v1/{id}/choice-contexts/execute-transfer")
-}
-
-// CreateWithdrawAllocation mirrors AllocationService.createWithdrawAllocation.
-func (t *tokenStandardController) CreateWithdrawAllocation(allocationCid string, choiceContext *model.ChoiceContext) (*model.CommandRequest, error) {
-	if choiceContext != nil {
-		return t.CreateWithdrawAllocationFromContext(allocationCid, choiceContext), nil
-	}
-	return nil, t.registryError("allocations/v1/{id}/choice-contexts/withdraw")
-}
-
-// CreateCancelAllocation mirrors AllocationService.createCancelAllocation.
-func (t *tokenStandardController) CreateCancelAllocation(allocationCid string, choiceContext *model.ChoiceContext) (*model.CommandRequest, error) {
-	if choiceContext != nil {
-		return t.CreateCancelAllocationFromContext(allocationCid, choiceContext), nil
-	}
-	return nil, t.registryError("allocations/v1/{id}/choice-contexts/cancel")
-}
-
-func (t *tokenStandardController) registryError(path string) error {
-	url, _ := t.GetTransferFactoryRegistryUrl()
-	t.logger.Warn().Str("registryUrl", url).Str("path", path).Msg("token-standard registry HTTP call not available via ledger client")
-	return fmt.Errorf("registry API call (%s) not implemented - requires HTTP client", path)
 }
 
 // ---------------------------------------------------------------------------
