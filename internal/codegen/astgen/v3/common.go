@@ -21,6 +21,8 @@ const (
 	RawTypeEnum       = "Enum"
 	RawTypeContractID = "CONTRACT_ID"
 	RawTypeList       = "LIST"
+	RawTypeNumeric    = "NUMERIC"
+	RawTypeBigNumeric = "BIGNUMERIC"
 )
 
 type codeGenAst struct {
@@ -536,6 +538,10 @@ func (c *codeGenAst) handleTypeApp(pkg *daml.Package, typeApp *daml.Type_TApp) s
 		return "TEXTMAP"
 	case "GENMAP":
 		return "GENMAP"
+	case RawTypeNumeric:
+		return RawTypeNumeric
+	case RawTypeBigNumeric:
+		return RawTypeBigNumeric
 	default:
 		return rhsType
 	}
