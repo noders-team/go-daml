@@ -155,7 +155,7 @@ func (s *ScanProxyClient) do(ctx context.Context, method, path string, body, res
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		bodyBytes, _ := io.ReadAll(resp.Body)
+		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 		s.logger.Error().Int("status", resp.StatusCode).Str("body", string(bodyBytes)).Msg("scan-proxy error response")
 		return fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(bodyBytes))
 	}
