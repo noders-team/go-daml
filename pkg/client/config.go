@@ -10,6 +10,8 @@ type Config struct {
 	AdminAddress    string
 	TLS             *TLSConfig
 	Auth            *AuthConfig
+	AdminTLS        *TLSConfig
+	AdminAuth       *AuthConfig
 	GRPCDialOptions []grpc.DialOption
 }
 
@@ -17,6 +19,8 @@ type TLSConfig struct {
 	CertFile           string
 	ServerName         string
 	InsecureSkipVerify bool
+	ClientCertFile     string
+	ClientKeyFile      string
 }
 
 type AuthConfig struct {
@@ -49,6 +53,21 @@ func WithTokenProvider(provider auth.TokenProvider) ConfigOption {
 			c.Auth = &AuthConfig{}
 		}
 		c.Auth.TokenProvider = provider
+	}
+}
+
+func WithAdminTLS(tls *TLSConfig) ConfigOption {
+	return func(c *Config) {
+		c.AdminTLS = tls
+	}
+}
+
+func WithAdminTokenProvider(provider auth.TokenProvider) ConfigOption {
+	return func(c *Config) {
+		if c.AdminAuth == nil {
+			c.AdminAuth = &AuthConfig{}
+		}
+		c.AdminAuth.TokenProvider = provider
 	}
 }
 

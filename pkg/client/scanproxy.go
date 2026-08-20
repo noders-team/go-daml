@@ -19,6 +19,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const maxScanProxyResponseBytes = 10 << 20
+
 // ScanProxyClient is an HTTP client for the Splice scan-proxy API. It exposes
 // DSO-owned contracts (AmuletRules, open mining rounds, transfer pre-approvals,
 // featured apps, ANS entries) that are not directly readable from a wallet
@@ -117,8 +119,12 @@ func NewScanProxyClient(baseURL string, provider auth.TokenProvider) *ScanProxyC
 	logger := log.Logger.With().Str("component", "scan-proxy-client").Logger()
 
 	return &ScanProxyClient{
-		baseURL:       baseURL,
-		httpClient:    &http.Client{Timeout: 30 * time.Second},
+		baseURL: baseURL,
+		httpClient: &http.Client{
+			Timeout:       30 * time.Second,
+			CheckRedirect: auth.DenyPrivateRedirects,
+			Transport:     &http.Transport{DisableCompression: true},
+		},
 		tokenProvider: provider,
 		logger:        logger,
 	}
@@ -161,7 +167,7 @@ func (s *ScanProxyClient) do(ctx context.Context, method, path string, body, res
 	}
 
 	if result != nil {
-		if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
+		if err := json.NewDecoder(io.LimitReader(resp.Body, maxScanProxyResponseBytes)).Decode(result); err != nil {
 			return fmt.Errorf("failed to decode response: %w", err)
 		}
 	}
@@ -180,7 +186,7 @@ func (s *ScanProxyClient) GetTransferInstructionChoiceContext(ctx context.Contex
 	path := fmt.Sprintf(
 		"/v0/scan-proxy/registry/transfer-instruction/v1/%s/choice-contexts/%s",
 		url.PathEscape(transferInstructionID),
-		choicePath,
+		url.PathEscape(choicePath),
 	)
 	var resp struct {
 		ChoiceContextData struct {
@@ -443,7 +449,7 @@ func (s *ScanProxyClient) GetActiveOpenMiningRound(ctx context.Context) (*ScanCo
 // GetTransferPreApprovalByParty returns the transfer pre-approval for a receiver
 // party, or nil if none exists.
 func (s *ScanProxyClient) GetTransferPreApprovalByParty(ctx context.Context, party string) (*ScanContract, error) {
-	path := fmt.Sprintf("/v0/scan-proxy/transfer-preapprovals/by-party/%s", party)
+	path := fmt.Sprintf("/v0/scan-proxy/transfer-preapprovals/by-party/%s", url.PathEscape(party))
 	var resp TransferPreapprovalResponse
 	if err := s.get(ctx, path, &resp); err != nil {
 		return nil, fmt.Errorf("failed to get transfer preapproval: %w", err)
@@ -461,7 +467,7 @@ func (s *ScanProxyClient) GetTransferPreApprovalByParty(ctx context.Context, par
 // GetFeaturedAppByProvider returns the featured-app right for a provider party,
 // or nil if none exists.
 func (s *ScanProxyClient) GetFeaturedAppByProvider(ctx context.Context, providerParty string) (*ScanContract, error) {
-	path := fmt.Sprintf("/v0/scan-proxy/featured-apps/%s", providerParty)
+	path := fmt.Sprintf("/v0/scan-proxy/featured-apps/%s", url.PathEscape(providerParty))
 	var resp FeaturedAppResponse
 	if err := s.get(ctx, path, &resp); err != nil {
 		return nil, fmt.Errorf("failed to get featured app: %w", err)

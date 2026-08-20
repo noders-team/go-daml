@@ -162,7 +162,7 @@ func TestCodegenIntegration(t *testing.T) {
 	require.NotEmpty(t, createdIDs, "should have created a contract")
 
 	query := client.NewContractQuery[MappyContract](cl)
-	contracts, err := query.FindContractsByTemplate(ctx, party, mappyContract.GetTemplateID())
+	contracts, err := query.FindContractsByTemplate(ctx, party, mappyContract.GetTemplateID(), 0)
 	require.NoError(t, err, "FindContractsByTemplate should succeed")
 	require.NotEmpty(t, contracts, "should find at least one contract")
 
@@ -394,7 +394,7 @@ func TestCodegenIntegrationAllFieldsContract(t *testing.T) {
 	require.NotEmpty(t, createdIDs, "should have created a contract")
 
 	query := client.NewContractQuery[OneOfEverything](cl)
-	contracts, err := query.FindContractsByTemplate(ctx, party, mappyContract.GetTemplateID())
+	contracts, err := query.FindContractsByTemplate(ctx, party, mappyContract.GetTemplateID(), 0)
 	require.NoError(t, err, "FindContractsByTemplate should succeed")
 	require.NotEmpty(t, contracts, "should find at least one contract")
 

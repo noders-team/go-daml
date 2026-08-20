@@ -1,15 +1,19 @@
 package codec
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/big"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/noders-team/go-daml/pkg/types"
 )
+
+const maxDecodeDepth = 200
 
 // JsonCodec follows the transcode JsonCodec pattern for encoding DAML values to JSON
 type JsonCodec struct {
@@ -72,8 +76,11 @@ func (codec *JsonCodec) Marshall(value interface{}) ([]byte, error) {
 
 // Unmarshall converts JSON bytes back to a DAML structure following transcode patterns
 func (codec *JsonCodec) Unmarshall(data []byte, target interface{}) error {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber()
+
 	var intermediate interface{}
-	if err := json.Unmarshal(data, &intermediate); err != nil {
+	if err := decoder.Decode(&intermediate); err != nil {
 		return fmt.Errorf("failed to unmarshal JSON: %w", err)
 	}
 
@@ -211,10 +218,11 @@ func (codec *JsonCodec) bigIntToDynamicValue(bi *big.Int) interface{} {
 	if bi == nil {
 		return nil
 	}
+	rat := new(big.Rat).SetFrac(bi, numericScale)
 	if codec.EncodeNumericAsString {
-		return bi.String()
+		return rat.FloatString(10)
 	}
-	f, _ := new(big.Float).SetInt(bi).Float64()
+	f, _ := rat.Float64()
 	return f
 }
 
@@ -466,11 +474,15 @@ func (codec *JsonCodec) fromDynamicValue(value interface{}, target interface{}) 
 	}
 
 	elem := rv.Elem()
-	return codec.assignValue(value, elem)
+	return codec.assignValue(value, elem, 0)
 }
 
 // assignValue assigns a JSON value to a reflect.Value following DAML type patterns
-func (codec *JsonCodec) assignValue(jsonValue interface{}, target reflect.Value) error {
+func (codec *JsonCodec) assignValue(jsonValue interface{}, target reflect.Value, depth int) error {
+	if depth > maxDecodeDepth {
+		return fmt.Errorf("exceeded max decode depth of %d", maxDecodeDepth)
+	}
+
 	if jsonValue == nil {
 		if target.Kind() == reflect.Ptr {
 			target.Set(reflect.Zero(target.Type()))
@@ -562,7 +574,7 @@ func (codec *JsonCodec) assignValue(jsonValue interface{}, target reflect.Value)
 		}
 
 		newElem := reflect.New(target.Type().Elem())
-		if err := codec.assignValue(jsonValue, newElem.Elem()); err != nil {
+		if err := codec.assignValue(jsonValue, newElem.Elem(), depth+1); err != nil {
 			return err
 		}
 		target.Set(newElem)
@@ -570,22 +582,22 @@ func (codec *JsonCodec) assignValue(jsonValue interface{}, target reflect.Value)
 	}
 
 	if target.Kind() == reflect.Slice {
-		return codec.assignSliceValue(jsonValue, target)
+		return codec.assignSliceValue(jsonValue, target, depth+1)
 	}
 
 	if target.Kind() == reflect.Map {
-		return codec.assignTypedMapValue(jsonValue, target)
+		return codec.assignTypedMapValue(jsonValue, target, depth+1)
 	}
 
 	if isTuple2(target) {
-		return codec.assignTuple2Value(jsonValue, target)
+		return codec.assignTuple2Value(jsonValue, target, depth+1)
 	}
 	if isTuple3(target) {
-		return codec.assignTuple3Value(jsonValue, target)
+		return codec.assignTuple3Value(jsonValue, target, depth+1)
 	}
 
 	if target.Kind() == reflect.Struct {
-		return codec.assignStructValue(jsonValue, target)
+		return codec.assignStructValue(jsonValue, target, depth+1)
 	}
 
 	if target.Type().Implements(reflect.TypeOf((*types.VARIANT)(nil)).Elem()) {
@@ -635,6 +647,12 @@ func (codec *JsonCodec) assignValue(jsonValue interface{}, target reflect.Value)
 // Type-specific assignment methods
 func (codec *JsonCodec) assignInt64Value(jsonValue interface{}, target reflect.Value) error {
 	switch v := jsonValue.(type) {
+	case json.Number:
+		if i, err := v.Int64(); err == nil {
+			target.Set(reflect.ValueOf(types.INT64(i)))
+			return nil
+		}
+		return fmt.Errorf("invalid number format for INT64: %s", v)
 	case string:
 		if i, err := parseIntFromString(v); err == nil {
 			target.Set(reflect.ValueOf(types.INT64(i)))
@@ -664,37 +682,44 @@ func (codec *JsonCodec) assignDecimalValue(jsonValue interface{}, target reflect
 	})
 }
 
+var numericScale = big.NewInt(10000000000)
+
+func scaleDecimalString(s string) (*big.Int, bool) {
+	rat, ok := new(big.Rat).SetString(s)
+	if !ok {
+		return nil, false
+	}
+	scaledInt := new(big.Int).Mul(rat.Num(), numericScale)
+	scaledInt.Div(scaledInt, rat.Denom())
+	return scaledInt, true
+}
+
 func (codec *JsonCodec) assignBigIntValue(jsonValue interface{}, target reflect.Value, typeName string, converter func(*big.Int) reflect.Value) error {
 	switch v := jsonValue.(type) {
-	case string:
-		if bi, ok := new(big.Int).SetString(v, 10); ok {
+	case json.Number:
+		if bi, ok := scaleDecimalString(v.String()); ok {
 			target.Set(converter(bi))
 			return nil
 		}
-		if rat, ok := new(big.Rat).SetString(v); ok {
-			scaledInt := new(big.Int)
-			scaledInt.Mul(rat.Num(), big.NewInt(10000000000))
-			scaledInt.Div(scaledInt, rat.Denom())
-			target.Set(converter(scaledInt))
+		return fmt.Errorf("invalid number format for %s: %s", typeName, v)
+	case string:
+		if bi, ok := scaleDecimalString(v); ok {
+			target.Set(converter(bi))
 			return nil
 		}
 		return fmt.Errorf("invalid string format for %s: %s", typeName, v)
 	case float64:
-		if v == float64(int64(v)) {
-			bi := big.NewInt(int64(v))
+		if bi, ok := scaleDecimalString(strconv.FormatFloat(v, 'f', -1, 64)); ok {
 			target.Set(converter(bi))
 			return nil
 		}
-		rat := new(big.Rat).SetFloat64(v)
-		scaledInt := new(big.Int)
-		scaledInt.Mul(rat.Num(), big.NewInt(10000000000))
-		scaledInt.Div(scaledInt, rat.Denom())
-		target.Set(converter(scaledInt))
-		return nil
+		return fmt.Errorf("invalid float value for %s: %v", typeName, v)
 	case int64:
-		bi := big.NewInt(v)
-		target.Set(converter(bi))
-		return nil
+		if bi, ok := scaleDecimalString(strconv.FormatInt(v, 10)); ok {
+			target.Set(converter(bi))
+			return nil
+		}
+		return fmt.Errorf("invalid int value for %s: %v", typeName, v)
 	default:
 		return fmt.Errorf("expected string or number for %s, got %T", typeName, jsonValue)
 	}
@@ -702,6 +727,14 @@ func (codec *JsonCodec) assignBigIntValue(jsonValue interface{}, target reflect.
 
 func (codec *JsonCodec) assignTimestampValue(jsonValue interface{}, target reflect.Value) error {
 	switch v := jsonValue.(type) {
+	case json.Number:
+		i, err := v.Int64()
+		if err != nil {
+			return fmt.Errorf("invalid number format for TIMESTAMP: %s", v)
+		}
+		t := time.Unix(i/1000000, (i%1000000)*1000)
+		target.Set(reflect.ValueOf(types.TIMESTAMP(t)))
+		return nil
 	case string:
 		if t, err := time.Parse("2006-01-02T15:04:05.000000Z", v); err == nil {
 			target.Set(reflect.ValueOf(types.TIMESTAMP(t)))
@@ -727,6 +760,14 @@ func (codec *JsonCodec) assignTimestampValue(jsonValue interface{}, target refle
 
 func (codec *JsonCodec) assignDateValue(jsonValue interface{}, target reflect.Value) error {
 	switch v := jsonValue.(type) {
+	case json.Number:
+		i, err := v.Int64()
+		if err != nil {
+			return fmt.Errorf("invalid number format for DATE: %s", v)
+		}
+		t := time.Unix(i*86400, 0).UTC()
+		target.Set(reflect.ValueOf(types.DATE(t)))
+		return nil
 	case string:
 		if t, err := time.Parse("2006-01-02", v); err == nil {
 			target.Set(reflect.ValueOf(types.DATE(t)))
@@ -790,7 +831,7 @@ func (codec *JsonCodec) assignMapValue(jsonValue interface{}, target reflect.Val
 	return fmt.Errorf("expected object for MAP, got %T", jsonValue)
 }
 
-func (codec *JsonCodec) assignTypedMapValue(jsonValue interface{}, target reflect.Value) error {
+func (codec *JsonCodec) assignTypedMapValue(jsonValue interface{}, target reflect.Value, depth int) error {
 	m, ok := jsonValue.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("expected object for map, got %T", jsonValue)
@@ -802,7 +843,7 @@ func (codec *JsonCodec) assignTypedMapValue(jsonValue interface{}, target reflec
 	result := reflect.MakeMapWithSize(target.Type(), len(m))
 	for k, v := range m {
 		elem := reflect.New(target.Type().Elem()).Elem()
-		if err := codec.assignValue(v, elem); err != nil {
+		if err := codec.assignValue(v, elem, depth); err != nil {
 			return fmt.Errorf("failed to assign map key %s: %w", k, err)
 		}
 		result.SetMapIndex(reflect.ValueOf(k).Convert(target.Type().Key()), elem)
@@ -829,6 +870,13 @@ func (codec *JsonCodec) assignListValue(jsonValue interface{}, target reflect.Va
 
 func (codec *JsonCodec) assignReltimeValue(jsonValue interface{}, target reflect.Value) error {
 	switch v := jsonValue.(type) {
+	case json.Number:
+		i, err := v.Int64()
+		if err != nil {
+			return fmt.Errorf("invalid number format for RELTIME: %s", v)
+		}
+		target.Set(reflect.ValueOf(types.RELTIME(time.Duration(i) * time.Microsecond)))
+		return nil
 	case string:
 		if i, err := parseIntFromString(v); err == nil {
 			target.Set(reflect.ValueOf(types.RELTIME(time.Duration(i) * time.Microsecond)))
@@ -864,17 +912,17 @@ func (codec *JsonCodec) assignSetValue(jsonValue interface{}, target reflect.Val
 	return fmt.Errorf("expected array for SET, got %T", jsonValue)
 }
 
-func (codec *JsonCodec) assignTuple2Value(jsonValue interface{}, target reflect.Value) error {
+func (codec *JsonCodec) assignTuple2Value(jsonValue interface{}, target reflect.Value, depth int) error {
 	if m, ok := jsonValue.(map[string]interface{}); ok {
 		first, hasFirst := m["_1"]
 		second, hasSecond := m["_2"]
 		if !hasFirst || !hasSecond {
 			return fmt.Errorf("TUPLE2 missing _1 or _2 fields")
 		}
-		if err := codec.assignValue(first, target.Field(0)); err != nil {
+		if err := codec.assignValue(first, target.Field(0), depth); err != nil {
 			return fmt.Errorf("failed to assign TUPLE2 first field: %w", err)
 		}
-		if err := codec.assignValue(second, target.Field(1)); err != nil {
+		if err := codec.assignValue(second, target.Field(1), depth); err != nil {
 			return fmt.Errorf("failed to assign TUPLE2 second field: %w", err)
 		}
 		return nil
@@ -882,7 +930,7 @@ func (codec *JsonCodec) assignTuple2Value(jsonValue interface{}, target reflect.
 	return fmt.Errorf("expected object for TUPLE2, got %T", jsonValue)
 }
 
-func (codec *JsonCodec) assignTuple3Value(jsonValue interface{}, target reflect.Value) error {
+func (codec *JsonCodec) assignTuple3Value(jsonValue interface{}, target reflect.Value, depth int) error {
 	if m, ok := jsonValue.(map[string]interface{}); ok {
 		first, hasFirst := m["_1"]
 		second, hasSecond := m["_2"]
@@ -890,13 +938,13 @@ func (codec *JsonCodec) assignTuple3Value(jsonValue interface{}, target reflect.
 		if !hasFirst || !hasSecond || !hasThird {
 			return fmt.Errorf("TUPLE3 missing _1, _2, or _3 fields")
 		}
-		if err := codec.assignValue(first, target.Field(0)); err != nil {
+		if err := codec.assignValue(first, target.Field(0), depth); err != nil {
 			return fmt.Errorf("failed to assign TUPLE3 first field: %w", err)
 		}
-		if err := codec.assignValue(second, target.Field(1)); err != nil {
+		if err := codec.assignValue(second, target.Field(1), depth); err != nil {
 			return fmt.Errorf("failed to assign TUPLE3 second field: %w", err)
 		}
-		if err := codec.assignValue(third, target.Field(2)); err != nil {
+		if err := codec.assignValue(third, target.Field(2), depth); err != nil {
 			return fmt.Errorf("failed to assign TUPLE3 third field: %w", err)
 		}
 		return nil
@@ -904,13 +952,13 @@ func (codec *JsonCodec) assignTuple3Value(jsonValue interface{}, target reflect.
 	return fmt.Errorf("expected object for TUPLE3, got %T", jsonValue)
 }
 
-func (codec *JsonCodec) assignSliceValue(jsonValue interface{}, target reflect.Value) error {
+func (codec *JsonCodec) assignSliceValue(jsonValue interface{}, target reflect.Value, depth int) error {
 	if arr, ok := jsonValue.([]interface{}); ok {
 		slice := reflect.MakeSlice(target.Type(), len(arr), len(arr))
 
 		for i, v := range arr {
 			elem := slice.Index(i)
-			if err := codec.assignValue(v, elem); err != nil {
+			if err := codec.assignValue(v, elem, depth); err != nil {
 				return fmt.Errorf("failed to assign slice element %d: %w", i, err)
 			}
 		}
@@ -921,7 +969,7 @@ func (codec *JsonCodec) assignSliceValue(jsonValue interface{}, target reflect.V
 	return fmt.Errorf("expected array for slice, got %T", jsonValue)
 }
 
-func (codec *JsonCodec) assignStructValue(jsonValue interface{}, target reflect.Value) error {
+func (codec *JsonCodec) assignStructValue(jsonValue interface{}, target reflect.Value, depth int) error {
 	if m, ok := jsonValue.(map[string]interface{}); ok {
 		targetType := target.Type()
 
@@ -945,7 +993,7 @@ func (codec *JsonCodec) assignStructValue(jsonValue interface{}, target reflect.
 			}
 
 			if jsonVal, exists := m[fieldName]; exists {
-				if err := codec.assignValue(jsonVal, field); err != nil {
+				if err := codec.assignValue(jsonVal, field, depth); err != nil {
 					return fmt.Errorf("failed to assign field %s: %w", fieldName, err)
 				}
 			}
@@ -999,6 +1047,12 @@ func (codec *JsonCodec) assignEnumValue(jsonValue interface{}, target reflect.Va
 
 func (codec *JsonCodec) assignIntValue(jsonValue interface{}, target reflect.Value) error {
 	switch v := jsonValue.(type) {
+	case json.Number:
+		if i, err := v.Int64(); err == nil {
+			target.SetInt(i)
+			return nil
+		}
+		return fmt.Errorf("invalid number format for int: %s", v)
 	case string:
 		if i, err := parseIntFromString(v); err == nil {
 			target.SetInt(i)
@@ -1018,6 +1072,12 @@ func (codec *JsonCodec) assignIntValue(jsonValue interface{}, target reflect.Val
 
 func (codec *JsonCodec) assignUintValue(jsonValue interface{}, target reflect.Value) error {
 	switch v := jsonValue.(type) {
+	case json.Number:
+		if i, err := v.Int64(); err == nil && i >= 0 {
+			target.SetUint(uint64(i))
+			return nil
+		}
+		return fmt.Errorf("invalid number format for uint: %s", v)
 	case string:
 		if i, err := parseIntFromString(v); err == nil && i >= 0 {
 			target.SetUint(uint64(i))
@@ -1043,6 +1103,12 @@ func (codec *JsonCodec) assignUintValue(jsonValue interface{}, target reflect.Va
 
 func (codec *JsonCodec) assignFloatValue(jsonValue interface{}, target reflect.Value) error {
 	switch v := jsonValue.(type) {
+	case json.Number:
+		if f, err := v.Float64(); err == nil {
+			target.SetFloat(f)
+			return nil
+		}
+		return fmt.Errorf("invalid number format for float: %s", v)
 	case string:
 		if f, err := parseFloatFromString(v); err == nil {
 			target.SetFloat(f)

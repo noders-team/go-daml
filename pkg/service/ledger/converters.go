@@ -356,8 +356,18 @@ func convertBigIntToNumeric(i *big.Int, scale int) *big.Rat {
 	return new(big.Rat).SetFrac(i, den)
 }
 
+const maxProtoValueDepth = 200
+
 func valueFromProto(pb *v2.Value) interface{} {
+	return valueFromProtoAt(pb, 0)
+}
+
+func valueFromProtoAt(pb *v2.Value, depth int) interface{} {
 	if pb == nil {
+		return nil
+	}
+	if depth > maxProtoValueDepth {
+		log.Warn().Msgf("valueFromProto: exceeded max decode depth of %d, truncating", maxProtoValueDepth)
 		return nil
 	}
 
@@ -382,13 +392,13 @@ func valueFromProto(pb *v2.Value) interface{} {
 		return parseTimestampValue(v.Timestamp)
 	case *v2.Value_Optional:
 		if v.Optional.Value != nil {
-			return valueFromProto(v.Optional.Value)
+			return valueFromProtoAt(v.Optional.Value, depth+1)
 		}
 		return nil
 	case *v2.Value_List:
 		result := make([]interface{}, len(v.List.Elements))
 		for i, elem := range v.List.Elements {
-			result[i] = valueFromProto(elem)
+			result[i] = valueFromProtoAt(elem, depth+1)
 		}
 		return result
 	case *v2.Value_Record:
@@ -397,7 +407,7 @@ func valueFromProto(pb *v2.Value) interface{} {
 		}
 		record := make(map[string]interface{})
 		for _, field := range v.Record.Fields {
-			record[field.Label] = valueFromProto(field.Value)
+			record[field.Label] = valueFromProtoAt(field.Value, depth+1)
 		}
 		return record
 	case *v2.Value_TextMap:
@@ -406,7 +416,7 @@ func valueFromProto(pb *v2.Value) interface{} {
 		}
 		result := make(map[string]interface{})
 		for _, entry := range v.TextMap.Entries {
-			result[entry.Key] = valueFromProto(entry.Value)
+			result[entry.Key] = valueFromProtoAt(entry.Value, depth+1)
 		}
 		return result
 	case *v2.Value_Enum:
@@ -418,7 +428,7 @@ func valueFromProto(pb *v2.Value) interface{} {
 		if v.Variant != nil {
 			return map[string]interface{}{
 				"tag":   v.Variant.Constructor,
-				"value": valueFromProto(v.Variant.Value),
+				"value": valueFromProtoAt(v.Variant.Value, depth+1),
 			}
 		}
 		return nil

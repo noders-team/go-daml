@@ -43,12 +43,12 @@ func TestJsonCodec_Marshall_BasicTypes(t *testing.T) {
 		{
 			name:     "NUMERIC as string (default)",
 			input:    NUMERIC(big.NewInt(123456789)),
-			expected: `"123456789"`,
+			expected: `"0.0123456789"`,
 		},
 		{
 			name:     "DECIMAL as string (default)",
 			input:    DECIMAL(big.NewInt(987654321)),
-			expected: `"987654321"`,
+			expected: `"0.0987654321"`,
 		},
 		{
 			name:     "TIMESTAMP as ISO string",
@@ -97,7 +97,7 @@ func TestJsonCodec_Marshall_NumericAsNumber(t *testing.T) {
 		{
 			name:     "NUMERIC as number",
 			input:    NUMERIC(big.NewInt(123)),
-			expected: `123`,
+			expected: `0.0000000123`,
 		},
 	}
 
@@ -177,7 +177,7 @@ func TestJsonCodec_Marshall_Records(t *testing.T) {
 	assert.Equal(t, "Alice", parsed["name"])
 	assert.Equal(t, "30", parsed["age"]) // INT64 as string
 	assert.Equal(t, true, parsed["active"])
-	assert.Equal(t, "1000", parsed["balance"]) // NUMERIC as string
+	assert.Equal(t, "0.0000001000", parsed["balance"]) // NUMERIC as string
 	assert.Equal(t, "present", parsed["optional"])
 }
 
@@ -202,7 +202,7 @@ func TestJsonCodec_Marshall_RecordWithNilOptional(t *testing.T) {
 	assert.Equal(t, "Bob", parsed["name"])
 	assert.Equal(t, "25", parsed["age"])
 	assert.Equal(t, false, parsed["active"])
-	assert.Equal(t, "500", parsed["balance"])
+	assert.Equal(t, "0.0000000500", parsed["balance"])
 	assert.Nil(t, parsed["optional"]) // nil optional included
 }
 
@@ -227,7 +227,7 @@ func TestJsonCodec_Marshall_ExcludeNullValues(t *testing.T) {
 	assert.Equal(t, "Charlie", parsed["name"])
 	assert.Equal(t, "35", parsed["age"])
 	assert.Equal(t, true, parsed["active"])
-	assert.Equal(t, "750", parsed["balance"])
+	assert.Equal(t, "0.0000000750", parsed["balance"])
 
 	_, exists := parsed["optional"]
 	assert.False(t, exists)
@@ -305,7 +305,7 @@ func TestJsonCodec_Marshall_ComplexNested(t *testing.T) {
 	assert.Equal(t, "Nested", config["name"])
 	assert.Equal(t, "40", config["age"])
 	assert.Equal(t, true, config["active"])
-	assert.Equal(t, "2000", config["balance"])
+	assert.Equal(t, "0.0000002000", config["balance"])
 	assert.Equal(t, "nested", config["optional"])
 }
 
@@ -354,13 +354,13 @@ func TestJsonCodec_Unmarshall_BasicTypes(t *testing.T) {
 			name:     "NUMERIC from string",
 			json:     `"123456789"`,
 			target:   new(NUMERIC),
-			expected: NUMERIC(big.NewInt(123456789)),
+			expected: NUMERIC(big.NewInt(1234567890000000000)),
 		},
 		{
 			name:     "NUMERIC from number",
 			json:     `123`,
 			target:   new(NUMERIC),
-			expected: NUMERIC(big.NewInt(123)),
+			expected: NUMERIC(big.NewInt(1230000000000)),
 		},
 		{
 			name:     "TIMESTAMP from ISO string",
@@ -488,7 +488,7 @@ func TestJsonCodec_Unmarshall_Records(t *testing.T) {
 	assert.Equal(t, TEXT("Alice"), result.Name)
 	assert.Equal(t, INT64(30), result.Age)
 	assert.Equal(t, BOOL(true), result.Active)
-	assert.Equal(t, NUMERIC(big.NewInt(1000)), result.Balance)
+	assert.Equal(t, NUMERIC(big.NewInt(10000000000000)), result.Balance)
 	require.NotNil(t, result.Optional)
 	assert.Equal(t, TEXT("present"), *result.Optional)
 }
@@ -510,7 +510,7 @@ func TestJsonCodec_Unmarshall_RecordWithNilOptional(t *testing.T) {
 	assert.Equal(t, TEXT("Bob"), result.Name)
 	assert.Equal(t, INT64(25), result.Age)
 	assert.Equal(t, BOOL(false), result.Active)
-	assert.Equal(t, NUMERIC(big.NewInt(500)), result.Balance)
+	assert.Equal(t, NUMERIC(big.NewInt(5000000000000)), result.Balance)
 	assert.Nil(t, result.Optional)
 }
 

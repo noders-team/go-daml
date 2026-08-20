@@ -3,7 +3,9 @@ package client
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"os"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -23,7 +25,10 @@ func NewClient(config *Config) *Client {
 }
 
 func (c *Client) Connect(ctx context.Context) (*Connection, error) {
-	opts := c.buildDialOptions()
+	opts, err := c.buildDialOptions(c.config.TLS, c.config.Auth)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build ledger dial options: %w", err)
+	}
 
 	conn, err := grpc.NewClient(c.config.Address, opts...)
 	if err != nil {
@@ -34,7 +39,15 @@ func (c *Client) Connect(ctx context.Context) (*Connection, error) {
 
 	var adminConn *grpc.ClientConn
 	if c.config.AdminAddress != "" {
-		adminConn, err = grpc.NewClient(c.config.AdminAddress, opts...)
+		adminOpts := opts
+		if c.config.AdminTLS != nil || c.config.AdminAuth != nil {
+			adminOpts, err = c.buildDialOptions(firstNonNilTLS(c.config.AdminTLS, c.config.TLS), firstNonNilAuth(c.config.AdminAuth, c.config.Auth))
+			if err != nil {
+				_ = c.conn.Close()
+				return nil, fmt.Errorf("failed to build admin dial options: %w", err)
+			}
+		}
+		adminConn, err = grpc.NewClient(c.config.AdminAddress, adminOpts...)
 		if err != nil {
 			_ = c.conn.Close()
 			return nil, fmt.Errorf("failed to connect to DAML admin endpoint: %w", err)
@@ -43,6 +56,20 @@ func (c *Client) Connect(ctx context.Context) (*Connection, error) {
 	}
 
 	return NewConnection(c, conn, adminConn), nil
+}
+
+func firstNonNilTLS(primary, fallback *TLSConfig) *TLSConfig {
+	if primary != nil {
+		return primary
+	}
+	return fallback
+}
+
+func firstNonNilAuth(primary, fallback *AuthConfig) *AuthConfig {
+	if primary != nil {
+		return primary
+	}
+	return fallback
 }
 
 func (c *Client) Close() error {
@@ -58,43 +85,60 @@ func (c *Client) Close() error {
 	return err
 }
 
-func (c *Client) buildDialOptions() []grpc.DialOption {
+func (c *Client) buildDialOptions(tlsCfg *TLSConfig, authCfg *AuthConfig) ([]grpc.DialOption, error) {
 	opts := append([]grpc.DialOption{}, c.config.GRPCDialOptions...)
 
-	if c.config.TLS != nil {
-		tlsConfig := c.buildTLSConfig()
-		creds := credentials.NewTLS(tlsConfig)
-		opts = append(opts, grpc.WithTransportCredentials(creds))
+	if tlsCfg != nil {
+		builtTLS, err := buildTLSConfig(tlsCfg)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(builtTLS)))
 
-		auth := c.config.Auth
-		if auth != nil {
-			opts = append(opts, grpc.WithPerRPCCredentials(auth.TokenProvider))
+		if authCfg != nil {
+			opts = append(opts, grpc.WithPerRPCCredentials(authCfg.TokenProvider))
 		}
 	} else {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
-		auth := c.config.Auth
-		if auth != nil {
+		if authCfg != nil {
 			opts = append(opts,
-				grpc.WithUnaryInterceptor(auth.TokenProvider.UnaryInterceptor()),
-				grpc.WithStreamInterceptor(auth.TokenProvider.StreamInterceptor()),
+				grpc.WithUnaryInterceptor(authCfg.TokenProvider.UnaryInterceptor()),
+				grpc.WithStreamInterceptor(authCfg.TokenProvider.StreamInterceptor()),
 			)
 		}
 	}
 
-	return opts
+	return opts, nil
 }
 
-func (c *Client) buildTLSConfig() *tls.Config {
+func buildTLSConfig(cfg *TLSConfig) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
-		ServerName:         c.config.TLS.ServerName,
-		InsecureSkipVerify: c.config.TLS.InsecureSkipVerify,
+		ServerName:         cfg.ServerName,
+		InsecureSkipVerify: cfg.InsecureSkipVerify,
 	}
 
-	if c.config.TLS.CertFile != "" {
+	if cfg.CertFile != "" {
+		pemBytes, err := os.ReadFile(cfg.CertFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read TLS CertFile %q: %w", cfg.CertFile, err)
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(pemBytes) {
+			return nil, fmt.Errorf("failed to parse TLS CertFile %q as PEM", cfg.CertFile)
+		}
+		tlsConfig.RootCAs = pool
 	}
 
-	return tlsConfig
+	if cfg.ClientCertFile != "" && cfg.ClientKeyFile != "" {
+		cert, err := tls.LoadX509KeyPair(cfg.ClientCertFile, cfg.ClientKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load mTLS client key pair: %w", err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+	}
+
+	return tlsConfig, nil
 }
 
 type Connection struct {

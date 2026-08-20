@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"google.golang.org/grpc"
@@ -68,12 +69,14 @@ func (c *updateService) GetUpdates(ctx context.Context, req *model.GetUpdatesReq
 			}
 
 			modelResp := getUpdatesResponseFromProto(resp)
-			if modelResp != nil {
-				select {
-				case responseCh <- modelResp:
-				case <-ctx.Done():
-					return
-				}
+			if modelResp == nil {
+				errCh <- fmt.Errorf("received unrecognized updates response from ledger API, possible version mismatch")
+				return
+			}
+			select {
+			case responseCh <- modelResp:
+			case <-ctx.Done():
+				return
 			}
 		}
 	}()
