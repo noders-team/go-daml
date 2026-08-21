@@ -53,7 +53,8 @@ func NewKeycloakTokenProvider(cfg KeycloakConfig) (*keycloakTokenProvider, error
 
 	return &keycloakTokenProvider{
 		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout:       10 * time.Second,
+			CheckRedirect: DenyPrivateRedirects,
 		},
 		tokenURL:     tokenURL,
 		clientID:     cfg.ClientID,

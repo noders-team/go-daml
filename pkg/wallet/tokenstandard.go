@@ -183,7 +183,7 @@ func (t *tokenStandardController) GetBalance(ctx context.Context) (decimal.Decim
 	}
 
 	contracts, err := client.NewContractQuery[gen.HoldingView](t.damlClient).
-		FindContractsByInterface(ctx, string(partyID), gen.IHoldingInterfaceID(nil))
+		FindContractsByInterface(ctx, string(partyID), gen.IHoldingInterfaceID(nil), 0)
 	if err != nil {
 		return decimal.Zero, fmt.Errorf("failed to query holdings: %w", err)
 	}
@@ -206,10 +206,14 @@ func (t *tokenStandardController) GetBalance(ctx context.Context) (decimal.Decim
 	return balance, nil
 }
 
-func (t *tokenStandardController) ListContractsByInterface(ctx context.Context, interfaceID string) ([]*model.CreatedEvent, error) {
+func (t *tokenStandardController) ListContractsByInterface(ctx context.Context, interfaceID string, maxEntries int) ([]*model.CreatedEvent, error) {
 	partyID, err := t.GetPartyID()
 	if err != nil {
 		return nil, err
+	}
+
+	if maxEntries <= 0 {
+		maxEntries = client.DefaultMaxContractEntries
 	}
 
 	filterByParty := map[string]*model.Filters{
@@ -242,6 +246,14 @@ func (t *tokenStandardController) ListContractsByInterface(ctx context.Context, 
 			if !ok {
 				return contracts, nil
 			}
+			if resp == nil {
+				return nil, fmt.Errorf("empty response")
+			}
+
+			if len(contracts) >= int(maxEntries) && maxEntries != 0 {
+				return contracts, nil
+			}
+
 			if entry, ok := resp.ContractEntry.(*model.ActiveContractEntry); ok {
 				if entry.ActiveContract != nil && entry.ActiveContract.CreatedEvent != nil {
 					contracts = append(contracts, entry.ActiveContract.CreatedEvent)
@@ -285,8 +297,12 @@ func (t *tokenStandardController) ListHoldingUtxos(ctx context.Context, includeL
 		return nil, err
 	}
 
+	maxEntries := 0
+	if limit > 0 {
+		maxEntries = limit
+	}
 	contracts, err := client.NewContractQuery[gen.HoldingView](t.damlClient).
-		FindContractsByInterface(ctx, string(partyID), gen.IHoldingInterfaceID(nil))
+		FindContractsByInterface(ctx, string(partyID), gen.IHoldingInterfaceID(nil), maxEntries)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query holdings: %w", err)
 	}
@@ -326,7 +342,7 @@ func (t *tokenStandardController) FetchPendingTransferInstructionView(ctx contex
 	}
 
 	contracts, err := client.NewContractQuery[gen.TransferInstructionView](t.damlClient).
-		FindContractsByInterface(ctx, string(partyID), gen.ITransferInstructionInterfaceID(nil))
+		FindContractsByInterface(ctx, string(partyID), gen.ITransferInstructionInterfaceID(nil), 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query transfer instructions: %w", err)
 	}
@@ -617,7 +633,7 @@ func (t *tokenStandardController) FetchPendingAllocationInstructionView(ctx cont
 	}
 
 	contracts, err := client.NewContractQuery[gen.AllocationInstructionView](t.damlClient).
-		FindContractsByInterface(ctx, string(partyID), gen.IAllocationInstructionInterfaceID(nil))
+		FindContractsByInterface(ctx, string(partyID), gen.IAllocationInstructionInterfaceID(nil), 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query allocation instructions: %w", err)
 	}
@@ -643,7 +659,7 @@ func (t *tokenStandardController) FetchPendingAllocationRequestView(ctx context.
 	}
 
 	contracts, err := client.NewContractQuery[gen.AllocationRequestView](t.damlClient).
-		FindContractsByInterface(ctx, string(partyID), gen.IAllocationRequestInterfaceID(nil))
+		FindContractsByInterface(ctx, string(partyID), gen.IAllocationRequestInterfaceID(nil), 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query allocation requests: %w", err)
 	}
@@ -662,8 +678,8 @@ func (t *tokenStandardController) FetchPendingAllocationRequestView(ctx context.
 	return requests, nil
 }
 
-func (t *tokenStandardController) FetchPendingAllocationView(ctx context.Context) ([]*model.Allocation, error) {
-	contracts, err := t.ListContractsByInterface(ctx, ALLOCATION_INTERFACE_ID)
+func (t *tokenStandardController) FetchPendingAllocationView(ctx context.Context, maxEntries int) ([]*model.Allocation, error) {
+	contracts, err := t.ListContractsByInterface(ctx, ALLOCATION_INTERFACE_ID, maxEntries)
 	if err != nil {
 		return nil, err
 	}
@@ -1019,7 +1035,7 @@ func (t *tokenStandardController) LookupMergeDelegationProposal(ctx context.Cont
 	}
 
 	return client.NewContractQuery[gen.MergeDelegationProposal](t.damlClient).
-		FindContractsByTemplate(ctx, ownerParty, gen.MergeDelegationProposal{}.GetTemplateID())
+		FindContractsByTemplate(ctx, ownerParty, gen.MergeDelegationProposal{}.GetTemplateID(), 0)
 }
 
 func (t *tokenStandardController) ApproveMergeDelegationProposal(ctx context.Context, ownerParty string) (*model.CommandRequest, error) {
@@ -1510,11 +1526,11 @@ func beneficiariesToArgs(bs []*model.Beneficiary) []interface{} {
 }
 
 func (t *tokenStandardController) validateWeight(bs []*model.Beneficiary) error {
-	var sum float64
+	sum := decimal.Zero
 	for _, b := range bs {
-		sum += b.Weight
+		sum = sum.Add(decimal.NewFromFloat(b.Weight))
 	}
-	if sum > 1.0 {
+	if sum.GreaterThan(decimal.NewFromInt(1)) {
 		return fmt.Errorf("sum of beneficiary weights is larger than 1")
 	}
 	return nil

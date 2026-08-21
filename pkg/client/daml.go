@@ -11,7 +11,11 @@ type DamlClient struct {
 }
 
 type TlsConfig struct {
-	Certificate string
+	Certificate        string
+	ServerName         string
+	InsecureSkipVerify bool
+	ClientCertFile     string
+	ClientKeyFile      string
 }
 
 func NewDamlClient(grpcAddress string, provider auth.TokenProvider) *DamlClient {
@@ -28,13 +32,24 @@ func NewDamlClient(grpcAddress string, provider auth.TokenProvider) *DamlClient 
 
 func (c *DamlClient) WithTLSConfig(cfg TlsConfig) *DamlClient {
 	c.config.TLS = &TLSConfig{
-		CertFile: cfg.Certificate,
+		CertFile:           cfg.Certificate,
+		ServerName:         cfg.ServerName,
+		InsecureSkipVerify: cfg.InsecureSkipVerify,
+		ClientCertFile:     cfg.ClientCertFile,
+		ClientKeyFile:      cfg.ClientKeyFile,
 	}
 	return c
 }
 
 func (c *DamlClient) WithAdminAddress(addr string) *DamlClient {
 	c.config.AdminAddress = addr
+	return c
+}
+
+func (c *DamlClient) WithAdminTokenProvider(provider auth.TokenProvider) *DamlClient {
+	c.config.AdminAuth = &AuthConfig{
+		TokenProvider: provider,
+	}
 	return c
 }
 

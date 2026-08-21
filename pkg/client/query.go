@@ -9,6 +9,8 @@ import (
 	"github.com/noders-team/go-daml/pkg/service/ledger"
 )
 
+const DefaultMaxContractEntries = 100_000
+
 type ContractQuery[T any] struct {
 	cl *DamlBindingClient
 }
@@ -27,35 +29,40 @@ type Contract[T any] struct {
 	Data             T
 }
 
-func (c *ContractQuery[T]) FindContractsByTemplate(ctx context.Context, partyID, templateID string) ([]Contract[T], error) {
+func (c *ContractQuery[T]) FindContractsByTemplate(ctx context.Context, partyID, templateID string, maxEntries int) ([]Contract[T], error) {
 	return c.collect(ctx, contractQuery{
 		partyID:    partyID,
 		templateID: templateID,
-	})
+	}, maxEntries)
 }
 
-func (c *ContractQuery[T]) FindContractsByTemplateAnyParty(ctx context.Context, templateID string) ([]Contract[T], error) {
+func (c *ContractQuery[T]) FindContractsByTemplateAnyParty(ctx context.Context, templateID string, maxEntries int) ([]Contract[T], error) {
 	return c.collect(ctx, contractQuery{
 		templateID: templateID,
 		anyParty:   true,
-	})
+	}, maxEntries)
 }
 
-func (c *ContractQuery[T]) FindContractsByInterface(ctx context.Context, partyID, interfaceID string) ([]Contract[T], error) {
+func (c *ContractQuery[T]) FindContractsByInterface(ctx context.Context, partyID, interfaceID string, maxEntries int) ([]Contract[T], error) {
 	return c.collect(ctx, contractQuery{
 		partyID:     partyID,
 		interfaceID: interfaceID,
-	})
+	}, maxEntries)
 }
 
-func (c *ContractQuery[T]) FindContractsByInterfaceAnyParty(ctx context.Context, interfaceID string) ([]Contract[T], error) {
+func (c *ContractQuery[T]) FindContractsByInterfaceAnyParty(ctx context.Context, interfaceID string, maxEntries int) ([]Contract[T], error) {
 	return c.collect(ctx, contractQuery{
 		interfaceID: interfaceID,
 		anyParty:    true,
-	})
+	}, maxEntries)
 }
 
-func (c *ContractQuery[T]) collect(ctx context.Context, query contractQuery) ([]Contract[T], error) {
+func (c *ContractQuery[T]) collect(ctx context.Context, query contractQuery, maxEntries int) ([]Contract[T], error) {
+	effectiveMax := maxEntries
+	if effectiveMax <= 0 {
+		effectiveMax = DefaultMaxContractEntries
+	}
+
 	var results []Contract[T]
 	err := c.scanActiveContractsByTemplate(ctx, query, func(evt activeContractEvent) (bool, error) {
 		var t T
@@ -69,7 +76,7 @@ func (c *ContractQuery[T]) collect(ctx context.Context, query contractQuery) ([]
 			CreatedEventBlob: evt.createdEventBlob,
 			Data:             t,
 		})
-		return false, nil
+		return len(results) >= effectiveMax, nil
 	})
 	if err != nil {
 		return nil, err

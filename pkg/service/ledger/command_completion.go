@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
@@ -60,12 +61,14 @@ func (c *commandCompletion) CompletionStream(ctx context.Context, req *model.Com
 			}
 
 			modelResp := completionStreamResponseFromProto(resp)
-			if modelResp != nil {
-				select {
-				case responseCh <- modelResp:
-				case <-ctx.Done():
-					return
-				}
+			if modelResp == nil {
+				errCh <- fmt.Errorf("received unrecognized completion stream response from ledger API, possible version mismatch")
+				return
+			}
+			select {
+			case responseCh <- modelResp:
+			case <-ctx.Done():
+				return
 			}
 		}
 	}()

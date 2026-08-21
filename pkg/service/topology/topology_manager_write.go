@@ -2,6 +2,7 @@ package topology
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -393,10 +394,16 @@ func (c *topologyManagerWrite) CreateTemporaryTopologyStore(ctx context.Context,
 	}, nil
 }
 
+const temporaryStorePrefix = "temporary:"
+
 func (c *topologyManagerWrite) DropTemporaryTopologyStore(ctx context.Context, req *model.DropTemporaryTopologyStoreRequest) (*model.DropTemporaryTopologyStoreResponse, error) {
+	if req == nil || req.StoreID == nil || !strings.HasPrefix(req.StoreID.Value, temporaryStorePrefix) {
+		return nil, fmt.Errorf("invalid store id: expected a value prefixed with %q", temporaryStorePrefix)
+	}
+
 	protoReq := &topov30.DropTemporaryTopologyStoreRequest{
 		StoreId: &topov30.StoreId_Temporary{
-			Name: req.StoreID.Value[10:],
+			Name: req.StoreID.Value[len(temporaryStorePrefix):],
 		},
 	}
 

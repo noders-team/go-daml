@@ -61,12 +61,14 @@ func (c *stateService) GetActiveContracts(ctx context.Context, req *model.GetAct
 			}
 
 			modelResp := getActiveContractsResponseFromProto(resp)
-			if modelResp != nil {
-				select {
-				case responseCh <- modelResp:
-				case <-ctx.Done():
-					return
-				}
+			if modelResp == nil {
+				errCh <- fmt.Errorf("received unrecognized active contracts response from ledger API, possible version mismatch")
+				return
+			}
+			select {
+			case responseCh <- modelResp:
+			case <-ctx.Done():
+				return
 			}
 		}
 	}()
