@@ -39,13 +39,14 @@ func (c *Client) Connect(ctx context.Context) (*Connection, error) {
 
 	var adminConn *grpc.ClientConn
 	if c.config.AdminAddress != "" {
-		adminOpts := opts
-		if c.config.AdminTLS != nil || c.config.AdminAuth != nil {
-			adminOpts, err = c.buildDialOptions(firstNonNilTLS(c.config.AdminTLS, c.config.TLS), firstNonNilAuth(c.config.AdminAuth, c.config.Auth))
-			if err != nil {
-				_ = c.conn.Close()
-				return nil, fmt.Errorf("failed to build admin dial options: %w", err)
-			}
+		if c.config.AdminAuth == nil {
+			return nil, fmt.Errorf("admin auth is required, use NoAuth instead")
+		}
+
+		adminOpts, err := c.buildDialOptions(c.config.AdminTLS, c.config.AdminAuth)
+		if err != nil {
+			_ = c.conn.Close()
+			return nil, fmt.Errorf("failed to build admin dial options: %w", err)
 		}
 		adminConn, err = grpc.NewClient(c.config.AdminAddress, adminOpts...)
 		if err != nil {
@@ -56,20 +57,6 @@ func (c *Client) Connect(ctx context.Context) (*Connection, error) {
 	}
 
 	return NewConnection(c, conn, adminConn), nil
-}
-
-func firstNonNilTLS(primary, fallback *TLSConfig) *TLSConfig {
-	if primary != nil {
-		return primary
-	}
-	return fallback
-}
-
-func firstNonNilAuth(primary, fallback *AuthConfig) *AuthConfig {
-	if primary != nil {
-		return primary
-	}
-	return fallback
 }
 
 func (c *Client) Close() error {

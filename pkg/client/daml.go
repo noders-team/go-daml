@@ -46,6 +46,13 @@ func (c *DamlClient) WithAdminAddress(addr string) *DamlClient {
 	return c
 }
 
+func (c *DamlClient) WithAdminTokenProvider(provider auth.TokenProvider) *DamlClient {
+	c.config.AdminAuth = &AuthConfig{
+		TokenProvider: provider,
+	}
+	return c
+}
+
 func (c *DamlClient) Build(ctx context.Context) (*DamlBindingClient, error) {
 	client := NewClient(c.config)
 	conn, err := client.Connect(ctx)

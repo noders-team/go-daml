@@ -15,6 +15,8 @@ import (
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -50,7 +52,9 @@ func Setup(ctx context.Context) error {
 
 		resDaml, grpcAddr, adminAddr = initDamlSandbox(ctx, dockerPool)
 
-		builder := client.NewDamlClient(grpcAddr, auth.NewBearerTokenProvider("")).WithAdminAddress(adminAddr)
+		builder := client.NewDamlClient(grpcAddr, auth.NewBearerTokenProvider("")).
+			WithAdminAddress(adminAddr).
+			WithAdminTokenProvider(auth.NewNoAuth())
 		if strings.HasSuffix(grpcAddr, ":443") {
 			tlsConfig := client.TlsConfig{}
 			builder = builder.WithTLSConfig(tlsConfig)
@@ -102,9 +106,14 @@ func Setup(ctx context.Context) error {
 			}
 			_, err = cl.UserMng.CreateUser(ctx, user, rights)
 			if err != nil {
-				log.Fatal().Err(err).Msgf("failed to create user %s", testUser)
+				if status.Code(err) == codes.AlreadyExists {
+					log.Info().Msgf("user %s created concurrently by another test binary", testUser)
+				} else {
+					log.Fatal().Err(err).Msgf("failed to create user %s", testUser)
+				}
+			} else {
+				log.Info().Msgf("created user %s with party %s", testUser, partyDetails.Party)
 			}
-			log.Info().Msgf("created user %s with party %s", testUser, partyDetails.Party)
 		}
 
 		log.Info().Msg("Test environment ready, running tests")
