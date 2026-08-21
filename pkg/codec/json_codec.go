@@ -218,11 +218,10 @@ func (codec *JsonCodec) bigIntToDynamicValue(bi *big.Int) interface{} {
 	if bi == nil {
 		return nil
 	}
-	rat := new(big.Rat).SetFrac(bi, numericScale)
 	if codec.EncodeNumericAsString {
-		return rat.FloatString(10)
+		return bi.String()
 	}
-	f, _ := rat.Float64()
+	f, _ := new(big.Float).SetInt(bi).Float64()
 	return f
 }
 
@@ -697,29 +696,39 @@ func scaleDecimalString(s string) (*big.Int, bool) {
 func (codec *JsonCodec) assignBigIntValue(jsonValue interface{}, target reflect.Value, typeName string, converter func(*big.Int) reflect.Value) error {
 	switch v := jsonValue.(type) {
 	case json.Number:
-		if bi, ok := scaleDecimalString(v.String()); ok {
+		s := v.String()
+		if bi, ok := new(big.Int).SetString(s, 10); ok {
+			target.Set(converter(bi))
+			return nil
+		}
+		if bi, ok := scaleDecimalString(s); ok {
 			target.Set(converter(bi))
 			return nil
 		}
 		return fmt.Errorf("invalid number format for %s: %s", typeName, v)
 	case string:
+		if bi, ok := new(big.Int).SetString(v, 10); ok {
+			target.Set(converter(bi))
+			return nil
+		}
 		if bi, ok := scaleDecimalString(v); ok {
 			target.Set(converter(bi))
 			return nil
 		}
 		return fmt.Errorf("invalid string format for %s: %s", typeName, v)
 	case float64:
+		if v == float64(int64(v)) {
+			target.Set(converter(big.NewInt(int64(v))))
+			return nil
+		}
 		if bi, ok := scaleDecimalString(strconv.FormatFloat(v, 'f', -1, 64)); ok {
 			target.Set(converter(bi))
 			return nil
 		}
 		return fmt.Errorf("invalid float value for %s: %v", typeName, v)
 	case int64:
-		if bi, ok := scaleDecimalString(strconv.FormatInt(v, 10)); ok {
-			target.Set(converter(bi))
-			return nil
-		}
-		return fmt.Errorf("invalid int value for %s: %v", typeName, v)
+		target.Set(converter(big.NewInt(v)))
+		return nil
 	default:
 		return fmt.Errorf("expected string or number for %s, got %T", typeName, jsonValue)
 	}
