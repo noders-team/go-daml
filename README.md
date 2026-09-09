@@ -199,6 +199,44 @@ make release
 make help
 ```
 
+### Updating dependencies and gRPC bindings
+
+To update the `go-daml` library in another Go project, run the following from
+that project's directory:
+
+```bash
+# Update to the latest released version
+go get github.com/noders-team/go-daml@latest
+go mod tidy
+```
+
+To use a specific release or commit, replace `latest` with the desired version
+or commit. Verify the update with `go list -m github.com/noders-team/go-daml`
+and run the project's tests.
+
+The Go gRPC/protobuf bindings in this repository are generated from the
+upstream Canton Ledger API protobuf definitions. To update them:
+
+1. Install `protoc`, `protoc-gen-go`, and `protoc-gen-go-grpc`, and make sure
+   all three commands are available on `PATH`.
+2. Choose the upstream Canton release to use. The default is defined in
+   `proto/generate.sh` as `CANTON_VERSION`.
+3. Regenerate the bindings:
+
+```bash
+# Use the default Canton version
+make proto
+
+# Or use a specific Canton release
+CANTON_VERSION=3.5.1-rc5 make proto
+```
+
+The target downloads and caches the selected Canton source archive under
+`proto/.cache`, regenerates the files under `proto/com/`, records the selected
+release in `proto/version.go`, and runs `go mod tidy` and `go mod vendor`.
+Review the generated diff, run `make test` (or `make dev`), and commit the
+updated generated files together with the dependency and vendor changes.
+
 ### Testing
 ```bash
 # Run all tests
