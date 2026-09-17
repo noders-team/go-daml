@@ -244,6 +244,12 @@ func (t *tokenStandardController) ListContractsByInterface(ctx context.Context, 
 		select {
 		case resp, ok := <-stream:
 			if !ok {
+				// a stream error is queued in errChan before stream is closed
+				if errChan != nil {
+					if err := <-errChan; err != nil {
+						return nil, fmt.Errorf("failed to list contracts by interface: %w", err)
+					}
+				}
 				return contracts, nil
 			}
 			if resp == nil {
