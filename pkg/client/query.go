@@ -117,6 +117,10 @@ func (c *ContractQuery[T]) scanActiveContractsByTemplate(
 		select {
 		case resp, ok := <-respCh:
 			if !ok {
+				// a stream error is queued in errCh before respCh is closed
+				if err := <-errCh; err != nil {
+					return fmt.Errorf("error scanning active contracts: %w", err)
+				}
 				return nil
 			}
 			entry, ok := resp.ContractEntry.(*model.ActiveContractEntry)
