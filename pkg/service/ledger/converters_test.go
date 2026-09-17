@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"encoding/json"
 	"math/big"
 	"testing"
 	"time"
@@ -2853,4 +2854,211 @@ func TestPrepareSubmissionResponseFromProto_CostEstimation(t *testing.T) {
 			tc.verify(t, resp)
 		})
 	}
+}
+
+func TestValueFromProtoGenMap(t *testing.T) {
+	genMapValue := func(entries ...*v2.GenMap_Entry) *v2.Value {
+		return &v2.Value{
+			Sum: &v2.Value_GenMap{
+				GenMap: &v2.GenMap{Entries: entries},
+			},
+		}
+	}
+	entry := func(key *v2.Value, value *v2.Value) *v2.GenMap_Entry {
+		return &v2.GenMap_Entry{Key: key, Value: value}
+	}
+
+	t.Run("text keys", func(t *testing.T) {
+		value := genMapValue(
+			entry(&v2.Value{Sum: &v2.Value_Text{Text: "alice"}}, &v2.Value{Sum: &v2.Value_Int64{Int64: 42}}),
+			entry(&v2.Value{Sum: &v2.Value_Text{Text: "bob"}}, &v2.Value{Sum: &v2.Value_Text{Text: "x"}}),
+		)
+
+		result := valueFromProto(value)
+		require.Equal(t, map[string]interface{}{"alice": int64(42), "bob": "x"}, result)
+	})
+
+	t.Run("party keys", func(t *testing.T) {
+		value := genMapValue(
+			entry(&v2.Value{Sum: &v2.Value_Party{Party: "alice::122"}}, &v2.Value{Sum: &v2.Value_Int64{Int64: 1}}),
+		)
+
+		result := valueFromProto(value)
+		require.Equal(t, map[string]interface{}{"alice::122": int64(1)}, result)
+	})
+
+	t.Run("contract id keys", func(t *testing.T) {
+		value := genMapValue(
+			entry(&v2.Value{Sum: &v2.Value_ContractId{ContractId: "00abc"}}, &v2.Value{Sum: &v2.Value_Bool{Bool: true}}),
+		)
+
+		result := valueFromProto(value)
+		require.Equal(t, map[string]interface{}{"00abc": true}, result)
+	})
+
+	t.Run("nested values are decoded", func(t *testing.T) {
+		inner := genMapValue(
+			entry(&v2.Value{Sum: &v2.Value_Text{Text: "inner"}}, &v2.Value{Sum: &v2.Value_Int64{Int64: 7}}),
+		)
+		value := genMapValue(
+			entry(&v2.Value{Sum: &v2.Value_Text{Text: "outer"}}, inner),
+		)
+
+		result := valueFromProto(value)
+		require.Equal(t, map[string]interface{}{
+			"outer": map[string]interface{}{"inner": int64(7)},
+		}, result)
+	})
+
+	t.Run("empty map decodes to an empty map, not nil", func(t *testing.T) {
+		result := valueFromProto(genMapValue())
+		require.Equal(t, map[string]interface{}{}, result)
+	})
+
+	t.Run("nil GenMap decodes to nil", func(t *testing.T) {
+		result := valueFromProto(&v2.Value{Sum: &v2.Value_GenMap{GenMap: nil}})
+		require.Nil(t, result)
+	})
+
+	t.Run("unsupported key kind is not guessed", func(t *testing.T) {
+		value := genMapValue(
+			entry(&v2.Value{Sum: &v2.Value_Int64{Int64: 1}}, &v2.Value{Sum: &v2.Value_Text{Text: "x"}}),
+		)
+
+		result := valueFromProto(value)
+		require.Nil(t, result, "an Int64 key must not be encoded into a string key")
+	})
+
+	t.Run("duplicate keys are not silently merged", func(t *testing.T) {
+		value := genMapValue(
+			entry(&v2.Value{Sum: &v2.Value_Text{Text: "dup"}}, &v2.Value{Sum: &v2.Value_Int64{Int64: 1}}),
+			entry(&v2.Value{Sum: &v2.Value_Text{Text: "dup"}}, &v2.Value{Sum: &v2.Value_Int64{Int64: 2}}),
+		)
+
+		result := valueFromProto(value)
+		require.Nil(t, result)
+	})
+
+	t.Run("round trip through mapToValue", func(t *testing.T) {
+		source := map[string]interface{}{
+			"_type": "genmap",
+			"value": types.GENMAP{"alice": int64(42)},
+		}
+
+		pb := mapToValue(source)
+		require.NotNil(t, pb)
+
+		result := valueFromProto(pb)
+		require.Equal(t, map[string]interface{}{"alice": int64(42)}, result)
+	})
+
+	t.Run("decodes into a GENMAP struct field", func(t *testing.T) {
+		type payload struct {
+			Operator string       `json:"operator"`
+			MyMap    types.GENMAP `json:"myMap"`
+		}
+
+		record := &v2.Record{
+			Fields: []*v2.RecordField{
+				{Label: "operator", Value: &v2.Value{Sum: &v2.Value_Party{Party: "alice::122"}}},
+				{Label: "myMap", Value: genMapValue(
+					entry(&v2.Value{Sum: &v2.Value_Text{Text: "alice"}}, &v2.Value{Sum: &v2.Value_Int64{Int64: 42}}),
+				)},
+			},
+		}
+
+		var out payload
+		require.NoError(t, RecordToStruct(record, &out))
+		require.Equal(t, "alice::122", out.Operator)
+		// the codec decodes JSON numbers with UseNumber, so values arrive as json.Number
+		require.Equal(t, types.GENMAP{"alice": json.Number("42")}, out.MyMap)
+	})
+
+	t.Run("unsupported key kind in an Optional field decodes like None", func(t *testing.T) {
+		type payload struct {
+			Operator string        `json:"operator"`
+			MyMap    *types.GENMAP `json:"myMap"`
+		}
+		decode := func(value *v2.Value) (payload, error) {
+			record := &v2.Record{
+				Fields: []*v2.RecordField{
+					{Label: "operator", Value: &v2.Value{Sum: &v2.Value_Party{Party: "alice::122"}}},
+					{Label: "myMap", Value: value},
+				},
+			}
+			var out payload
+			err := RecordToStruct(record, &out)
+			return out, err
+		}
+
+		some, err := decode(&v2.Value{Sum: &v2.Value_Optional{Optional: &v2.Optional{Value: genMapValue(
+			entry(&v2.Value{Sum: &v2.Value_Int64{Int64: 1}}, &v2.Value{Sum: &v2.Value_Text{Text: "x"}}),
+		)}}})
+		require.NoError(t, err)
+		require.Nil(t, some.MyMap)
+
+		none, err := decode(&v2.Value{Sum: &v2.Value_Optional{Optional: &v2.Optional{}}})
+		require.NoError(t, err)
+		require.Nil(t, none.MyMap)
+
+		// the skipped map is only visible through the warning log
+		require.Equal(t, none, some)
+	})
+
+	t.Run("unsupported key kind in a non-pointer field fails the decode", func(t *testing.T) {
+		type payload struct {
+			MyMap types.GENMAP `json:"myMap"`
+		}
+		record := &v2.Record{
+			Fields: []*v2.RecordField{
+				{Label: "myMap", Value: genMapValue(
+					entry(&v2.Value{Sum: &v2.Value_Int64{Int64: 1}}, &v2.Value{Sum: &v2.Value_Text{Text: "x"}}),
+				)},
+			},
+		}
+
+		var out payload
+		err := RecordToStruct(record, &out)
+		require.ErrorContains(t, err, "cannot assign nil to non-pointer type types.GENMAP")
+	})
+
+	t.Run("empty map decodes into a GENMAP struct field", func(t *testing.T) {
+		type payload struct {
+			Operator string       `json:"operator"`
+			MyMap    types.GENMAP `json:"myMap"`
+		}
+		record := &v2.Record{
+			Fields: []*v2.RecordField{
+				{Label: "operator", Value: &v2.Value{Sum: &v2.Value_Party{Party: "alice::122"}}},
+				{Label: "myMap", Value: genMapValue()},
+			},
+		}
+
+		var out payload
+		require.NoError(t, RecordToStruct(record, &out))
+		require.Equal(t, "alice::122", out.Operator)
+		require.NotNil(t, out.MyMap)
+		require.Empty(t, out.MyMap)
+	})
+
+	t.Run("record key in a non-pointer field fails the decode", func(t *testing.T) {
+		type payload struct {
+			MyMap types.GENMAP `json:"myMap"`
+		}
+		// shaped like a Daml newtype key such as Splice.Types.Round
+		recordKey := &v2.Value{Sum: &v2.Value_Record{Record: &v2.Record{
+			Fields: []*v2.RecordField{{Label: "number", Value: &v2.Value{Sum: &v2.Value_Int64{Int64: 7}}}},
+		}}}
+		record := &v2.Record{
+			Fields: []*v2.RecordField{
+				{Label: "myMap", Value: genMapValue(
+					entry(recordKey, &v2.Value{Sum: &v2.Value_ContractId{ContractId: "00ab"}}),
+				)},
+			},
+		}
+
+		var out payload
+		err := RecordToStruct(record, &out)
+		require.ErrorContains(t, err, "cannot assign nil to non-pointer type types.GENMAP")
+	})
 }

@@ -358,6 +358,23 @@ func convertBigIntToNumeric(i *big.Int, scale int) *big.Rat {
 
 const maxProtoValueDepth = 200
 
+// genMapKeyToString converts a GENMAP entry key into the string key used by
+// types.GENMAP. Only key kinds whose Ledger API representation is already a
+// plain string are accepted, so that no key encoding is invented here. Any
+// other key kind is reported by the caller instead of being guessed.
+func genMapKeyToString(key *v2.Value) (string, bool) {
+	switch k := key.GetSum().(type) {
+	case *v2.Value_Text:
+		return k.Text, true
+	case *v2.Value_Party:
+		return k.Party, true
+	case *v2.Value_ContractId:
+		return k.ContractId, true
+	default:
+		return "", false
+	}
+}
+
 func valueFromProto(pb *v2.Value) interface{} {
 	return valueFromProtoAt(pb, 0)
 }
@@ -417,6 +434,24 @@ func valueFromProtoAt(pb *v2.Value, depth int) interface{} {
 		result := make(map[string]interface{})
 		for _, entry := range v.TextMap.Entries {
 			result[entry.Key] = valueFromProtoAt(entry.Value, depth+1)
+		}
+		return result
+	case *v2.Value_GenMap:
+		if v.GenMap == nil {
+			return nil
+		}
+		result := make(map[string]interface{}, len(v.GenMap.Entries))
+		for _, entry := range v.GenMap.Entries {
+			key, ok := genMapKeyToString(entry.Key)
+			if !ok {
+				log.Warn().Msgf("valueFromProto: unsupported GENMAP key of type %T, skipping the map", entry.GetKey().GetSum())
+				return nil
+			}
+			if _, seen := result[key]; seen {
+				log.Warn().Msgf("valueFromProto: duplicate GENMAP key %q, skipping the map", key)
+				return nil
+			}
+			result[key] = valueFromProtoAt(entry.Value, depth+1)
 		}
 		return result
 	case *v2.Value_Enum:
