@@ -20,10 +20,13 @@ import (
 )
 
 const (
-	damlSandboxVersion  = "3.5.0-snapshot.20251106.0"
-	containerName       = "go-daml-test-canton"
-	containerLabelKey   = "go-daml-test"
-	containerLabelValue = "canton-sandbox"
+	cantonSandboxImage   = "europe-docker.pkg.dev/da-images/public/docker/canton-participant"
+	cantonSandboxVersion = "3.5.19"
+	containerName        = "go-daml-test-canton"
+	containerLabelKey    = "go-daml-test"
+	containerLabelValue  = "canton-sandbox"
+	configLabelKey       = "go-daml-test-config"
+	configLabelValue     = "bootstrap-v1"
 )
 
 var (
@@ -66,6 +69,9 @@ func Setup(ctx context.Context) error {
 		}
 
 		log.Info().Msg("Canton sandbox initialization complete, setting up test environment")
+		if err := waitForSynchronizerConnection(ctx, cl, 5*time.Minute); err != nil {
+			log.Fatal().Err(err).Msg("synchronizer connection timeout")
+		}
 
 		testUser := "app-provider"
 		users, err := cl.UserMng.ListUsers(ctx)
@@ -84,11 +90,6 @@ func Setup(ctx context.Context) error {
 
 		if !userExists {
 			log.Info().Msgf("creating user %s", testUser)
-
-			log.Info().Msg("waiting for synchronizer connection before allocating party...")
-			if err := waitForSynchronizerConnection(ctx, cl, 2*time.Minute); err != nil {
-				log.Fatal().Err(err).Msg("synchronizer connection timeout")
-			}
 
 			partyDetails, err := cl.PartyMng.AllocateParty(ctx, "", nil, "")
 			if err != nil {
@@ -165,6 +166,19 @@ func findExistingContainer(pool *dockertest.Pool) (*dockertest.Resource, error) 
 
 	if matchedContainer == nil {
 		return nil, fmt.Errorf("no existing container found")
+	}
+
+	expectedImage := cantonSandboxImage + ":" + cantonSandboxVersion
+	if matchedContainer.Image != expectedImage || matchedContainer.Labels[configLabelKey] != configLabelValue {
+		log.Warn().Str("image", matchedContainer.Image).Str("expected", expectedImage).Msg("Found Canton test container with an outdated image or config, removing it")
+		err := pool.Client.RemoveContainer(docker.RemoveContainerOptions{
+			ID:    matchedContainer.ID,
+			Force: true,
+		})
+		if err != nil {
+			log.Warn().Err(err).Msg("Failed to remove outdated Canton test container")
+		}
+		return nil, fmt.Errorf("container uses outdated Canton image, removed")
 	}
 
 	if matchedContainer.State != "running" {
@@ -256,9 +270,17 @@ func initDamlSandbox(ctx context.Context, dockerPool *dockertest.Pool) (*dockert
         port = 6865
         user-management-service.enabled = true
       }
+      http-ledger-api.enabled = false
     }
   }
 }
+`
+	bootstrapScript := `// Start the configured nodes, create a local synchronizer, and connect the participant.
+nodes.local.start()
+bootstrap.synchronizer_local()
+sandbox.synchronizers.connect_local(sequencer1, alias = "da")
+	// Keep the daemon alive after the bootstrap script completes.
+	Thread.sleep(Long.MaxValue)
 `
 
 	tmpDir, err := os.MkdirTemp("", "canton-config-*")
@@ -271,21 +293,24 @@ func initDamlSandbox(ctx context.Context, dockerPool *dockertest.Pool) (*dockert
 		log.Fatal().Err(err).Msg("Could not write Canton config")
 	}
 
+	bootstrapPath := fmt.Sprintf("%s/bootstrap.canton", tmpDir)
+	if err := os.WriteFile(bootstrapPath, []byte(bootstrapScript), 0o644); err != nil {
+		log.Fatal().Err(err).Msg("Could not write Canton bootstrap script")
+	}
+
 	resource, err := dockerPool.RunWithOptions(&dockertest.RunOptions{
-		Repository: "digitalasset/daml-sdk",
-		Tag:        damlSandboxVersion,
-		Platform:   "linux/amd64",
-		Name:       containerName,
-		Cmd: []string{
-			"daml",
-			"sandbox",
-			"-c", "/canton/canton.conf",
-			"--debug",
-		},
+		Repository:   cantonSandboxImage,
+		Tag:          cantonSandboxVersion,
+		Platform:     "linux/amd64",
+		Name:         containerName,
 		ExposedPorts: []string{ledgerAPIPort + "/tcp", adminAPIPort + "/tcp"},
-		Mounts:       []string{fmt.Sprintf("%s:/canton/canton.conf:ro", configPath)},
+		Mounts: []string{
+			fmt.Sprintf("%s:/app/app.conf:ro", configPath),
+			fmt.Sprintf("%s:/app/bootstrap.sc:ro", bootstrapPath),
+		},
 		Labels: map[string]string{
 			containerLabelKey: containerLabelValue,
+			configLabelKey:    configLabelValue,
 		},
 	}, func(config *docker.HostConfig) {
 		config.AutoRemove = false
@@ -329,10 +354,10 @@ func initDamlSandbox(ctx context.Context, dockerPool *dockertest.Pool) (*dockert
 	}
 	log.Info().Msgf("canton admin API port %s is ready", adminAPIPort)
 
-	log.Info().Msg("port is open, waiting for Canton to fully initialize...")
-	if err := waitForCantonReady(ctx, dockerPool, resource, 3*time.Minute); err != nil {
-		log.Fatal().Err(err).Msg("Canton sandbox initialization timeout")
-	}
+	// The official Canton image does not emit the legacy "Canton sandbox is ready"
+	// log line. Setup verifies full initialization by querying the Ledger API for
+	// a connected synchronizer before creating the shared test user.
+	log.Info().Msg("Canton ports are ready, waiting for the Ledger API synchronizer connection")
 
 	return resource, grpcAddr, adminAddr
 }
@@ -359,51 +384,6 @@ func waitForPort(ctx context.Context, port string, timeout time.Duration) error 
 	}
 
 	return fmt.Errorf("timeout waiting for port %s", port)
-}
-
-func waitForCantonReady(ctx context.Context, pool *dockertest.Pool, resource *dockertest.Resource, timeout time.Duration) error {
-	deadline := time.Now().Add(timeout)
-	readyMessage := "Canton sandbox is ready"
-
-	for time.Now().Before(deadline) {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		buf := &logBuffer{}
-		err := pool.Client.Logs(docker.LogsOptions{
-			Container:    resource.Container.ID,
-			OutputStream: buf,
-			Stdout:       true,
-			Stderr:       true,
-			Tail:         "100",
-		})
-		if err == nil {
-			if strings.Contains(buf.String(), readyMessage) {
-				log.Info().Msg("Canton sandbox is ready")
-				return nil
-			}
-		}
-
-		time.Sleep(2 * time.Second)
-	}
-
-	return fmt.Errorf("sandbox timeout: Canton sandbox did not become ready within %v", timeout)
-}
-
-type logBuffer struct {
-	data []byte
-}
-
-func (b *logBuffer) Write(p []byte) (n int, err error) {
-	b.data = append(b.data, p...)
-	return len(p), nil
-}
-
-func (b *logBuffer) String() string {
-	return string(b.data)
 }
 
 func GetClient() *client.DamlBindingClient {
