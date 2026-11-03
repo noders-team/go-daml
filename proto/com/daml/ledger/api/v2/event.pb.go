@@ -157,7 +157,7 @@ type CreatedEvent struct {
 	// Required
 	NodeId int32 `protobuf:"varint,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	// The ID of the created contract.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	ContractId string `protobuf:"bytes,3,opt,name=contract_id,json=contractId,proto3" json:"contract_id,omitempty"`
@@ -167,12 +167,12 @@ type CreatedEvent struct {
 	// Required
 	TemplateId *Identifier `protobuf:"bytes,4,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
 	// The key of the created contract.
-	// This will be set if and only if “template_id“ defines a contract key.
+	// This will be set if and only if ``template_id`` defines a contract key.
 	//
 	// Optional
 	ContractKey *Value `protobuf:"bytes,5,opt,name=contract_key,json=contractKey,proto3" json:"contract_key,omitempty"`
 	// The hash of contract_key.
-	// This will be set if and only if “template_id“ defines a contract key.
+	// This will be set if and only if ``template_id`` defines a contract key.
 	//
 	// Optional: can be empty
 	ContractKeyHash []byte `protobuf:"bytes,16,opt,name=contract_key_hash,json=contractKeyHash,proto3" json:"contract_key_hash,omitempty"`
@@ -187,26 +187,26 @@ type CreatedEvent struct {
 	// Optional: can be empty
 	CreatedEventBlob []byte `protobuf:"bytes,7,opt,name=created_event_blob,json=createdEventBlob,proto3" json:"created_event_blob,omitempty"`
 	// Interface views specified in the transaction filter.
-	// Includes an “InterfaceView“ for each interface for which there is a “InterfaceFilter“ with
+	// Includes an ``InterfaceView`` for each interface for which there is a ``InterfaceFilter`` with
 	//
-	// - its party in the “witness_parties“ of this event,
+	// - its party in the ``witness_parties`` of this event,
 	// - and which is implemented by the template of this event,
-	// - and which has “include_interface_view“ set.
+	// - and which has ``include_interface_view`` set.
 	//
 	// Optional: can be empty
 	InterfaceViews []*InterfaceView `protobuf:"bytes,8,rep,name=interface_views,json=interfaceViews,proto3" json:"interface_views,omitempty"`
-	// The parties that are notified of this event. When a “CreatedEvent“
+	// The parties that are notified of this event. When a ``CreatedEvent``
 	// is returned as part of a transaction tree or ledger-effects transaction, this will include all
-	// the parties specified in the “TransactionFilter“ that are witnesses  of the event
+	// the parties specified in the ``TransactionFilter`` that are witnesses  of the event
 	// (the stakeholders of the contract and all informees of all the ancestors
 	// of this create action that this participant knows about).
 	// If served as part of a ACS delta transaction those will
-	// be limited to all parties specified in the “TransactionFilter“ that
+	// be limited to all parties specified in the ``TransactionFilter`` that
 	// are stakeholders of the contract (i.e. either signatories or observers).
-	// If the “CreatedEvent“ is returned as part of an AssignedEvent,
+	// If the ``CreatedEvent`` is returned as part of an AssignedEvent,
 	// ActiveContract or IncompleteUnassigned (so the event is related to
 	// an assignment or unassignment): this will include all parties of the
-	// “TransactionFilter“ that are stakeholders of the contract.
+	// ``TransactionFilter`` that are stakeholders of the contract.
 	//
 	// The behavior of reading create events visible to parties not hosted
 	// on the participant node serving the Ledger API is undefined. Concretely,
@@ -217,8 +217,8 @@ type CreatedEvent struct {
 	// For most clients this is not a problem, as they only read events for parties
 	// that are hosted on the participant node. If you need to read events
 	// for parties that may not be hosted at all times on the participant node,
-	// subscribe to the “TopologyEvent“s for that party by setting a corresponding
-	// “UpdateFormat“.  Using these events, query the ACS as-of an offset where the
+	// subscribe to the ``TopologyEvent``s for that party by setting a corresponding
+	// ``UpdateFormat``.  Using these events, query the ACS as-of an offset where the
 	// party is hosted on the participant node, and ignore create events at offsets
 	// where the party is not hosted on the participant node.
 	//
@@ -415,7 +415,7 @@ type InterfaceView struct {
 	// Required
 	ViewStatus *status.Status `protobuf:"bytes,2,opt,name=view_status,json=viewStatus,proto3" json:"view_status,omitempty"`
 	// The value of the interface's view method on this event.
-	// Set if it was requested in the “InterfaceFilter“ and it could be
+	// Set if it was requested in the ``InterfaceFilter`` and it could be
 	// successfully computed.
 	//
 	// Optional
@@ -508,7 +508,7 @@ type ArchivedEvent struct {
 	// Required
 	NodeId int32 `protobuf:"varint,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	// The ID of the archived contract.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	ContractId string `protobuf:"bytes,3,opt,name=contract_id,json=contractId,proto3" json:"contract_id,omitempty"`
@@ -520,13 +520,13 @@ type ArchivedEvent struct {
 	//
 	// Required
 	TemplateId *Identifier `protobuf:"bytes,4,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
-	// The parties that are notified of this event. For an “ArchivedEvent“,
+	// The parties that are notified of this event. For an ``ArchivedEvent``,
 	// these are the intersection of the stakeholders of the contract in
-	// question and the parties specified in the “TransactionFilter“. The
+	// question and the parties specified in the ``TransactionFilter``. The
 	// stakeholders are the union of the signatories and the observers of
 	// the contract.
 	// Each one of its elements must be a valid PartyIdString (as described
-	// in “value.proto“).
+	// in ``value.proto``).
 	//
 	// Required: must be non-empty
 	WitnessParties []string `protobuf:"bytes,5,rep,name=witness_parties,json=witnessParties,proto3" json:"witness_parties,omitempty"`
@@ -643,7 +643,7 @@ type ExercisedEvent struct {
 	// Required
 	NodeId int32 `protobuf:"varint,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	// The ID of the target contract.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	ContractId string `protobuf:"bytes,3,opt,name=contract_id,json=contractId,proto3" json:"contract_id,omitempty"`
@@ -661,7 +661,7 @@ type ExercisedEvent struct {
 	// Optional
 	InterfaceId *Identifier `protobuf:"bytes,5,opt,name=interface_id,json=interfaceId,proto3" json:"interface_id,omitempty"`
 	// The choice that was exercised on the target contract.
-	// Must be a valid NameString (as described in “value.proto“).
+	// Must be a valid NameString (as described in ``value.proto``).
 	//
 	// Required
 	Choice string `protobuf:"bytes,6,opt,name=choice,proto3" json:"choice,omitempty"`
@@ -670,7 +670,7 @@ type ExercisedEvent struct {
 	// Required
 	ChoiceArgument *Value `protobuf:"bytes,7,opt,name=choice_argument,json=choiceArgument,proto3" json:"choice_argument,omitempty"`
 	// The parties that exercised the choice.
-	// Each element must be a valid PartyIdString (as described in “value.proto“).
+	// Each element must be a valid PartyIdString (as described in ``value.proto``).
 	//
 	// Required: must be non-empty
 	ActingParties []string `protobuf:"bytes,8,rep,name=acting_parties,json=actingParties,proto3" json:"acting_parties,omitempty"`
@@ -691,14 +691,14 @@ type ExercisedEvent struct {
 	// Note that the actors might not necessarily be observers
 	// and thus stakeholders. This is the case when the controllers of a
 	// choice are specified using "flexible controllers", using the
-	// “choice ... controller“ syntax, and said controllers are not
+	// ``choice ... controller`` syntax, and said controllers are not
 	// explicitly marked as observers.
-	// Each element must be a valid PartyIdString (as described in “value.proto“).
+	// Each element must be a valid PartyIdString (as described in ``value.proto``).
 	//
 	// Required: must be non-empty
 	WitnessParties []string `protobuf:"bytes,10,rep,name=witness_parties,json=witnessParties,proto3" json:"witness_parties,omitempty"`
 	// Specifies the upper boundary of the node ids of the events in the same transaction that appeared as a result of
-	// this “ExercisedEvent“. This allows unambiguous identification of all the members of the subtree rooted at this
+	// this ``ExercisedEvent``. This allows unambiguous identification of all the members of the subtree rooted at this
 	// node. A full subtree can be constructed when all descendant nodes are present in the stream. If nodes are heavily
 	// filtered, it is only possible to determine if a node is in a consequent subtree or not.
 	//

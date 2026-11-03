@@ -29,21 +29,21 @@ const (
 type Reassignment struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Assigned by the server. Useful for correlating logs.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	UpdateId string `protobuf:"bytes,1,opt,name=update_id,json=updateId,proto3" json:"update_id,omitempty"`
 	// The ID of the command which resulted in this reassignment. Missing for everyone except the submitting party on the submitting participant.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Optional
 	CommandId string `protobuf:"bytes,2,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
-	// The workflow ID used in reassignment command submission. Only set if the “workflow_id“ for the command was set.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// The workflow ID used in reassignment command submission. Only set if the ``workflow_id`` for the command was set.
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Optional
 	WorkflowId string `protobuf:"bytes,3,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
-	// The participant's offset. The details of this field are described in “community/ledger-api/README.md“.
+	// The participant's offset. The details of this field are described in ``community/ledger-api/README.md``.
 	// Must be a valid absolute offset (positive integer).
 	//
 	// Required
@@ -269,12 +269,12 @@ func (*ReassignmentEvent_Assigned) isReassignmentEvent_Event() {}
 type UnassignedEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID of the unassignment. This needs to be used as an input for a assign ReassignmentCommand.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	ReassignmentId string `protobuf:"bytes,1,opt,name=reassignment_id,json=reassignmentId,proto3" json:"reassignment_id,omitempty"`
 	// The ID of the reassigned contract.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	ContractId string `protobuf:"bytes,2,opt,name=contract_id,json=contractId,proto3" json:"contract_id,omitempty"`
@@ -295,7 +295,7 @@ type UnassignedEvent struct {
 	Target string `protobuf:"bytes,5,opt,name=target,proto3" json:"target,omitempty"`
 	// Party on whose behalf the unassign command was executed.
 	// Empty if the unassignment happened offline via the repair service.
-	// Must be a valid PartyIdString (as described in “value.proto“).
+	// Must be a valid PartyIdString (as described in ``value.proto``).
 	//
 	// Optional
 	Submitter string `protobuf:"bytes,6,opt,name=submitter,proto3" json:"submitter,omitempty"`
@@ -466,13 +466,13 @@ type AssignedEvent struct {
 	Target string `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
 	// The ID from the unassigned event.
 	// For correlation capabilities.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	ReassignmentId string `protobuf:"bytes,3,opt,name=reassignment_id,json=reassignmentId,proto3" json:"reassignment_id,omitempty"`
 	// Party on whose behalf the assign command was executed.
 	// Empty if the assignment happened offline via the repair service.
-	// Must be a valid PartyIdString (as described in “value.proto“).
+	// Must be a valid PartyIdString (as described in ``value.proto``).
 	//
 	// Optional
 	Submitter string `protobuf:"bytes,4,opt,name=submitter,proto3" json:"submitter,omitempty"`

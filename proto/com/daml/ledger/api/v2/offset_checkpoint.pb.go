@@ -31,7 +31,7 @@ const (
 // - provide an offset which can be used to restart consumption.
 type OffsetCheckpoint struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The participant's offset, the details of the offset field are described in “community/ledger-api/README.md“.
+	// The participant's offset, the details of the offset field are described in ``community/ledger-api/README.md``.
 	// Must be a valid absolute offset (positive integer).
 	//
 	// Required

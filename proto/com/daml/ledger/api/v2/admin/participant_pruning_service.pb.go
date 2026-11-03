@@ -29,11 +29,11 @@ type PruneRequest struct {
 	// Inclusive valid absolute offset (positive integer) up to which the ledger is to be pruned.
 	// By default the following data is pruned:
 	//
-	//  1. All normal and divulged contracts that have been archived before
-	//     `prune_up_to`.
-	//  2. All transaction events and completions before `prune_up_to`
-	//  3. All immediately divulged contracts created before `prune_up_to` independent of whether
-	//     they were archived before `prune_up_to`.
+	// 1. All normal and divulged contracts that have been archived before
+	//    `prune_up_to`.
+	// 2. All transaction events and completions before `prune_up_to`
+	// 3. All immediately divulged contracts created before `prune_up_to` independent of whether
+	//    they were archived before `prune_up_to`.
 	//
 	// Required
 	PruneUpTo int64 `protobuf:"varint,1,opt,name=prune_up_to,json=pruneUpTo,proto3" json:"prune_up_to,omitempty"`

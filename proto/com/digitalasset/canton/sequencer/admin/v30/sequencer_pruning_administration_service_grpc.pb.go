@@ -42,14 +42,8 @@ type SequencerPruningAdministrationServiceClient interface {
 	// Remove data from the Sequencer
 	Prune(ctx context.Context, in *PruneRequest, opts ...grpc.CallOption) (*PruneResponse, error)
 	// Enable automatic pruning using the specified schedule parameters
-	// The following errors may occur on the SetSchedule or Update commands:
-	//   - “INVALID_ARGUMENT“: if a parameter is missing or an invalid cron expression
-	//     or duration.
-	//   - “FAILED_PRECONDITION“: if automatic background pruning has not been enabled
-	//     or if invoked on a participant running the Community Edition.
 	SetSchedule(ctx context.Context, in *v30.SetScheduleRequest, opts ...grpc.CallOption) (*v30.SetScheduleResponse, error)
 	// Modify individual pruning schedule parameters.
-	// - “INVALID_ARGUMENT“: if the payload is malformed or no schedule is configured
 	SetCron(ctx context.Context, in *v30.SetCronRequest, opts ...grpc.CallOption) (*v30.SetCronResponse, error)
 	SetMaxDuration(ctx context.Context, in *v30.SetMaxDurationRequest, opts ...grpc.CallOption) (*v30.SetMaxDurationResponse, error)
 	SetRetention(ctx context.Context, in *v30.SetRetentionRequest, opts ...grpc.CallOption) (*v30.SetRetentionResponse, error)
@@ -158,14 +152,8 @@ type SequencerPruningAdministrationServiceServer interface {
 	// Remove data from the Sequencer
 	Prune(context.Context, *PruneRequest) (*PruneResponse, error)
 	// Enable automatic pruning using the specified schedule parameters
-	// The following errors may occur on the SetSchedule or Update commands:
-	//   - “INVALID_ARGUMENT“: if a parameter is missing or an invalid cron expression
-	//     or duration.
-	//   - “FAILED_PRECONDITION“: if automatic background pruning has not been enabled
-	//     or if invoked on a participant running the Community Edition.
 	SetSchedule(context.Context, *v30.SetScheduleRequest) (*v30.SetScheduleResponse, error)
 	// Modify individual pruning schedule parameters.
-	// - “INVALID_ARGUMENT“: if the payload is malformed or no schedule is configured
 	SetCron(context.Context, *v30.SetCronRequest) (*v30.SetCronResponse, error)
 	SetMaxDuration(context.Context, *v30.SetMaxDurationRequest) (*v30.SetMaxDurationResponse, error)
 	SetRetention(context.Context, *v30.SetRetentionRequest) (*v30.SetRetentionResponse, error)

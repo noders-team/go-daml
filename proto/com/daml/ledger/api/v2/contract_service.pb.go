@@ -27,7 +27,7 @@ const (
 type GetContractRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID of the contract.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	ContractId string `protobuf:"bytes,1,opt,name=contract_id,json=contractId,proto3" json:"contract_id,omitempty"`

@@ -976,7 +976,7 @@ func (*UnignoreEventsResponse) Descriptor() ([]byte, []int) {
 type RollbackUnassignmentRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID of the unassignment.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	// Required
 	ReassignmentId string `protobuf:"bytes,1,opt,name=reassignment_id,json=reassignmentId,proto3" json:"reassignment_id,omitempty"`
 	// The ID of the source synchronizer

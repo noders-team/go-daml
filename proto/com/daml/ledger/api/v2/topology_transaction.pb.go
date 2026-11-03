@@ -28,11 +28,11 @@ const (
 type TopologyTransaction struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Assigned by the server. Useful for correlating logs.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	UpdateId string `protobuf:"bytes,1,opt,name=update_id,json=updateId,proto3" json:"update_id,omitempty"`
-	// The absolute offset. The details of this field are described in “community/ledger-api/README.md“.
+	// The absolute offset. The details of this field are described in ``community/ledger-api/README.md``.
 	// It is a valid absolute offset (positive integer).
 	//
 	// Required

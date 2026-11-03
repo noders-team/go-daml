@@ -114,6 +114,86 @@ func (x *RemovePeerEndpointRequest) GetEndpointId() *PeerEndpointId {
 	return nil
 }
 
+type ListConfiguredEndpointsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListConfiguredEndpointsRequest) Reset() {
+	*x = ListConfiguredEndpointsRequest{}
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListConfiguredEndpointsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListConfiguredEndpointsRequest) ProtoMessage() {}
+
+func (x *ListConfiguredEndpointsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListConfiguredEndpointsRequest.ProtoReflect.Descriptor instead.
+func (*ListConfiguredEndpointsRequest) Descriptor() ([]byte, []int) {
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{2}
+}
+
+type ListConfiguredEndpointsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Endpoints     []*PeerEndpoint        `protobuf:"bytes,1,rep,name=endpoints,proto3" json:"endpoints,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListConfiguredEndpointsResponse) Reset() {
+	*x = ListConfiguredEndpointsResponse{}
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListConfiguredEndpointsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListConfiguredEndpointsResponse) ProtoMessage() {}
+
+func (x *ListConfiguredEndpointsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListConfiguredEndpointsResponse.ProtoReflect.Descriptor instead.
+func (*ListConfiguredEndpointsResponse) Descriptor() ([]byte, []int) {
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ListConfiguredEndpointsResponse) GetEndpoints() []*PeerEndpoint {
+	if x != nil {
+		return x.Endpoints
+	}
+	return nil
+}
+
 type PeerEndpoint struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Address string                 `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
@@ -122,14 +202,17 @@ type PeerEndpoint struct {
 	//
 	//	*PeerEndpoint_PlainText
 	//	*PeerEndpoint_Tls
-	Security      isPeerEndpoint_Security `protobuf_oneof:"security"`
+	Security isPeerEndpoint_Security `protobuf_oneof:"security"`
+	// Ignored when storing an endpoint, but returned when listing configured endpoints:
+	//  if the peer authenticated as a sequencer over this endpoint, this field will contain its sequencer ID.
+	SequencerId   *string `protobuf:"bytes,5,opt,name=sequencer_id,json=sequencerId,proto3,oneof" json:"sequencer_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PeerEndpoint) Reset() {
 	*x = PeerEndpoint{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[2]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -141,7 +224,7 @@ func (x *PeerEndpoint) String() string {
 func (*PeerEndpoint) ProtoMessage() {}
 
 func (x *PeerEndpoint) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[2]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -154,7 +237,7 @@ func (x *PeerEndpoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeerEndpoint.ProtoReflect.Descriptor instead.
 func (*PeerEndpoint) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{2}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PeerEndpoint) GetAddress() string {
@@ -196,6 +279,13 @@ func (x *PeerEndpoint) GetTls() *TlsPeerEndpoint {
 	return nil
 }
 
+func (x *PeerEndpoint) GetSequencerId() string {
+	if x != nil && x.SequencerId != nil {
+		return *x.SequencerId
+	}
+	return ""
+}
+
 type isPeerEndpoint_Security interface {
 	isPeerEndpoint_Security()
 }
@@ -223,7 +313,7 @@ type PeerEndpointId struct {
 
 func (x *PeerEndpointId) Reset() {
 	*x = PeerEndpointId{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[3]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -235,7 +325,7 @@ func (x *PeerEndpointId) String() string {
 func (*PeerEndpointId) ProtoMessage() {}
 
 func (x *PeerEndpointId) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[3]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -248,7 +338,7 @@ func (x *PeerEndpointId) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeerEndpointId.ProtoReflect.Descriptor instead.
 func (*PeerEndpointId) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{3}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *PeerEndpointId) GetAddress() string {
@@ -280,7 +370,7 @@ type PlainTextPeerEndpoint struct {
 
 func (x *PlainTextPeerEndpoint) Reset() {
 	*x = PlainTextPeerEndpoint{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[4]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -292,7 +382,7 @@ func (x *PlainTextPeerEndpoint) String() string {
 func (*PlainTextPeerEndpoint) ProtoMessage() {}
 
 func (x *PlainTextPeerEndpoint) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[4]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -305,7 +395,7 @@ func (x *PlainTextPeerEndpoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlainTextPeerEndpoint.ProtoReflect.Descriptor instead.
 func (*PlainTextPeerEndpoint) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{4}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{6}
 }
 
 type TlsPeerEndpoint struct {
@@ -318,7 +408,7 @@ type TlsPeerEndpoint struct {
 
 func (x *TlsPeerEndpoint) Reset() {
 	*x = TlsPeerEndpoint{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[5]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -330,7 +420,7 @@ func (x *TlsPeerEndpoint) String() string {
 func (*TlsPeerEndpoint) ProtoMessage() {}
 
 func (x *TlsPeerEndpoint) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[5]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -343,7 +433,7 @@ func (x *TlsPeerEndpoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TlsPeerEndpoint.ProtoReflect.Descriptor instead.
 func (*TlsPeerEndpoint) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{5}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *TlsPeerEndpoint) GetCustomServerTrustCertificate() []byte {
@@ -370,7 +460,7 @@ type TlsClientCertificate struct {
 
 func (x *TlsClientCertificate) Reset() {
 	*x = TlsClientCertificate{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[6]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -382,7 +472,7 @@ func (x *TlsClientCertificate) String() string {
 func (*TlsClientCertificate) ProtoMessage() {}
 
 func (x *TlsClientCertificate) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[6]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -395,7 +485,7 @@ func (x *TlsClientCertificate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TlsClientCertificate.ProtoReflect.Descriptor instead.
 func (*TlsClientCertificate) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{6}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *TlsClientCertificate) GetCertificateChain() []byte {
@@ -422,7 +512,7 @@ type AddPeerEndpointResponse struct {
 
 func (x *AddPeerEndpointResponse) Reset() {
 	*x = AddPeerEndpointResponse{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[7]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -434,7 +524,7 @@ func (x *AddPeerEndpointResponse) String() string {
 func (*AddPeerEndpointResponse) ProtoMessage() {}
 
 func (x *AddPeerEndpointResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[7]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -447,7 +537,7 @@ func (x *AddPeerEndpointResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddPeerEndpointResponse.ProtoReflect.Descriptor instead.
 func (*AddPeerEndpointResponse) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{7}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *AddPeerEndpointResponse) GetAdded() bool {
@@ -467,7 +557,7 @@ type RemovePeerEndpointResponse struct {
 
 func (x *RemovePeerEndpointResponse) Reset() {
 	*x = RemovePeerEndpointResponse{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[8]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -479,7 +569,7 @@ func (x *RemovePeerEndpointResponse) String() string {
 func (*RemovePeerEndpointResponse) ProtoMessage() {}
 
 func (x *RemovePeerEndpointResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[8]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -492,7 +582,7 @@ func (x *RemovePeerEndpointResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemovePeerEndpointResponse.ProtoReflect.Descriptor instead.
 func (*RemovePeerEndpointResponse) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{8}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RemovePeerEndpointResponse) GetRemoved() bool {
@@ -511,7 +601,7 @@ type Authenticated struct {
 
 func (x *Authenticated) Reset() {
 	*x = Authenticated{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[9]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -523,7 +613,7 @@ func (x *Authenticated) String() string {
 func (*Authenticated) ProtoMessage() {}
 
 func (x *Authenticated) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[9]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -536,12 +626,297 @@ func (x *Authenticated) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Authenticated.ProtoReflect.Descriptor instead.
 func (*Authenticated) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{9}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Authenticated) GetSequencerId() string {
 	if x != nil {
 		return x.SequencerId
+	}
+	return ""
+}
+
+type GetPeerNetworkStatusRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// If empty, the status of all known endpoints will be returned
+	EndpointIds   []*PeerEndpointId `protobuf:"bytes,1,rep,name=endpoint_ids,json=endpointIds,proto3" json:"endpoint_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPeerNetworkStatusRequest) Reset() {
+	*x = GetPeerNetworkStatusRequest{}
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPeerNetworkStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPeerNetworkStatusRequest) ProtoMessage() {}
+
+func (x *GetPeerNetworkStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPeerNetworkStatusRequest.ProtoReflect.Descriptor instead.
+func (*GetPeerNetworkStatusRequest) Descriptor() ([]byte, []int) {
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetPeerNetworkStatusRequest) GetEndpointIds() []*PeerEndpointId {
+	if x != nil {
+		return x.EndpointIds
+	}
+	return nil
+}
+
+type GetPeerNetworkStatusResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Statuses      []*PeerConnectionStatus `protobuf:"bytes,1,rep,name=statuses,proto3" json:"statuses,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPeerNetworkStatusResponse) Reset() {
+	*x = GetPeerNetworkStatusResponse{}
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPeerNetworkStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPeerNetworkStatusResponse) ProtoMessage() {}
+
+func (x *GetPeerNetworkStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPeerNetworkStatusResponse.ProtoReflect.Descriptor instead.
+func (*GetPeerNetworkStatusResponse) Descriptor() ([]byte, []int) {
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *GetPeerNetworkStatusResponse) GetStatuses() []*PeerConnectionStatus {
+	if x != nil {
+		return x.Statuses
+	}
+	return nil
+}
+
+type PeerConnectionStatus struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Status:
+	//
+	//	*PeerConnectionStatus_PeerEndpointStatus
+	//	*PeerConnectionStatus_PeerIncomingConnection
+	Status        isPeerConnectionStatus_Status `protobuf_oneof:"status"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PeerConnectionStatus) Reset() {
+	*x = PeerConnectionStatus{}
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PeerConnectionStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeerConnectionStatus) ProtoMessage() {}
+
+func (x *PeerConnectionStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeerConnectionStatus.ProtoReflect.Descriptor instead.
+func (*PeerConnectionStatus) Descriptor() ([]byte, []int) {
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *PeerConnectionStatus) GetStatus() isPeerConnectionStatus_Status {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+func (x *PeerConnectionStatus) GetPeerEndpointStatus() *PeerEndpointStatus {
+	if x != nil {
+		if x, ok := x.Status.(*PeerConnectionStatus_PeerEndpointStatus); ok {
+			return x.PeerEndpointStatus
+		}
+	}
+	return nil
+}
+
+func (x *PeerConnectionStatus) GetPeerIncomingConnection() *Authenticated {
+	if x != nil {
+		if x, ok := x.Status.(*PeerConnectionStatus_PeerIncomingConnection); ok {
+			return x.PeerIncomingConnection
+		}
+	}
+	return nil
+}
+
+type isPeerConnectionStatus_Status interface {
+	isPeerConnectionStatus_Status()
+}
+
+type PeerConnectionStatus_PeerEndpointStatus struct {
+	// An outgoing or incoming connection for which the endpoint is known
+	PeerEndpointStatus *PeerEndpointStatus `protobuf:"bytes,1,opt,name=peer_endpoint_status,json=peerEndpointStatus,proto3,oneof"`
+}
+
+type PeerConnectionStatus_PeerIncomingConnection struct {
+	// An incoming connection for which the endpoint is not known
+	PeerIncomingConnection *Authenticated `protobuf:"bytes,2,opt,name=peer_incoming_connection,json=peerIncomingConnection,proto3,oneof"`
+}
+
+func (*PeerConnectionStatus_PeerEndpointStatus) isPeerConnectionStatus_Status() {}
+
+func (*PeerConnectionStatus_PeerIncomingConnection) isPeerConnectionStatus_Status() {}
+
+type PeerEndpointStatus struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	EndpointId           *PeerEndpointId        `protobuf:"bytes,1,opt,name=endpoint_id,json=endpointId,proto3" json:"endpoint_id,omitempty"`
+	IsOutgoingConnection bool                   `protobuf:"varint,2,opt,name=is_outgoing_connection,json=isOutgoingConnection,proto3" json:"is_outgoing_connection,omitempty"`
+	Health               *PeerEndpointHealth    `protobuf:"bytes,3,opt,name=health,proto3" json:"health,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *PeerEndpointStatus) Reset() {
+	*x = PeerEndpointStatus{}
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PeerEndpointStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeerEndpointStatus) ProtoMessage() {}
+
+func (x *PeerEndpointStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeerEndpointStatus.ProtoReflect.Descriptor instead.
+func (*PeerEndpointStatus) Descriptor() ([]byte, []int) {
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *PeerEndpointStatus) GetEndpointId() *PeerEndpointId {
+	if x != nil {
+		return x.EndpointId
+	}
+	return nil
+}
+
+func (x *PeerEndpointStatus) GetIsOutgoingConnection() bool {
+	if x != nil {
+		return x.IsOutgoingConnection
+	}
+	return false
+}
+
+func (x *PeerEndpointStatus) GetHealth() *PeerEndpointHealth {
+	if x != nil {
+		return x.Health
+	}
+	return nil
+}
+
+type PeerEndpointHealth struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Status        *PeerEndpointHealthStatus `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Description   *string                   `protobuf:"bytes,2,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PeerEndpointHealth) Reset() {
+	*x = PeerEndpointHealth{}
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PeerEndpointHealth) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeerEndpointHealth) ProtoMessage() {}
+
+func (x *PeerEndpointHealth) ProtoReflect() protoreflect.Message {
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeerEndpointHealth.ProtoReflect.Descriptor instead.
+func (*PeerEndpointHealth) Descriptor() ([]byte, []int) {
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *PeerEndpointHealth) GetStatus() *PeerEndpointHealthStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+func (x *PeerEndpointHealth) GetDescription() string {
+	if x != nil && x.Description != nil {
+		return *x.Description
 	}
 	return ""
 }
@@ -561,7 +936,7 @@ type PeerEndpointHealthStatus struct {
 
 func (x *PeerEndpointHealthStatus) Reset() {
 	*x = PeerEndpointHealthStatus{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[10]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -573,7 +948,7 @@ func (x *PeerEndpointHealthStatus) String() string {
 func (*PeerEndpointHealthStatus) ProtoMessage() {}
 
 func (x *PeerEndpointHealthStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[10]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -586,7 +961,7 @@ func (x *PeerEndpointHealthStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeerEndpointHealthStatus.ProtoReflect.Descriptor instead.
 func (*PeerEndpointHealthStatus) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{10}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *PeerEndpointHealthStatus) GetStatus() isPeerEndpointHealthStatus_Status {
@@ -660,289 +1035,6 @@ func (*PeerEndpointHealthStatus_Unauthenticated_) isPeerEndpointHealthStatus_Sta
 
 func (*PeerEndpointHealthStatus_Authenticated) isPeerEndpointHealthStatus_Status() {}
 
-type PeerEndpointHealth struct {
-	state         protoimpl.MessageState    `protogen:"open.v1"`
-	Status        *PeerEndpointHealthStatus `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	Description   *string                   `protobuf:"bytes,2,opt,name=description,proto3,oneof" json:"description,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PeerEndpointHealth) Reset() {
-	*x = PeerEndpointHealth{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PeerEndpointHealth) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PeerEndpointHealth) ProtoMessage() {}
-
-func (x *PeerEndpointHealth) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PeerEndpointHealth.ProtoReflect.Descriptor instead.
-func (*PeerEndpointHealth) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *PeerEndpointHealth) GetStatus() *PeerEndpointHealthStatus {
-	if x != nil {
-		return x.Status
-	}
-	return nil
-}
-
-func (x *PeerEndpointHealth) GetDescription() string {
-	if x != nil && x.Description != nil {
-		return *x.Description
-	}
-	return ""
-}
-
-type PeerEndpointStatus struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	EndpointId           *PeerEndpointId        `protobuf:"bytes,1,opt,name=endpoint_id,json=endpointId,proto3" json:"endpoint_id,omitempty"`
-	IsOutgoingConnection bool                   `protobuf:"varint,2,opt,name=is_outgoing_connection,json=isOutgoingConnection,proto3" json:"is_outgoing_connection,omitempty"`
-	Health               *PeerEndpointHealth    `protobuf:"bytes,3,opt,name=health,proto3" json:"health,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
-}
-
-func (x *PeerEndpointStatus) Reset() {
-	*x = PeerEndpointStatus{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PeerEndpointStatus) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PeerEndpointStatus) ProtoMessage() {}
-
-func (x *PeerEndpointStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PeerEndpointStatus.ProtoReflect.Descriptor instead.
-func (*PeerEndpointStatus) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *PeerEndpointStatus) GetEndpointId() *PeerEndpointId {
-	if x != nil {
-		return x.EndpointId
-	}
-	return nil
-}
-
-func (x *PeerEndpointStatus) GetIsOutgoingConnection() bool {
-	if x != nil {
-		return x.IsOutgoingConnection
-	}
-	return false
-}
-
-func (x *PeerEndpointStatus) GetHealth() *PeerEndpointHealth {
-	if x != nil {
-		return x.Health
-	}
-	return nil
-}
-
-type PeerConnectionStatus struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Status:
-	//
-	//	*PeerConnectionStatus_PeerEndpointStatus
-	//	*PeerConnectionStatus_PeerIncomingConnection
-	Status        isPeerConnectionStatus_Status `protobuf_oneof:"status"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PeerConnectionStatus) Reset() {
-	*x = PeerConnectionStatus{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PeerConnectionStatus) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PeerConnectionStatus) ProtoMessage() {}
-
-func (x *PeerConnectionStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PeerConnectionStatus.ProtoReflect.Descriptor instead.
-func (*PeerConnectionStatus) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *PeerConnectionStatus) GetStatus() isPeerConnectionStatus_Status {
-	if x != nil {
-		return x.Status
-	}
-	return nil
-}
-
-func (x *PeerConnectionStatus) GetPeerEndpointStatus() *PeerEndpointStatus {
-	if x != nil {
-		if x, ok := x.Status.(*PeerConnectionStatus_PeerEndpointStatus); ok {
-			return x.PeerEndpointStatus
-		}
-	}
-	return nil
-}
-
-func (x *PeerConnectionStatus) GetPeerIncomingConnection() *Authenticated {
-	if x != nil {
-		if x, ok := x.Status.(*PeerConnectionStatus_PeerIncomingConnection); ok {
-			return x.PeerIncomingConnection
-		}
-	}
-	return nil
-}
-
-type isPeerConnectionStatus_Status interface {
-	isPeerConnectionStatus_Status()
-}
-
-type PeerConnectionStatus_PeerEndpointStatus struct {
-	PeerEndpointStatus *PeerEndpointStatus `protobuf:"bytes,1,opt,name=peer_endpoint_status,json=peerEndpointStatus,proto3,oneof"`
-}
-
-type PeerConnectionStatus_PeerIncomingConnection struct {
-	PeerIncomingConnection *Authenticated `protobuf:"bytes,2,opt,name=peer_incoming_connection,json=peerIncomingConnection,proto3,oneof"`
-}
-
-func (*PeerConnectionStatus_PeerEndpointStatus) isPeerConnectionStatus_Status() {}
-
-func (*PeerConnectionStatus_PeerIncomingConnection) isPeerConnectionStatus_Status() {}
-
-type GetPeerNetworkStatusRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// If empty, the status of all known endpoints will be returned
-	EndpointIds   []*PeerEndpointId `protobuf:"bytes,1,rep,name=endpoint_ids,json=endpointIds,proto3" json:"endpoint_ids,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetPeerNetworkStatusRequest) Reset() {
-	*x = GetPeerNetworkStatusRequest{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[14]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetPeerNetworkStatusRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetPeerNetworkStatusRequest) ProtoMessage() {}
-
-func (x *GetPeerNetworkStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[14]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetPeerNetworkStatusRequest.ProtoReflect.Descriptor instead.
-func (*GetPeerNetworkStatusRequest) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{14}
-}
-
-func (x *GetPeerNetworkStatusRequest) GetEndpointIds() []*PeerEndpointId {
-	if x != nil {
-		return x.EndpointIds
-	}
-	return nil
-}
-
-type GetPeerNetworkStatusResponse struct {
-	state         protoimpl.MessageState  `protogen:"open.v1"`
-	Statuses      []*PeerConnectionStatus `protobuf:"bytes,1,rep,name=statuses,proto3" json:"statuses,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetPeerNetworkStatusResponse) Reset() {
-	*x = GetPeerNetworkStatusResponse{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetPeerNetworkStatusResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetPeerNetworkStatusResponse) ProtoMessage() {}
-
-func (x *GetPeerNetworkStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetPeerNetworkStatusResponse.ProtoReflect.Descriptor instead.
-func (*GetPeerNetworkStatusResponse) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *GetPeerNetworkStatusResponse) GetStatuses() []*PeerConnectionStatus {
-	if x != nil {
-		return x.Statuses
-	}
-	return nil
-}
-
 type GetWriteReadinessRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -951,7 +1043,7 @@ type GetWriteReadinessRequest struct {
 
 func (x *GetWriteReadinessRequest) Reset() {
 	*x = GetWriteReadinessRequest{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[16]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -963,7 +1055,7 @@ func (x *GetWriteReadinessRequest) String() string {
 func (*GetWriteReadinessRequest) ProtoMessage() {}
 
 func (x *GetWriteReadinessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[16]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -976,7 +1068,7 @@ func (x *GetWriteReadinessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWriteReadinessRequest.ProtoReflect.Descriptor instead.
 func (*GetWriteReadinessRequest) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{16}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{18}
 }
 
 type GetWriteReadinessResponse struct {
@@ -992,7 +1084,7 @@ type GetWriteReadinessResponse struct {
 
 func (x *GetWriteReadinessResponse) Reset() {
 	*x = GetWriteReadinessResponse{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[17]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1004,7 +1096,7 @@ func (x *GetWriteReadinessResponse) String() string {
 func (*GetWriteReadinessResponse) ProtoMessage() {}
 
 func (x *GetWriteReadinessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[17]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1017,7 +1109,7 @@ func (x *GetWriteReadinessResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWriteReadinessResponse.ProtoReflect.Descriptor instead.
 func (*GetWriteReadinessResponse) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{17}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetWriteReadinessResponse) GetReadiness() isGetWriteReadinessResponse_Readiness {
@@ -1069,7 +1161,7 @@ type GetOrderingTopologyRequest struct {
 
 func (x *GetOrderingTopologyRequest) Reset() {
 	*x = GetOrderingTopologyRequest{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[18]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1081,7 +1173,7 @@ func (x *GetOrderingTopologyRequest) String() string {
 func (*GetOrderingTopologyRequest) ProtoMessage() {}
 
 func (x *GetOrderingTopologyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[18]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1094,7 +1186,7 @@ func (x *GetOrderingTopologyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrderingTopologyRequest.ProtoReflect.Descriptor instead.
 func (*GetOrderingTopologyRequest) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{18}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{20}
 }
 
 type GetOrderingTopologyResponse struct {
@@ -1110,13 +1202,17 @@ type GetOrderingTopologyResponse struct {
 	//	*GetOrderingTopologyResponse_DynamicSequencingParametersPayload
 	//	*GetOrderingTopologyResponse_DynamicSequencingParametersPayload31
 	DynamicSequencingParameters isGetOrderingTopologyResponse_DynamicSequencingParameters `protobuf_oneof:"dynamic_sequencing_parameters"`
-	unknownFields               protoimpl.UnknownFields
-	sizeCache                   protoimpl.SizeCache
+	// The sequencer IDs of the BFT ordering nodes in the network that are consensus leaders.
+	LeaderSequencerIds []string `protobuf:"bytes,5,rep,name=leader_sequencer_ids,json=leaderSequencerIds,proto3" json:"leader_sequencer_ids,omitempty"`
+	// The sequencer IDs of the BFT ordering nodes in the network that are blacklisted.
+	BlacklistedSequencerIds []string `protobuf:"bytes,6,rep,name=blacklisted_sequencer_ids,json=blacklistedSequencerIds,proto3" json:"blacklisted_sequencer_ids,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *GetOrderingTopologyResponse) Reset() {
 	*x = GetOrderingTopologyResponse{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[19]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1128,7 +1224,7 @@ func (x *GetOrderingTopologyResponse) String() string {
 func (*GetOrderingTopologyResponse) ProtoMessage() {}
 
 func (x *GetOrderingTopologyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[19]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1141,7 +1237,7 @@ func (x *GetOrderingTopologyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrderingTopologyResponse.ProtoReflect.Descriptor instead.
 func (*GetOrderingTopologyResponse) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{19}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetOrderingTopologyResponse) GetCurrentEpoch() int64 {
@@ -1183,6 +1279,20 @@ func (x *GetOrderingTopologyResponse) GetDynamicSequencingParametersPayload31() 
 	return nil
 }
 
+func (x *GetOrderingTopologyResponse) GetLeaderSequencerIds() []string {
+	if x != nil {
+		return x.LeaderSequencerIds
+	}
+	return nil
+}
+
+func (x *GetOrderingTopologyResponse) GetBlacklistedSequencerIds() []string {
+	if x != nil {
+		return x.BlacklistedSequencerIds
+	}
+	return nil
+}
+
 type isGetOrderingTopologyResponse_DynamicSequencingParameters interface {
 	isGetOrderingTopologyResponse_DynamicSequencingParameters()
 }
@@ -1210,7 +1320,7 @@ type SetPerformanceMetricsEnabledRequest struct {
 
 func (x *SetPerformanceMetricsEnabledRequest) Reset() {
 	*x = SetPerformanceMetricsEnabledRequest{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[20]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1222,7 +1332,7 @@ func (x *SetPerformanceMetricsEnabledRequest) String() string {
 func (*SetPerformanceMetricsEnabledRequest) ProtoMessage() {}
 
 func (x *SetPerformanceMetricsEnabledRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[20]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1235,7 +1345,7 @@ func (x *SetPerformanceMetricsEnabledRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use SetPerformanceMetricsEnabledRequest.ProtoReflect.Descriptor instead.
 func (*SetPerformanceMetricsEnabledRequest) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{20}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *SetPerformanceMetricsEnabledRequest) GetEnabled() bool {
@@ -1253,7 +1363,7 @@ type SetPerformanceMetricsEnabledResponse struct {
 
 func (x *SetPerformanceMetricsEnabledResponse) Reset() {
 	*x = SetPerformanceMetricsEnabledResponse{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[21]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1265,7 +1375,7 @@ func (x *SetPerformanceMetricsEnabledResponse) String() string {
 func (*SetPerformanceMetricsEnabledResponse) ProtoMessage() {}
 
 func (x *SetPerformanceMetricsEnabledResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[21]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1278,7 +1388,7 @@ func (x *SetPerformanceMetricsEnabledResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use SetPerformanceMetricsEnabledResponse.ProtoReflect.Descriptor instead.
 func (*SetPerformanceMetricsEnabledResponse) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{21}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{23}
 }
 
 type PeerEndpointHealthStatus_UnknownEndpoint struct {
@@ -1289,7 +1399,7 @@ type PeerEndpointHealthStatus_UnknownEndpoint struct {
 
 func (x *PeerEndpointHealthStatus_UnknownEndpoint) Reset() {
 	*x = PeerEndpointHealthStatus_UnknownEndpoint{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[22]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1301,7 +1411,7 @@ func (x *PeerEndpointHealthStatus_UnknownEndpoint) String() string {
 func (*PeerEndpointHealthStatus_UnknownEndpoint) ProtoMessage() {}
 
 func (x *PeerEndpointHealthStatus_UnknownEndpoint) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[22]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1314,7 +1424,7 @@ func (x *PeerEndpointHealthStatus_UnknownEndpoint) ProtoReflect() protoreflect.M
 
 // Deprecated: Use PeerEndpointHealthStatus_UnknownEndpoint.ProtoReflect.Descriptor instead.
 func (*PeerEndpointHealthStatus_UnknownEndpoint) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{10, 0}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{17, 0}
 }
 
 type PeerEndpointHealthStatus_Disconnected struct {
@@ -1325,7 +1435,7 @@ type PeerEndpointHealthStatus_Disconnected struct {
 
 func (x *PeerEndpointHealthStatus_Disconnected) Reset() {
 	*x = PeerEndpointHealthStatus_Disconnected{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[23]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1337,7 +1447,7 @@ func (x *PeerEndpointHealthStatus_Disconnected) String() string {
 func (*PeerEndpointHealthStatus_Disconnected) ProtoMessage() {}
 
 func (x *PeerEndpointHealthStatus_Disconnected) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[23]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1350,7 +1460,7 @@ func (x *PeerEndpointHealthStatus_Disconnected) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use PeerEndpointHealthStatus_Disconnected.ProtoReflect.Descriptor instead.
 func (*PeerEndpointHealthStatus_Disconnected) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{10, 1}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{17, 1}
 }
 
 type PeerEndpointHealthStatus_Unauthenticated struct {
@@ -1361,7 +1471,7 @@ type PeerEndpointHealthStatus_Unauthenticated struct {
 
 func (x *PeerEndpointHealthStatus_Unauthenticated) Reset() {
 	*x = PeerEndpointHealthStatus_Unauthenticated{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[24]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1373,7 +1483,7 @@ func (x *PeerEndpointHealthStatus_Unauthenticated) String() string {
 func (*PeerEndpointHealthStatus_Unauthenticated) ProtoMessage() {}
 
 func (x *PeerEndpointHealthStatus_Unauthenticated) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[24]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1386,7 +1496,7 @@ func (x *PeerEndpointHealthStatus_Unauthenticated) ProtoReflect() protoreflect.M
 
 // Deprecated: Use PeerEndpointHealthStatus_Unauthenticated.ProtoReflect.Descriptor instead.
 func (*PeerEndpointHealthStatus_Unauthenticated) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{10, 2}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{17, 2}
 }
 
 type GetWriteReadinessResponse_P2P struct {
@@ -1399,7 +1509,7 @@ type GetWriteReadinessResponse_P2P struct {
 
 func (x *GetWriteReadinessResponse_P2P) Reset() {
 	*x = GetWriteReadinessResponse_P2P{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[25]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1411,7 +1521,7 @@ func (x *GetWriteReadinessResponse_P2P) String() string {
 func (*GetWriteReadinessResponse_P2P) ProtoMessage() {}
 
 func (x *GetWriteReadinessResponse_P2P) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[25]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1424,7 +1534,7 @@ func (x *GetWriteReadinessResponse_P2P) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWriteReadinessResponse_P2P.ProtoReflect.Descriptor instead.
 func (*GetWriteReadinessResponse_P2P) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{17, 0}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{19, 0}
 }
 
 func (x *GetWriteReadinessResponse_P2P) GetAuthenticatedPeersCount() int32 {
@@ -1450,7 +1560,7 @@ type GetWriteReadinessResponse_Ready struct {
 
 func (x *GetWriteReadinessResponse_Ready) Reset() {
 	*x = GetWriteReadinessResponse_Ready{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[26]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1462,7 +1572,7 @@ func (x *GetWriteReadinessResponse_Ready) String() string {
 func (*GetWriteReadinessResponse_Ready) ProtoMessage() {}
 
 func (x *GetWriteReadinessResponse_Ready) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[26]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1475,7 +1585,7 @@ func (x *GetWriteReadinessResponse_Ready) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWriteReadinessResponse_Ready.ProtoReflect.Descriptor instead.
 func (*GetWriteReadinessResponse_Ready) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{17, 1}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{19, 1}
 }
 
 func (x *GetWriteReadinessResponse_Ready) GetP2P() *GetWriteReadinessResponse_P2P {
@@ -1494,7 +1604,7 @@ type GetWriteReadinessResponse_P2PNotReady struct {
 
 func (x *GetWriteReadinessResponse_P2PNotReady) Reset() {
 	*x = GetWriteReadinessResponse_P2PNotReady{}
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[27]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1506,7 +1616,7 @@ func (x *GetWriteReadinessResponse_P2PNotReady) String() string {
 func (*GetWriteReadinessResponse_P2PNotReady) ProtoMessage() {}
 
 func (x *GetWriteReadinessResponse_P2PNotReady) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[27]
+	mi := &file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1519,7 +1629,7 @@ func (x *GetWriteReadinessResponse_P2PNotReady) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use GetWriteReadinessResponse_P2PNotReady.ProtoReflect.Descriptor instead.
 func (*GetWriteReadinessResponse_P2PNotReady) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{17, 2}
+	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescGZIP(), []int{19, 2}
 }
 
 func (x *GetWriteReadinessResponse_P2PNotReady) GetP2P() *GetWriteReadinessResponse_P2P {
@@ -1538,15 +1648,20 @@ const file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administrat
 	"\bendpoint\x18\x01 \x01(\v29.com.digitalasset.canton.sequencer.admin.v30.PeerEndpointR\bendpoint\"y\n" +
 	"\x19RemovePeerEndpointRequest\x12\\\n" +
 	"\vendpoint_id\x18\x01 \x01(\v2;.com.digitalasset.canton.sequencer.admin.v30.PeerEndpointIdR\n" +
-	"endpointId\"\xff\x01\n" +
+	"endpointId\" \n" +
+	"\x1eListConfiguredEndpointsRequest\"z\n" +
+	"\x1fListConfiguredEndpointsResponse\x12W\n" +
+	"\tendpoints\x18\x01 \x03(\v29.com.digitalasset.canton.sequencer.admin.v30.PeerEndpointR\tendpoints\"\xb8\x02\n" +
 	"\fPeerEndpoint\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12c\n" +
 	"\n" +
 	"plain_text\x18\x03 \x01(\v2B.com.digitalasset.canton.sequencer.admin.v30.PlainTextPeerEndpointH\x00R\tplainText\x12P\n" +
-	"\x03tls\x18\x04 \x01(\v2<.com.digitalasset.canton.sequencer.admin.v30.TlsPeerEndpointH\x00R\x03tlsB\n" +
+	"\x03tls\x18\x04 \x01(\v2<.com.digitalasset.canton.sequencer.admin.v30.TlsPeerEndpointH\x00R\x03tls\x12&\n" +
+	"\fsequencer_id\x18\x05 \x01(\tH\x01R\vsequencerId\x88\x01\x01B\n" +
 	"\n" +
-	"\bsecurity\"P\n" +
+	"\bsecurityB\x0f\n" +
+	"\r_sequencer_id\"P\n" +
 	"\x0ePeerEndpointId\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x10\n" +
@@ -1564,7 +1679,24 @@ const file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administrat
 	"\x1aRemovePeerEndpointResponse\x12\x18\n" +
 	"\aremoved\x18\x01 \x01(\bR\aremoved\"2\n" +
 	"\rAuthenticated\x12!\n" +
-	"\fsequencer_id\x18\x01 \x01(\tR\vsequencerId\"\xc1\x04\n" +
+	"\fsequencer_id\x18\x01 \x01(\tR\vsequencerId\"}\n" +
+	"\x1bGetPeerNetworkStatusRequest\x12^\n" +
+	"\fendpoint_ids\x18\x01 \x03(\v2;.com.digitalasset.canton.sequencer.admin.v30.PeerEndpointIdR\vendpointIds\"}\n" +
+	"\x1cGetPeerNetworkStatusResponse\x12]\n" +
+	"\bstatuses\x18\x01 \x03(\v2A.com.digitalasset.canton.sequencer.admin.v30.PeerConnectionStatusR\bstatuses\"\x8d\x02\n" +
+	"\x14PeerConnectionStatus\x12s\n" +
+	"\x14peer_endpoint_status\x18\x01 \x01(\v2?.com.digitalasset.canton.sequencer.admin.v30.PeerEndpointStatusH\x00R\x12peerEndpointStatus\x12v\n" +
+	"\x18peer_incoming_connection\x18\x02 \x01(\v2:.com.digitalasset.canton.sequencer.admin.v30.AuthenticatedH\x00R\x16peerIncomingConnectionB\b\n" +
+	"\x06status\"\x81\x02\n" +
+	"\x12PeerEndpointStatus\x12\\\n" +
+	"\vendpoint_id\x18\x01 \x01(\v2;.com.digitalasset.canton.sequencer.admin.v30.PeerEndpointIdR\n" +
+	"endpointId\x124\n" +
+	"\x16is_outgoing_connection\x18\x02 \x01(\bR\x14isOutgoingConnection\x12W\n" +
+	"\x06health\x18\x03 \x01(\v2?.com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthR\x06health\"\xaa\x01\n" +
+	"\x12PeerEndpointHealth\x12]\n" +
+	"\x06status\x18\x01 \x01(\v2E.com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatusR\x06status\x12%\n" +
+	"\vdescription\x18\x02 \x01(\tH\x00R\vdescription\x88\x01\x01B\x0e\n" +
+	"\f_description\"\xc1\x04\n" +
 	"\x18PeerEndpointHealthStatus\x12\x82\x01\n" +
 	"\x10unknown_endpoint\x18\x01 \x01(\v2U.com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.UnknownEndpointH\x00R\x0funknownEndpoint\x12x\n" +
 	"\fdisconnected\x18\x02 \x01(\v2R.com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.DisconnectedH\x00R\fdisconnected\x12\x81\x01\n" +
@@ -1573,24 +1705,7 @@ const file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administrat
 	"\x0fUnknownEndpoint\x1a\x0e\n" +
 	"\fDisconnected\x1a\x11\n" +
 	"\x0fUnauthenticatedB\b\n" +
-	"\x06status\"\xaa\x01\n" +
-	"\x12PeerEndpointHealth\x12]\n" +
-	"\x06status\x18\x01 \x01(\v2E.com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatusR\x06status\x12%\n" +
-	"\vdescription\x18\x02 \x01(\tH\x00R\vdescription\x88\x01\x01B\x0e\n" +
-	"\f_description\"\x81\x02\n" +
-	"\x12PeerEndpointStatus\x12\\\n" +
-	"\vendpoint_id\x18\x01 \x01(\v2;.com.digitalasset.canton.sequencer.admin.v30.PeerEndpointIdR\n" +
-	"endpointId\x124\n" +
-	"\x16is_outgoing_connection\x18\x02 \x01(\bR\x14isOutgoingConnection\x12W\n" +
-	"\x06health\x18\x03 \x01(\v2?.com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthR\x06health\"\x8d\x02\n" +
-	"\x14PeerConnectionStatus\x12s\n" +
-	"\x14peer_endpoint_status\x18\x01 \x01(\v2?.com.digitalasset.canton.sequencer.admin.v30.PeerEndpointStatusH\x00R\x12peerEndpointStatus\x12v\n" +
-	"\x18peer_incoming_connection\x18\x02 \x01(\v2:.com.digitalasset.canton.sequencer.admin.v30.AuthenticatedH\x00R\x16peerIncomingConnectionB\b\n" +
-	"\x06status\"}\n" +
-	"\x1bGetPeerNetworkStatusRequest\x12^\n" +
-	"\fendpoint_ids\x18\x01 \x03(\v2;.com.digitalasset.canton.sequencer.admin.v30.PeerEndpointIdR\vendpointIds\"}\n" +
-	"\x1cGetPeerNetworkStatusResponse\x12]\n" +
-	"\bstatuses\x18\x01 \x03(\v2A.com.digitalasset.canton.sequencer.admin.v30.PeerConnectionStatusR\bstatuses\"\x1a\n" +
+	"\x06status\"\x1a\n" +
 	"\x18GetWriteReadinessRequest\"\xc8\x04\n" +
 	"\x19GetWriteReadinessResponse\x12d\n" +
 	"\x05ready\x18\x01 \x01(\v2L.com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.ReadyH\x00R\x05ready\x12x\n" +
@@ -1603,19 +1718,22 @@ const file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administrat
 	"\vP2PNotReady\x12\\\n" +
 	"\x03p2p\x18\x01 \x01(\v2J.com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.P2PR\x03p2pB\v\n" +
 	"\treadiness\"\x1c\n" +
-	"\x1aGetOrderingTopologyRequest\"\x96\x04\n" +
+	"\x1aGetOrderingTopologyRequest\"\x84\x05\n" +
 	"\x1bGetOrderingTopologyResponse\x12#\n" +
 	"\rcurrent_epoch\x18\x01 \x01(\x03R\fcurrentEpoch\x12#\n" +
 	"\rsequencer_ids\x18\x02 \x03(\tR\fsequencerIds\x12\xc2\x01\n" +
 	"%dynamic_sequencing_parameters_payload\x18\x03 \x01(\v2m.com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v30.DynamicSequencingParametersPayloadH\x00R\"dynamicSequencingParametersPayload\x12\xc6\x01\n" +
-	"'dynamic_sequencing_parameters_payload31\x18\x04 \x01(\v2m.com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.DynamicSequencingParametersPayloadH\x00R$dynamicSequencingParametersPayload31B\x1f\n" +
+	"'dynamic_sequencing_parameters_payload31\x18\x04 \x01(\v2m.com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.DynamicSequencingParametersPayloadH\x00R$dynamicSequencingParametersPayload31\x120\n" +
+	"\x14leader_sequencer_ids\x18\x05 \x03(\tR\x12leaderSequencerIds\x12:\n" +
+	"\x19blacklisted_sequencer_ids\x18\x06 \x03(\tR\x17blacklistedSequencerIdsB\x1f\n" +
 	"\x1ddynamic_sequencing_parameters\"?\n" +
 	"#SetPerformanceMetricsEnabledRequest\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\"&\n" +
-	"$SetPerformanceMetricsEnabledResponse2\xae\b\n" +
+	"$SetPerformanceMetricsEnabledResponse2\xe5\t\n" +
 	"!SequencerBftAdministrationService\x12\x9c\x01\n" +
 	"\x0fAddPeerEndpoint\x12C.com.digitalasset.canton.sequencer.admin.v30.AddPeerEndpointRequest\x1aD.com.digitalasset.canton.sequencer.admin.v30.AddPeerEndpointResponse\x12\xa5\x01\n" +
-	"\x12RemovePeerEndpoint\x12F.com.digitalasset.canton.sequencer.admin.v30.RemovePeerEndpointRequest\x1aG.com.digitalasset.canton.sequencer.admin.v30.RemovePeerEndpointResponse\x12\xab\x01\n" +
+	"\x12RemovePeerEndpoint\x12F.com.digitalasset.canton.sequencer.admin.v30.RemovePeerEndpointRequest\x1aG.com.digitalasset.canton.sequencer.admin.v30.RemovePeerEndpointResponse\x12\xb4\x01\n" +
+	"\x17ListConfiguredEndpoints\x12K.com.digitalasset.canton.sequencer.admin.v30.ListConfiguredEndpointsRequest\x1aL.com.digitalasset.canton.sequencer.admin.v30.ListConfiguredEndpointsResponse\x12\xab\x01\n" +
 	"\x14GetPeerNetworkStatus\x12H.com.digitalasset.canton.sequencer.admin.v30.GetPeerNetworkStatusRequest\x1aI.com.digitalasset.canton.sequencer.admin.v30.GetPeerNetworkStatusResponse\x12\xa2\x01\n" +
 	"\x11GetWriteReadiness\x12E.com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessRequest\x1aF.com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse\x12\xa8\x01\n" +
 	"\x13GetOrderingTopology\x12G.com.digitalasset.canton.sequencer.admin.v30.GetOrderingTopologyRequest\x1aH.com.digitalasset.canton.sequencer.admin.v30.GetOrderingTopologyResponse\x12\xc3\x01\n" +
@@ -1633,79 +1751,84 @@ func file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administrati
 	return file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDescData
 }
 
-var file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
 var file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_goTypes = []any{
 	(*AddPeerEndpointRequest)(nil),                   // 0: com.digitalasset.canton.sequencer.admin.v30.AddPeerEndpointRequest
 	(*RemovePeerEndpointRequest)(nil),                // 1: com.digitalasset.canton.sequencer.admin.v30.RemovePeerEndpointRequest
-	(*PeerEndpoint)(nil),                             // 2: com.digitalasset.canton.sequencer.admin.v30.PeerEndpoint
-	(*PeerEndpointId)(nil),                           // 3: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointId
-	(*PlainTextPeerEndpoint)(nil),                    // 4: com.digitalasset.canton.sequencer.admin.v30.PlainTextPeerEndpoint
-	(*TlsPeerEndpoint)(nil),                          // 5: com.digitalasset.canton.sequencer.admin.v30.TlsPeerEndpoint
-	(*TlsClientCertificate)(nil),                     // 6: com.digitalasset.canton.sequencer.admin.v30.TlsClientCertificate
-	(*AddPeerEndpointResponse)(nil),                  // 7: com.digitalasset.canton.sequencer.admin.v30.AddPeerEndpointResponse
-	(*RemovePeerEndpointResponse)(nil),               // 8: com.digitalasset.canton.sequencer.admin.v30.RemovePeerEndpointResponse
-	(*Authenticated)(nil),                            // 9: com.digitalasset.canton.sequencer.admin.v30.Authenticated
-	(*PeerEndpointHealthStatus)(nil),                 // 10: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus
-	(*PeerEndpointHealth)(nil),                       // 11: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealth
-	(*PeerEndpointStatus)(nil),                       // 12: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointStatus
-	(*PeerConnectionStatus)(nil),                     // 13: com.digitalasset.canton.sequencer.admin.v30.PeerConnectionStatus
-	(*GetPeerNetworkStatusRequest)(nil),              // 14: com.digitalasset.canton.sequencer.admin.v30.GetPeerNetworkStatusRequest
-	(*GetPeerNetworkStatusResponse)(nil),             // 15: com.digitalasset.canton.sequencer.admin.v30.GetPeerNetworkStatusResponse
-	(*GetWriteReadinessRequest)(nil),                 // 16: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessRequest
-	(*GetWriteReadinessResponse)(nil),                // 17: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse
-	(*GetOrderingTopologyRequest)(nil),               // 18: com.digitalasset.canton.sequencer.admin.v30.GetOrderingTopologyRequest
-	(*GetOrderingTopologyResponse)(nil),              // 19: com.digitalasset.canton.sequencer.admin.v30.GetOrderingTopologyResponse
-	(*SetPerformanceMetricsEnabledRequest)(nil),      // 20: com.digitalasset.canton.sequencer.admin.v30.SetPerformanceMetricsEnabledRequest
-	(*SetPerformanceMetricsEnabledResponse)(nil),     // 21: com.digitalasset.canton.sequencer.admin.v30.SetPerformanceMetricsEnabledResponse
-	(*PeerEndpointHealthStatus_UnknownEndpoint)(nil), // 22: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.UnknownEndpoint
-	(*PeerEndpointHealthStatus_Disconnected)(nil),    // 23: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.Disconnected
-	(*PeerEndpointHealthStatus_Unauthenticated)(nil), // 24: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.Unauthenticated
-	(*GetWriteReadinessResponse_P2P)(nil),            // 25: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.P2P
-	(*GetWriteReadinessResponse_Ready)(nil),          // 26: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.Ready
-	(*GetWriteReadinessResponse_P2PNotReady)(nil),    // 27: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.P2PNotReady
-	(*v30.DynamicSequencingParametersPayload)(nil),   // 28: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v30.DynamicSequencingParametersPayload
-	(*v31.DynamicSequencingParametersPayload)(nil),   // 29: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.DynamicSequencingParametersPayload
+	(*ListConfiguredEndpointsRequest)(nil),           // 2: com.digitalasset.canton.sequencer.admin.v30.ListConfiguredEndpointsRequest
+	(*ListConfiguredEndpointsResponse)(nil),          // 3: com.digitalasset.canton.sequencer.admin.v30.ListConfiguredEndpointsResponse
+	(*PeerEndpoint)(nil),                             // 4: com.digitalasset.canton.sequencer.admin.v30.PeerEndpoint
+	(*PeerEndpointId)(nil),                           // 5: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointId
+	(*PlainTextPeerEndpoint)(nil),                    // 6: com.digitalasset.canton.sequencer.admin.v30.PlainTextPeerEndpoint
+	(*TlsPeerEndpoint)(nil),                          // 7: com.digitalasset.canton.sequencer.admin.v30.TlsPeerEndpoint
+	(*TlsClientCertificate)(nil),                     // 8: com.digitalasset.canton.sequencer.admin.v30.TlsClientCertificate
+	(*AddPeerEndpointResponse)(nil),                  // 9: com.digitalasset.canton.sequencer.admin.v30.AddPeerEndpointResponse
+	(*RemovePeerEndpointResponse)(nil),               // 10: com.digitalasset.canton.sequencer.admin.v30.RemovePeerEndpointResponse
+	(*Authenticated)(nil),                            // 11: com.digitalasset.canton.sequencer.admin.v30.Authenticated
+	(*GetPeerNetworkStatusRequest)(nil),              // 12: com.digitalasset.canton.sequencer.admin.v30.GetPeerNetworkStatusRequest
+	(*GetPeerNetworkStatusResponse)(nil),             // 13: com.digitalasset.canton.sequencer.admin.v30.GetPeerNetworkStatusResponse
+	(*PeerConnectionStatus)(nil),                     // 14: com.digitalasset.canton.sequencer.admin.v30.PeerConnectionStatus
+	(*PeerEndpointStatus)(nil),                       // 15: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointStatus
+	(*PeerEndpointHealth)(nil),                       // 16: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealth
+	(*PeerEndpointHealthStatus)(nil),                 // 17: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus
+	(*GetWriteReadinessRequest)(nil),                 // 18: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessRequest
+	(*GetWriteReadinessResponse)(nil),                // 19: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse
+	(*GetOrderingTopologyRequest)(nil),               // 20: com.digitalasset.canton.sequencer.admin.v30.GetOrderingTopologyRequest
+	(*GetOrderingTopologyResponse)(nil),              // 21: com.digitalasset.canton.sequencer.admin.v30.GetOrderingTopologyResponse
+	(*SetPerformanceMetricsEnabledRequest)(nil),      // 22: com.digitalasset.canton.sequencer.admin.v30.SetPerformanceMetricsEnabledRequest
+	(*SetPerformanceMetricsEnabledResponse)(nil),     // 23: com.digitalasset.canton.sequencer.admin.v30.SetPerformanceMetricsEnabledResponse
+	(*PeerEndpointHealthStatus_UnknownEndpoint)(nil), // 24: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.UnknownEndpoint
+	(*PeerEndpointHealthStatus_Disconnected)(nil),    // 25: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.Disconnected
+	(*PeerEndpointHealthStatus_Unauthenticated)(nil), // 26: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.Unauthenticated
+	(*GetWriteReadinessResponse_P2P)(nil),            // 27: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.P2P
+	(*GetWriteReadinessResponse_Ready)(nil),          // 28: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.Ready
+	(*GetWriteReadinessResponse_P2PNotReady)(nil),    // 29: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.P2PNotReady
+	(*v30.DynamicSequencingParametersPayload)(nil),   // 30: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v30.DynamicSequencingParametersPayload
+	(*v31.DynamicSequencingParametersPayload)(nil),   // 31: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.DynamicSequencingParametersPayload
 }
 var file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_depIdxs = []int32{
-	2,  // 0: com.digitalasset.canton.sequencer.admin.v30.AddPeerEndpointRequest.endpoint:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpoint
-	3,  // 1: com.digitalasset.canton.sequencer.admin.v30.RemovePeerEndpointRequest.endpoint_id:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointId
-	4,  // 2: com.digitalasset.canton.sequencer.admin.v30.PeerEndpoint.plain_text:type_name -> com.digitalasset.canton.sequencer.admin.v30.PlainTextPeerEndpoint
-	5,  // 3: com.digitalasset.canton.sequencer.admin.v30.PeerEndpoint.tls:type_name -> com.digitalasset.canton.sequencer.admin.v30.TlsPeerEndpoint
-	6,  // 4: com.digitalasset.canton.sequencer.admin.v30.TlsPeerEndpoint.client_certificate:type_name -> com.digitalasset.canton.sequencer.admin.v30.TlsClientCertificate
-	22, // 5: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.unknown_endpoint:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.UnknownEndpoint
-	23, // 6: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.disconnected:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.Disconnected
-	24, // 7: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.unauthenticated:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.Unauthenticated
-	9,  // 8: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.authenticated:type_name -> com.digitalasset.canton.sequencer.admin.v30.Authenticated
-	10, // 9: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealth.status:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus
-	3,  // 10: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointStatus.endpoint_id:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointId
-	11, // 11: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointStatus.health:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealth
-	12, // 12: com.digitalasset.canton.sequencer.admin.v30.PeerConnectionStatus.peer_endpoint_status:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointStatus
-	9,  // 13: com.digitalasset.canton.sequencer.admin.v30.PeerConnectionStatus.peer_incoming_connection:type_name -> com.digitalasset.canton.sequencer.admin.v30.Authenticated
-	3,  // 14: com.digitalasset.canton.sequencer.admin.v30.GetPeerNetworkStatusRequest.endpoint_ids:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointId
-	13, // 15: com.digitalasset.canton.sequencer.admin.v30.GetPeerNetworkStatusResponse.statuses:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerConnectionStatus
-	26, // 16: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.ready:type_name -> com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.Ready
-	27, // 17: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.p2p_not_ready:type_name -> com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.P2PNotReady
-	28, // 18: com.digitalasset.canton.sequencer.admin.v30.GetOrderingTopologyResponse.dynamic_sequencing_parameters_payload:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v30.DynamicSequencingParametersPayload
-	29, // 19: com.digitalasset.canton.sequencer.admin.v30.GetOrderingTopologyResponse.dynamic_sequencing_parameters_payload31:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.DynamicSequencingParametersPayload
-	25, // 20: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.Ready.p2p:type_name -> com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.P2P
-	25, // 21: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.P2PNotReady.p2p:type_name -> com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.P2P
-	0,  // 22: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.AddPeerEndpoint:input_type -> com.digitalasset.canton.sequencer.admin.v30.AddPeerEndpointRequest
-	1,  // 23: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.RemovePeerEndpoint:input_type -> com.digitalasset.canton.sequencer.admin.v30.RemovePeerEndpointRequest
-	14, // 24: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.GetPeerNetworkStatus:input_type -> com.digitalasset.canton.sequencer.admin.v30.GetPeerNetworkStatusRequest
-	16, // 25: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.GetWriteReadiness:input_type -> com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessRequest
-	18, // 26: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.GetOrderingTopology:input_type -> com.digitalasset.canton.sequencer.admin.v30.GetOrderingTopologyRequest
-	20, // 27: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.SetPerformanceMetricsEnabled:input_type -> com.digitalasset.canton.sequencer.admin.v30.SetPerformanceMetricsEnabledRequest
-	7,  // 28: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.AddPeerEndpoint:output_type -> com.digitalasset.canton.sequencer.admin.v30.AddPeerEndpointResponse
-	8,  // 29: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.RemovePeerEndpoint:output_type -> com.digitalasset.canton.sequencer.admin.v30.RemovePeerEndpointResponse
-	15, // 30: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.GetPeerNetworkStatus:output_type -> com.digitalasset.canton.sequencer.admin.v30.GetPeerNetworkStatusResponse
-	17, // 31: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.GetWriteReadiness:output_type -> com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse
-	19, // 32: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.GetOrderingTopology:output_type -> com.digitalasset.canton.sequencer.admin.v30.GetOrderingTopologyResponse
-	21, // 33: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.SetPerformanceMetricsEnabled:output_type -> com.digitalasset.canton.sequencer.admin.v30.SetPerformanceMetricsEnabledResponse
-	28, // [28:34] is the sub-list for method output_type
-	22, // [22:28] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	4,  // 0: com.digitalasset.canton.sequencer.admin.v30.AddPeerEndpointRequest.endpoint:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpoint
+	5,  // 1: com.digitalasset.canton.sequencer.admin.v30.RemovePeerEndpointRequest.endpoint_id:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointId
+	4,  // 2: com.digitalasset.canton.sequencer.admin.v30.ListConfiguredEndpointsResponse.endpoints:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpoint
+	6,  // 3: com.digitalasset.canton.sequencer.admin.v30.PeerEndpoint.plain_text:type_name -> com.digitalasset.canton.sequencer.admin.v30.PlainTextPeerEndpoint
+	7,  // 4: com.digitalasset.canton.sequencer.admin.v30.PeerEndpoint.tls:type_name -> com.digitalasset.canton.sequencer.admin.v30.TlsPeerEndpoint
+	8,  // 5: com.digitalasset.canton.sequencer.admin.v30.TlsPeerEndpoint.client_certificate:type_name -> com.digitalasset.canton.sequencer.admin.v30.TlsClientCertificate
+	5,  // 6: com.digitalasset.canton.sequencer.admin.v30.GetPeerNetworkStatusRequest.endpoint_ids:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointId
+	14, // 7: com.digitalasset.canton.sequencer.admin.v30.GetPeerNetworkStatusResponse.statuses:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerConnectionStatus
+	15, // 8: com.digitalasset.canton.sequencer.admin.v30.PeerConnectionStatus.peer_endpoint_status:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointStatus
+	11, // 9: com.digitalasset.canton.sequencer.admin.v30.PeerConnectionStatus.peer_incoming_connection:type_name -> com.digitalasset.canton.sequencer.admin.v30.Authenticated
+	5,  // 10: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointStatus.endpoint_id:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointId
+	16, // 11: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointStatus.health:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealth
+	17, // 12: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealth.status:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus
+	24, // 13: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.unknown_endpoint:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.UnknownEndpoint
+	25, // 14: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.disconnected:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.Disconnected
+	26, // 15: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.unauthenticated:type_name -> com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.Unauthenticated
+	11, // 16: com.digitalasset.canton.sequencer.admin.v30.PeerEndpointHealthStatus.authenticated:type_name -> com.digitalasset.canton.sequencer.admin.v30.Authenticated
+	28, // 17: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.ready:type_name -> com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.Ready
+	29, // 18: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.p2p_not_ready:type_name -> com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.P2PNotReady
+	30, // 19: com.digitalasset.canton.sequencer.admin.v30.GetOrderingTopologyResponse.dynamic_sequencing_parameters_payload:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v30.DynamicSequencingParametersPayload
+	31, // 20: com.digitalasset.canton.sequencer.admin.v30.GetOrderingTopologyResponse.dynamic_sequencing_parameters_payload31:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.DynamicSequencingParametersPayload
+	27, // 21: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.Ready.p2p:type_name -> com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.P2P
+	27, // 22: com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.P2PNotReady.p2p:type_name -> com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse.P2P
+	0,  // 23: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.AddPeerEndpoint:input_type -> com.digitalasset.canton.sequencer.admin.v30.AddPeerEndpointRequest
+	1,  // 24: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.RemovePeerEndpoint:input_type -> com.digitalasset.canton.sequencer.admin.v30.RemovePeerEndpointRequest
+	2,  // 25: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.ListConfiguredEndpoints:input_type -> com.digitalasset.canton.sequencer.admin.v30.ListConfiguredEndpointsRequest
+	12, // 26: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.GetPeerNetworkStatus:input_type -> com.digitalasset.canton.sequencer.admin.v30.GetPeerNetworkStatusRequest
+	18, // 27: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.GetWriteReadiness:input_type -> com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessRequest
+	20, // 28: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.GetOrderingTopology:input_type -> com.digitalasset.canton.sequencer.admin.v30.GetOrderingTopologyRequest
+	22, // 29: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.SetPerformanceMetricsEnabled:input_type -> com.digitalasset.canton.sequencer.admin.v30.SetPerformanceMetricsEnabledRequest
+	9,  // 30: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.AddPeerEndpoint:output_type -> com.digitalasset.canton.sequencer.admin.v30.AddPeerEndpointResponse
+	10, // 31: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.RemovePeerEndpoint:output_type -> com.digitalasset.canton.sequencer.admin.v30.RemovePeerEndpointResponse
+	3,  // 32: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.ListConfiguredEndpoints:output_type -> com.digitalasset.canton.sequencer.admin.v30.ListConfiguredEndpointsResponse
+	13, // 33: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.GetPeerNetworkStatus:output_type -> com.digitalasset.canton.sequencer.admin.v30.GetPeerNetworkStatusResponse
+	19, // 34: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.GetWriteReadiness:output_type -> com.digitalasset.canton.sequencer.admin.v30.GetWriteReadinessResponse
+	21, // 35: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.GetOrderingTopology:output_type -> com.digitalasset.canton.sequencer.admin.v30.GetOrderingTopologyResponse
+	23, // 36: com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService.SetPerformanceMetricsEnabled:output_type -> com.digitalasset.canton.sequencer.admin.v30.SetPerformanceMetricsEnabledResponse
+	30, // [30:37] is the sub-list for method output_type
+	23, // [23:30] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() {
@@ -1715,27 +1838,27 @@ func file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administrati
 	if File_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto != nil {
 		return
 	}
-	file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[2].OneofWrappers = []any{
+	file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[4].OneofWrappers = []any{
 		(*PeerEndpoint_PlainText)(nil),
 		(*PeerEndpoint_Tls)(nil),
 	}
-	file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[5].OneofWrappers = []any{}
-	file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[10].OneofWrappers = []any{
+	file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[7].OneofWrappers = []any{}
+	file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[14].OneofWrappers = []any{
+		(*PeerConnectionStatus_PeerEndpointStatus)(nil),
+		(*PeerConnectionStatus_PeerIncomingConnection)(nil),
+	}
+	file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[16].OneofWrappers = []any{}
+	file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[17].OneofWrappers = []any{
 		(*PeerEndpointHealthStatus_UnknownEndpoint_)(nil),
 		(*PeerEndpointHealthStatus_Disconnected_)(nil),
 		(*PeerEndpointHealthStatus_Unauthenticated_)(nil),
 		(*PeerEndpointHealthStatus_Authenticated)(nil),
 	}
-	file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[11].OneofWrappers = []any{}
-	file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[13].OneofWrappers = []any{
-		(*PeerConnectionStatus_PeerEndpointStatus)(nil),
-		(*PeerConnectionStatus_PeerIncomingConnection)(nil),
-	}
-	file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[17].OneofWrappers = []any{
+	file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[19].OneofWrappers = []any{
 		(*GetWriteReadinessResponse_Ready_)(nil),
 		(*GetWriteReadinessResponse_P2PNotReady_)(nil),
 	}
-	file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[19].OneofWrappers = []any{
+	file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_msgTypes[21].OneofWrappers = []any{
 		(*GetOrderingTopologyResponse_DynamicSequencingParametersPayload)(nil),
 		(*GetOrderingTopologyResponse_DynamicSequencingParametersPayload31)(nil),
 	}
@@ -1745,7 +1868,7 @@ func file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administrati
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDesc), len(file_com_digitalasset_canton_sequencer_admin_v30_sequencer_bft_administration_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   28,
+			NumMessages:   30,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

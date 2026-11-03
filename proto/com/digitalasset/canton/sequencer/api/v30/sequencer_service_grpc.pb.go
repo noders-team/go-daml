@@ -72,15 +72,15 @@ type SequencerServiceClient interface {
 	// A set of requests belong to the same aggregation, if they have essentially the same contents (details specified at SubmissionRequest.aggregationId).
 	// The sequencer validates and assigns sequencing timestamps to requests within an aggregation just as for requests without an aggregation rule.
 	// The sequencer emits events and receipts for an accepted request within an aggregation as follows:
-	//   - As long as the number of accepted requests is strictly less than AggregationRule.threshold,
-	//     the sequencer only emits a receipt with an empty batch to the sender of the request.
-	//     It does not emit any other events.
-	//   - As soon as the number of accepted requests equals AggregationRule.threshold, the sequencer emits
-	//     events to the sender and the recipients of the request.
-	//     The sequencing timestamp of the events is the sequencing timestamp of the last accepted request.
-	//   - The sequencer will not accept more than AggregationRule.threshold requests.
-	//     The sequencer will reject any further request that could otherwise be accepted.
-	//     Consequently, events for the request are delivered only once even if the threshold is attained multiple times.
+	// - As long as the number of accepted requests is strictly less than AggregationRule.threshold,
+	//   the sequencer only emits a receipt with an empty batch to the sender of the request.
+	//   It does not emit any other events.
+	// - As soon as the number of accepted requests equals AggregationRule.threshold, the sequencer emits
+	//   events to the sender and the recipients of the request.
+	//   The sequencing timestamp of the events is the sequencing timestamp of the last accepted request.
+	// - The sequencer will not accept more than AggregationRule.threshold requests.
+	//   The sequencer will reject any further request that could otherwise be accepted.
+	//   Consequently, events for the request are delivered only once even if the threshold is attained multiple times.
 	//
 	// If the request does not contain an aggregation rule, even honest sequencers may deliver events for the request
 	// more than once (with different sequencing timestamps), as malicious sequencers may replay a request internally.
@@ -93,9 +93,7 @@ type SequencerServiceClient interface {
 	// in exactly one of the following ways:
 	// (1) synchronously, by returning an error in the response of this method
 	// (2) asynchronously, by emitting an error in the response to SubscribeVersioned to the sender and
-	//
-	//	possibly an empty batch to non-sender recipients
-	//
+	//     possibly an empty batch to non-sender recipients
 	// (3) by not emitting a receipt to the sender until request.max_sequencing_time
 	// Note that only (2) and (3) can be trusted. A malicious sequencer may synchronously return an error and
 	// still accept the request internally and therefore emit events later on.
@@ -266,15 +264,15 @@ type SequencerServiceServer interface {
 	// A set of requests belong to the same aggregation, if they have essentially the same contents (details specified at SubmissionRequest.aggregationId).
 	// The sequencer validates and assigns sequencing timestamps to requests within an aggregation just as for requests without an aggregation rule.
 	// The sequencer emits events and receipts for an accepted request within an aggregation as follows:
-	//   - As long as the number of accepted requests is strictly less than AggregationRule.threshold,
-	//     the sequencer only emits a receipt with an empty batch to the sender of the request.
-	//     It does not emit any other events.
-	//   - As soon as the number of accepted requests equals AggregationRule.threshold, the sequencer emits
-	//     events to the sender and the recipients of the request.
-	//     The sequencing timestamp of the events is the sequencing timestamp of the last accepted request.
-	//   - The sequencer will not accept more than AggregationRule.threshold requests.
-	//     The sequencer will reject any further request that could otherwise be accepted.
-	//     Consequently, events for the request are delivered only once even if the threshold is attained multiple times.
+	// - As long as the number of accepted requests is strictly less than AggregationRule.threshold,
+	//   the sequencer only emits a receipt with an empty batch to the sender of the request.
+	//   It does not emit any other events.
+	// - As soon as the number of accepted requests equals AggregationRule.threshold, the sequencer emits
+	//   events to the sender and the recipients of the request.
+	//   The sequencing timestamp of the events is the sequencing timestamp of the last accepted request.
+	// - The sequencer will not accept more than AggregationRule.threshold requests.
+	//   The sequencer will reject any further request that could otherwise be accepted.
+	//   Consequently, events for the request are delivered only once even if the threshold is attained multiple times.
 	//
 	// If the request does not contain an aggregation rule, even honest sequencers may deliver events for the request
 	// more than once (with different sequencing timestamps), as malicious sequencers may replay a request internally.
@@ -287,9 +285,7 @@ type SequencerServiceServer interface {
 	// in exactly one of the following ways:
 	// (1) synchronously, by returning an error in the response of this method
 	// (2) asynchronously, by emitting an error in the response to SubscribeVersioned to the sender and
-	//
-	//	possibly an empty batch to non-sender recipients
-	//
+	//     possibly an empty batch to non-sender recipients
 	// (3) by not emitting a receipt to the sender until request.max_sequencing_time
 	// Note that only (2) and (3) can be trusted. A malicious sequencer may synchronously return an error and
 	// still accept the request internally and therefore emit events later on.

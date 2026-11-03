@@ -1686,7 +1686,7 @@ type isBuiltinLit_Sum interface {
 }
 
 type BuiltinLit_Int64 struct {
-	// 64-bit integer literal ('LitInt64')
+	//  64-bit integer literal ('LitInt64')
 	Int64 int64 `protobuf:"zigzag64,1,opt,name=int64,proto3,oneof"`
 }
 

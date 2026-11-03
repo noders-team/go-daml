@@ -82,8 +82,7 @@ func (VerdictResult) EnumDescriptor() ([]byte, []int) {
 type VerdictsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Optional: The record_time_of_request of the most recently received verdict.
-	//
-	//	If not provided, the mediator will return verdicts from the beginning.
+	//           If not provided, the mediator will return verdicts from the beginning.
 	MostRecentlyReceivedRecordTime *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=most_recently_received_record_time,json=mostRecentlyReceivedRecordTime,proto3,oneof" json:"most_recently_received_record_time,omitempty"`
 	unknownFields                  protoimpl.UnknownFields
 	sizeCache                      protoimpl.SizeCache

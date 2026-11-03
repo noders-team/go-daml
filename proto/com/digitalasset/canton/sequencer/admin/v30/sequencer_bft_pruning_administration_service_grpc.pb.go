@@ -43,13 +43,11 @@ type SequencerBftPruningAdministrationServiceClient interface {
 	BftPruningStatus(ctx context.Context, in *BftPruningStatusRequest, opts ...grpc.CallOption) (*BftPruningStatusResponse, error)
 	BftPrune(ctx context.Context, in *BftPruneRequest, opts ...grpc.CallOption) (*BftPruneResponse, error)
 	// Enable automatic pruning using the specified schedule parameters
-	// The following errors may occur on the SetSchedule or Update commands:
-	// - “INVALID_ARGUMENT“: if a parameter is missing or an invalid cron expression or duration is passed.
 	SetSchedule(ctx context.Context, in *v30.SetScheduleRequest, opts ...grpc.CallOption) (*v30.SetScheduleResponse, error)
 	// Enable automatic pruning with bft-orderer-specific schedule parameters.
 	SetBftSchedule(ctx context.Context, in *SetBftScheduleRequest, opts ...grpc.CallOption) (*SetBftScheduleResponse, error)
 	// Modify individual pruning schedule parameters.
-	// - “INVALID_ARGUMENT“: if the payload is malformed or no schedule is configured
+	// - ``INVALID_ARGUMENT``: if the payload is malformed or no schedule is configured
 	SetCron(ctx context.Context, in *v30.SetCronRequest, opts ...grpc.CallOption) (*v30.SetCronResponse, error)
 	SetMaxDuration(ctx context.Context, in *v30.SetMaxDurationRequest, opts ...grpc.CallOption) (*v30.SetMaxDurationResponse, error)
 	SetRetention(ctx context.Context, in *v30.SetRetentionRequest, opts ...grpc.CallOption) (*v30.SetRetentionResponse, error)
@@ -188,13 +186,11 @@ type SequencerBftPruningAdministrationServiceServer interface {
 	BftPruningStatus(context.Context, *BftPruningStatusRequest) (*BftPruningStatusResponse, error)
 	BftPrune(context.Context, *BftPruneRequest) (*BftPruneResponse, error)
 	// Enable automatic pruning using the specified schedule parameters
-	// The following errors may occur on the SetSchedule or Update commands:
-	// - “INVALID_ARGUMENT“: if a parameter is missing or an invalid cron expression or duration is passed.
 	SetSchedule(context.Context, *v30.SetScheduleRequest) (*v30.SetScheduleResponse, error)
 	// Enable automatic pruning with bft-orderer-specific schedule parameters.
 	SetBftSchedule(context.Context, *SetBftScheduleRequest) (*SetBftScheduleResponse, error)
 	// Modify individual pruning schedule parameters.
-	// - “INVALID_ARGUMENT“: if the payload is malformed or no schedule is configured
+	// - ``INVALID_ARGUMENT``: if the payload is malformed or no schedule is configured
 	SetCron(context.Context, *v30.SetCronRequest) (*v30.SetCronResponse, error)
 	SetMaxDuration(context.Context, *v30.SetMaxDurationRequest) (*v30.SetMaxDurationResponse, error)
 	SetRetention(context.Context, *v30.SetRetentionRequest) (*v30.SetRetentionResponse, error)

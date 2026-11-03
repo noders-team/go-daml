@@ -29,17 +29,17 @@ const (
 type Transaction struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Assigned by the server. Useful for correlating logs.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	UpdateId string `protobuf:"bytes,1,opt,name=update_id,json=updateId,proto3" json:"update_id,omitempty"`
 	// The ID of the command which resulted in this transaction. Missing for everyone except the submitting party.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Optional
 	CommandId string `protobuf:"bytes,2,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
 	// The workflow ID used in command submission.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Optional
 	WorkflowId string `protobuf:"bytes,3,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
@@ -50,12 +50,12 @@ type Transaction struct {
 	// The collection of events.
 	// Contains:
 	//
-	// - “CreatedEvent“ or “ArchivedEvent“ in case of ACS_DELTA transaction shape
-	// - “CreatedEvent“ or “ExercisedEvent“ in case of LEDGER_EFFECTS transaction shape
+	// - ``CreatedEvent`` or ``ArchivedEvent`` in case of ACS_DELTA transaction shape
+	// - ``CreatedEvent`` or ``ExercisedEvent`` in case of LEDGER_EFFECTS transaction shape
 	//
 	// Required: must be non-empty
 	Events []*Event `protobuf:"bytes,5,rep,name=events,proto3" json:"events,omitempty"`
-	// The absolute offset. The details of this field are described in “community/ledger-api/README.md“.
+	// The absolute offset. The details of this field are described in ``community/ledger-api/README.md``.
 	// It is a valid absolute offset (positive integer).
 	//
 	// Required

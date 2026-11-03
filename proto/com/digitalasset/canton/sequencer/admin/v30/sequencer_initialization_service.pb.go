@@ -132,8 +132,9 @@ type InitializeSequencerFromLsuPredecessorRequest struct {
 	state                  protoimpl.MessageState            `protogen:"open.v1"`
 	TopologySnapshot       []byte                            `protobuf:"bytes,1,opt,name=topology_snapshot,json=topologySnapshot,proto3" json:"topology_snapshot,omitempty"`
 	SynchronizerParameters *v30.StaticSynchronizerParameters `protobuf:"bytes,2,opt,name=synchronizer_parameters,json=synchronizerParameters,proto3" json:"synchronizer_parameters,omitempty"`
-	// If true, it will not be checked that that current physical synchronizer id matches the successor in the topology state.
-	// Should be used *only* in disaster recovery scenarios (roll forward).
+	//
+	//If true, it will not be checked that that current physical synchronizer id matches the successor in the topology state.
+	//Should be used *only* in disaster recovery scenarios (roll forward).
 	IgnorePsidCheck bool `protobuf:"varint,3,opt,name=ignore_psid_check,json=ignorePsidCheck,proto3" json:"ignore_psid_check,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache

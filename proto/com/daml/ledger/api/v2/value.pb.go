@@ -286,7 +286,7 @@ type Value_Numeric struct {
 	//
 	// .. code-block:: none
 	//
-	//	[+-]?\d{1,38}(.\d{0,37})?
+	//   [+-]?\d{1,38}(.\d{0,37})?
 	//
 	// and should be representable by a Numeric without loss of precision.
 	Numeric string `protobuf:"bytes,6,opt,name=numeric,proto3,oneof"`

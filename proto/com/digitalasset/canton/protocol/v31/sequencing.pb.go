@@ -281,8 +281,7 @@ type SubmissionRequest struct {
 	// (Details in SequencerAuthenticationServerInterceptor.)
 	// TARGET STATE: The sender must be authorized (cf. TopologySnapshot.isMemberKnown)
 	// CURRENT STATE: The sender authorization check might have a few gaps (e.g., see MemberAuthenticationService.isActive)
-	//
-	//	and/or may use the wrong snapshot.
+	//   and/or may use the wrong snapshot.
 	Sender string `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	// Will be included in the receipt of the request.
 	// The sender should not reuse a message_id until max_sequencing_time,
@@ -301,9 +300,7 @@ type SubmissionRequest struct {
 	// If defined, it must meet the following conditions:
 	// (1) it must be before or at the sequencing timestamp,
 	// (2) it must be by at most DynamicSynchronizerParameters.sequencerTopologyTimestampTolerance before the sequencing timestamp,
-	//
-	//	where the DynamicSynchronizerParameters are taken from the topology state at topology_timestamp,
-	//
+	//     where the DynamicSynchronizerParameters are taken from the topology state at topology_timestamp,
 	// (3) the sequencer must have signing keys registered in the topology snapshot.
 	// If defined and invalid, the request is rejected.
 	// If undefined or invalid, the topology snapshot at sequencing time will be used instead.

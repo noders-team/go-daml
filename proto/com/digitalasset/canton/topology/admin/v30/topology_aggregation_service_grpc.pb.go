@@ -38,7 +38,7 @@ const (
 // data. The service provides GRPC access to the information aggregated by the identity providing
 // service client.
 type TopologyAggregationServiceClient interface {
-	// *
+	//*
 	// Obtain information about a certain set of active parties matching a given filter criterion.
 	//
 	// The request allows to filter per (synchronizer, party, asOf) where the party argument is
@@ -51,7 +51,7 @@ type TopologyAggregationServiceClient interface {
 	// The response is a sequence of tuples (party, synchronizer, participant, privilege, trust-level).
 	// The response is restricted to active parties and their active participants.
 	ListParties(ctx context.Context, in *ListPartiesRequest, opts ...grpc.CallOption) (*ListPartiesResponse, error)
-	// *
+	//*
 	// Obtain key owner information matching a given filter criterion.
 	//
 	// Key owners in the system are different types of entities: Participant, Mediator, and
@@ -109,7 +109,7 @@ func (c *topologyAggregationServiceClient) ListKeyOwners(ctx context.Context, in
 // data. The service provides GRPC access to the information aggregated by the identity providing
 // service client.
 type TopologyAggregationServiceServer interface {
-	// *
+	//*
 	// Obtain information about a certain set of active parties matching a given filter criterion.
 	//
 	// The request allows to filter per (synchronizer, party, asOf) where the party argument is
@@ -122,7 +122,7 @@ type TopologyAggregationServiceServer interface {
 	// The response is a sequence of tuples (party, synchronizer, participant, privilege, trust-level).
 	// The response is restricted to active parties and their active participants.
 	ListParties(context.Context, *ListPartiesRequest) (*ListPartiesResponse, error)
-	// *
+	//*
 	// Obtain key owner information matching a given filter criterion.
 	//
 	// Key owners in the system are different types of entities: Participant, Mediator, and

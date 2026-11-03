@@ -233,7 +233,7 @@ func (x *CostEstimation) GetTotalTrafficCostEstimation() uint64 {
 type PrepareSubmissionRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Uniquely identifies the participant user that prepares the transaction.
-	// Must be a valid UserIdString (as described in “value.proto“).
+	// Must be a valid UserIdString (as described in ``value.proto``).
 	// Required unless authentication is used with a user token.
 	// In that case, the token's user-id will be used for the request's user_id.
 	//
@@ -243,7 +243,7 @@ type PrepareSubmissionRequest struct {
 	// The triple (user_id, act_as, command_id) constitutes the change ID for the intended ledger change,
 	// where act_as is interpreted as a set of party names.
 	// The change ID can be used for matching the intended ledger changes with all their completions.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	CommandId string `protobuf:"bytes,2,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
@@ -270,14 +270,14 @@ type PrepareSubmissionRequest struct {
 	// to **read** (not act) on behalf of each of the given parties. This is because this RPC merely prepares a transaction
 	// and does not execute it. Therefore read authorization is sufficient even for actAs parties.
 	// Note: This may change, and more specific authorization scope may be introduced in the future.
-	// Each element must be a valid PartyIdString (as described in “value.proto“).
+	// Each element must be a valid PartyIdString (as described in ``value.proto``).
 	//
 	// Required: must be non-empty
 	ActAs []string `protobuf:"bytes,5,rep,name=act_as,json=actAs,proto3" json:"act_as,omitempty"`
-	// Set of parties on whose behalf (in addition to all parties listed in “act_as“) contracts can be retrieved.
-	// This affects Daml operations such as “fetch“, “fetchByKey“, “lookupByKey“, “exercise“, and “exerciseByKey“.
+	// Set of parties on whose behalf (in addition to all parties listed in ``act_as``) contracts can be retrieved.
+	// This affects Daml operations such as ``fetch``, ``fetchByKey``, ``lookupByKey``, ``exercise``, and ``exerciseByKey``.
 	// Note: A command can only use contracts that are visible to at least
-	// one of the parties in “act_as“ or “read_as“. This visibility check is independent from the Daml authorization
+	// one of the parties in ``act_as`` or ``read_as``. This visibility check is independent from the Daml authorization
 	// rules for fetch operations.
 	// If ledger API authorization is enabled, then the authorization metadata must authorize the sender of the request
 	// to read contract data on behalf of each of the given parties.
@@ -693,7 +693,7 @@ type ExecuteSubmissionRequest struct {
 	// Specifies the deduplication period for the change ID (See PrepareSubmissionRequest).
 	// If omitted, the participant will assume the configured maximum deduplication time.
 	//
-	// # Optional
+	// Optional
 	//
 	// Types that are valid to be assigned to DeduplicationPeriod:
 	//
@@ -703,7 +703,7 @@ type ExecuteSubmissionRequest struct {
 	// A unique identifier to distinguish completions for different submissions with the same change ID.
 	// Typically a random UUID. Applications are expected to use a different UUID for each retry of a submission
 	// with the same change ID.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	SubmissionId string `protobuf:"bytes,5,opt,name=submission_id,json=submissionId,proto3" json:"submission_id,omitempty"`
@@ -898,7 +898,7 @@ type ExecuteSubmissionAndWaitRequest struct {
 	// Specifies the deduplication period for the change ID (See PrepareSubmissionRequest).
 	// If omitted, the participant will assume the configured maximum deduplication time.
 	//
-	// # Optional
+	// Optional
 	//
 	// Types that are valid to be assigned to DeduplicationPeriod:
 	//
@@ -908,7 +908,7 @@ type ExecuteSubmissionAndWaitRequest struct {
 	// A unique identifier to distinguish completions for different submissions with the same change ID.
 	// Typically a random UUID. Applications are expected to use a different UUID for each retry of a submission
 	// with the same change ID.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	SubmissionId string `protobuf:"bytes,5,opt,name=submission_id,json=submissionId,proto3" json:"submission_id,omitempty"`
@@ -1052,11 +1052,11 @@ func (*ExecuteSubmissionAndWaitRequest_DeduplicationOffset) isExecuteSubmissionA
 type ExecuteSubmissionAndWaitResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The id of the transaction that resulted from the submitted command.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	UpdateId string `protobuf:"bytes,1,opt,name=update_id,json=updateId,proto3" json:"update_id,omitempty"`
-	// The details of the offset field are described in “community/ledger-api/README.md“.
+	// The details of the offset field are described in ``community/ledger-api/README.md``.
 	//
 	// Required
 	CompletionOffset int64 `protobuf:"varint,2,opt,name=completion_offset,json=completionOffset,proto3" json:"completion_offset,omitempty"`
@@ -1126,7 +1126,7 @@ type ExecuteSubmissionAndWaitForTransactionRequest struct {
 	// Specifies the deduplication period for the change ID (See PrepareSubmissionRequest).
 	// If omitted, the participant will assume the configured maximum deduplication time.
 	//
-	// # Optional
+	// Optional
 	//
 	// Types that are valid to be assigned to DeduplicationPeriod:
 	//
@@ -1136,7 +1136,7 @@ type ExecuteSubmissionAndWaitForTransactionRequest struct {
 	// A unique identifier to distinguish completions for different submissions with the same change ID.
 	// Typically a random UUID. Applications are expected to use a different UUID for each retry of a submission
 	// with the same change ID.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	SubmissionId string `protobuf:"bytes,5,opt,name=submission_id,json=submissionId,proto3" json:"submission_id,omitempty"`
@@ -1153,10 +1153,10 @@ type ExecuteSubmissionAndWaitForTransactionRequest struct {
 	//
 	// Optional
 	MinLedgerTime *MinLedgerTime `protobuf:"bytes,8,opt,name=min_ledger_time,json=minLedgerTime,proto3" json:"min_ledger_time,omitempty"`
-	// If no “transaction_format“ is provided, a default will be used where “transaction_shape“ is set to
-	// TRANSACTION_SHAPE_ACS_DELTA, “event_format“ is defined with “filters_by_party“ containing wildcard-template
-	// filter for all original “act_as“ and “read_as“ parties and the “verbose“ flag is set.
-	// When the “transaction_shape“ TRANSACTION_SHAPE_ACS_DELTA shape is used (explicitly or is defaulted to as explained above),
+	// If no ``transaction_format`` is provided, a default will be used where ``transaction_shape`` is set to
+	// TRANSACTION_SHAPE_ACS_DELTA, ``event_format`` is defined with ``filters_by_party`` containing wildcard-template
+	// filter for all original ``act_as`` and ``read_as`` parties and the ``verbose`` flag is set.
+	// When the ``transaction_shape`` TRANSACTION_SHAPE_ACS_DELTA shape is used (explicitly or is defaulted to as explained above),
 	// events will only be returned if the submitting party is hosted on this node.
 	//
 	// Optional
@@ -2051,7 +2051,7 @@ type GetPreferredPackagesResponse struct {
 	//
 	// If you build command submissions whose content depends on the returned
 	// preferred packages, then we recommend submitting the preferred package-ids
-	// in the “package_id_selection_preference“ of the command submission to
+	// in the ``package_id_selection_preference`` of the command submission to
 	// avoid race conditions with concurrent changes of the on-ledger package vetting state.
 	//
 	// Required: must be non-empty
@@ -2374,7 +2374,7 @@ type DamlTransaction_Node struct {
 	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	// Versioned node
 	//
-	// # Required
+	// Required
 	//
 	// Types that are valid to be assigned to VersionedNode:
 	//

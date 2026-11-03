@@ -206,7 +206,7 @@ type VettedPackages struct {
 	//
 	// Required
 	SynchronizerId string `protobuf:"bytes,3,opt,name=synchronizer_id,json=synchronizerId,proto3" json:"synchronizer_id,omitempty"`
-	// Serial of last “VettedPackages“ topology transaction of this participant
+	// Serial of last ``VettedPackages`` topology transaction of this participant
 	// and on this synchronizer.
 	//
 	// Required

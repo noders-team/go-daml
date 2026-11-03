@@ -92,7 +92,7 @@ type Filters struct {
 	// also be accumulated.
 	// A template or an interface SHOULD NOT appear twice in the accumulative field.
 	// A wildcard filter SHOULD NOT be defined more than once in the accumulative field.
-	// If no “CumulativeFilter“ defined, the default of a single “WildcardFilter“ with
+	// If no ``CumulativeFilter`` defined, the default of a single ``WildcardFilter`` with
 	// include_created_event_blob unset is used.
 	//
 	// Optional: can be empty
@@ -230,8 +230,8 @@ type CumulativeFilter_WildcardFilter struct {
 }
 
 type CumulativeFilter_InterfaceFilter struct {
-	// Include an “InterfaceView“ for every “InterfaceFilter“ matching a contract.
-	// The “InterfaceFilter“ instances MUST each use a unique “interface_id“.
+	// Include an ``InterfaceView`` for every ``InterfaceFilter`` matching a contract.
+	// The ``InterfaceFilter`` instances MUST each use a unique ``interface_id``.
 	//
 	// Optional
 	InterfaceFilter *InterfaceFilter `protobuf:"bytes,2,opt,name=interface_filter,json=interfaceFilter,proto3,oneof"`
@@ -239,9 +239,9 @@ type CumulativeFilter_InterfaceFilter struct {
 
 type CumulativeFilter_TemplateFilter struct {
 	// A template for which the data will be included in the
-	// “create_arguments“ of a matching “CreatedEvent“.
+	// ``create_arguments`` of a matching ``CreatedEvent``.
 	// If a contract is simultaneously selected by a template filter and one or more interface filters,
-	// the corresponding “include_created_event_blob“ are consolidated using an OR operation.
+	// the corresponding ``include_created_event_blob`` are consolidated using an OR operation.
 	//
 	// Optional
 	TemplateFilter *TemplateFilter `protobuf:"bytes,3,opt,name=template_filter,json=templateFilter,proto3,oneof"`
@@ -256,7 +256,7 @@ func (*CumulativeFilter_TemplateFilter) isCumulativeFilter_IdentifierFilter() {}
 // This filter matches all templates.
 type WildcardFilter struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Whether to include a “created_event_blob“ in the returned “CreatedEvent“.
+	// Whether to include a ``created_event_blob`` in the returned ``CreatedEvent``.
 	// Use this to access the contract create event payload in your API client
 	// for submitting it as a disclosed contract with future commands.
 	//
@@ -307,19 +307,19 @@ func (x *WildcardFilter) GetIncludeCreatedEventBlob() bool {
 type InterfaceFilter struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The interface that a matching contract must implement.
-	// The “interface_id“ needs to be valid: corresponding interface should be defined in
+	// The ``interface_id`` needs to be valid: corresponding interface should be defined in
 	// one of the available packages at the time of the query.
 	// Both package-name and package-id reference formats for the identifier are supported.
 	// Note: The package-id reference identifier format is deprecated. We plan to end support for this format in version 3.4.
 	//
 	// Required
 	InterfaceId *Identifier `protobuf:"bytes,1,opt,name=interface_id,json=interfaceId,proto3" json:"interface_id,omitempty"`
-	// Whether to include the interface view on the contract in the returned “CreatedEvent“.
+	// Whether to include the interface view on the contract in the returned ``CreatedEvent``.
 	// Use this to access contract data in a uniform manner in your API client.
 	//
 	// Optional
 	IncludeInterfaceView bool `protobuf:"varint,2,opt,name=include_interface_view,json=includeInterfaceView,proto3" json:"include_interface_view,omitempty"`
-	// Whether to include a “created_event_blob“ in the returned “CreatedEvent“.
+	// Whether to include a ``created_event_blob`` in the returned ``CreatedEvent``.
 	// Use this to access the contract create event payload in your API client
 	// for submitting it as a disclosed contract with future commands.
 	//
@@ -384,14 +384,14 @@ func (x *InterfaceFilter) GetIncludeCreatedEventBlob() bool {
 type TemplateFilter struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// A template for which the payload should be included in the response.
-	// The “template_id“ needs to be valid: corresponding template should be defined in
+	// The ``template_id`` needs to be valid: corresponding template should be defined in
 	// one of the available packages at the time of the query.
 	// Both package-name and package-id reference formats for the identifier are supported.
 	// Note: The package-id reference identifier format is deprecated. We plan to end support for this format in version 3.4.
 	//
 	// Required
 	TemplateId *Identifier `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
-	// Whether to include a “created_event_blob“ in the returned “CreatedEvent“.
+	// Whether to include a ``created_event_blob`` in the returned ``CreatedEvent``.
 	// Use this to access the contract event payload in your API client
 	// for submitting it as a disclosed contract with future commands.
 	//
@@ -452,13 +452,13 @@ func (x *TemplateFilter) GetIncludeCreatedEventBlob() bool {
 // which is expected to be specified alongside usages of `EventFormat`.
 type EventFormat struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Each key must be a valid PartyIdString (as described in “value.proto“).
+	// Each key must be a valid PartyIdString (as described in ``value.proto``).
 	// The interpretation of the filter depends on the transaction-shape being filtered:
 	//
-	//  1. For **ledger-effects** create and exercise events are returned, for which the witnesses include at least one of
-	//     the listed parties and match the per-party filter.
-	//  2. For **transaction and active-contract-set streams** create and archive events are returned for all contracts whose
-	//     stakeholders include at least one of the listed parties and match the per-party filter.
+	// 1. For **ledger-effects** create and exercise events are returned, for which the witnesses include at least one of
+	//    the listed parties and match the per-party filter.
+	// 2. For **transaction and active-contract-set streams** create and archive events are returned for all contracts whose
+	//    stakeholders include at least one of the listed parties and match the per-party filter.
 	//
 	// Optional: can be empty
 	FiltersByParty map[string]*Filters `protobuf:"bytes,1,rep,name=filters_by_party,json=filtersByParty,proto3" json:"filters_by_party,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`

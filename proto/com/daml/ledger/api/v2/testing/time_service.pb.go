@@ -116,7 +116,7 @@ type SetTimeRequest struct {
 	// Required
 	CurrentTime *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=current_time,json=currentTime,proto3" json:"current_time,omitempty"`
 	// The time the client wants to set on the ledger.
-	// MUST be a point int time after “current_time“.
+	// MUST be a point int time after ``current_time``.
 	//
 	// Required
 	NewTime       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=new_time,json=newTime,proto3" json:"new_time,omitempty"`

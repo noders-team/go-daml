@@ -27,12 +27,12 @@ const (
 type ReassignmentCommands struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Identifier of the on-ledger workflow that this command is a part of.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Optional
 	WorkflowId string `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
 	// Uniquely identifies the participant user that issued the command.
-	// Must be a valid UserIdString (as described in “value.proto“).
+	// Must be a valid UserIdString (as described in ``value.proto``).
 	// Required unless authentication is used with a user token.
 	// In that case, the token's user-id will be used for the request's user_id.
 	//
@@ -41,21 +41,21 @@ type ReassignmentCommands struct {
 	// Uniquely identifies the command.
 	// The triple (user_id, submitter, command_id) constitutes the change ID for the intended ledger change.
 	// The change ID can be used for matching the intended ledger changes with all their completions.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	CommandId string `protobuf:"bytes,3,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
 	// Party on whose behalf the command should be executed.
 	// If ledger API authorization is enabled, then the authorization metadata must authorize the sender of the request
 	// to act on behalf of the given party.
-	// Must be a valid PartyIdString (as described in “value.proto“).
+	// Must be a valid PartyIdString (as described in ``value.proto``).
 	//
 	// Required
 	Submitter string `protobuf:"bytes,4,opt,name=submitter,proto3" json:"submitter,omitempty"`
 	// A unique identifier to distinguish completions for different submissions with the same change ID.
 	// Typically a random UUID. Applications are expected to use a different UUID for each retry of a submission
 	// with the same change ID.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// If omitted, the participant or the committer may set a value of their choice.
 	//
@@ -229,7 +229,7 @@ func (*ReassignmentCommand_AssignCommand) isReassignmentCommand_Command() {}
 type UnassignCommand struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID of the contract the client wants to unassign.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	ContractId string `protobuf:"bytes,1,opt,name=contract_id,json=contractId,proto3" json:"contract_id,omitempty"`
@@ -302,7 +302,7 @@ func (x *UnassignCommand) GetTarget() string {
 type AssignCommand struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID from the unassigned event to be completed by this assignment.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	ReassignmentId string `protobuf:"bytes,1,opt,name=reassignment_id,json=reassignmentId,proto3" json:"reassignment_id,omitempty"`

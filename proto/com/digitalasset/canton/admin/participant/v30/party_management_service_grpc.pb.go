@@ -55,11 +55,11 @@ type PartyManagementServiceClient interface {
 	// a specific, intermediate step, and therefore the target participant signature must not
 	// already be in place prior to the call.
 	//
-	//	This operation assumes full trust in the source participant to provide a complete and
-	//	untampered state. Because the target participant cannot independently verify
-	//	the historical provenance of the imported contracts,
-	//	validation is performed on a best-effort basis.
-	//	Use only when the source participant is a known, trusted authority.
+	//  This operation assumes full trust in the source participant to provide a complete and
+	//  untampered state. Because the target participant cannot independently verify
+	//  the historical provenance of the imported contracts,
+	//  validation is performed on a best-effort basis.
+	//  Use only when the source participant is a known, trusted authority.
 	//
 	// Returns a 'request_id' that is stable across each retry with the same request parameters.
 	AddPartyAsync(ctx context.Context, in *AddPartyAsyncRequest, opts ...grpc.CallOption) (*AddPartyAsyncResponse, error)
@@ -132,9 +132,9 @@ type PartyManagementServiceClient interface {
 	// This RPC is idempotent and designed to be polled.
 	//
 	// Response status:
-	//   - onboarded = true: The flag is successfully cleared or was already clear.
-	//   - onboarded = false: The flag is not yet cleared. A background task is scheduled
-	//     (or was already pending).
+	// - onboarded = true: The flag is successfully cleared or was already clear.
+	// - onboarded = false: The flag is not yet cleared. A background task is scheduled
+	//   (or was already pending).
 	//
 	// Prerequisites:
 	// - An 'onboarding=true' mapping must exist for the party on this participant.
@@ -259,11 +259,11 @@ type PartyManagementServiceServer interface {
 	// a specific, intermediate step, and therefore the target participant signature must not
 	// already be in place prior to the call.
 	//
-	//	This operation assumes full trust in the source participant to provide a complete and
-	//	untampered state. Because the target participant cannot independently verify
-	//	the historical provenance of the imported contracts,
-	//	validation is performed on a best-effort basis.
-	//	Use only when the source participant is a known, trusted authority.
+	//  This operation assumes full trust in the source participant to provide a complete and
+	//  untampered state. Because the target participant cannot independently verify
+	//  the historical provenance of the imported contracts,
+	//  validation is performed on a best-effort basis.
+	//  Use only when the source participant is a known, trusted authority.
 	//
 	// Returns a 'request_id' that is stable across each retry with the same request parameters.
 	AddPartyAsync(context.Context, *AddPartyAsyncRequest) (*AddPartyAsyncResponse, error)
@@ -336,9 +336,9 @@ type PartyManagementServiceServer interface {
 	// This RPC is idempotent and designed to be polled.
 	//
 	// Response status:
-	//   - onboarded = true: The flag is successfully cleared or was already clear.
-	//   - onboarded = false: The flag is not yet cleared. A background task is scheduled
-	//     (or was already pending).
+	// - onboarded = true: The flag is successfully cleared or was already clear.
+	// - onboarded = false: The flag is not yet cleared. A background task is scheduled
+	//   (or was already pending).
 	//
 	// Prerequisites:
 	// - An 'onboarding=true' mapping must exist for the party on this participant.

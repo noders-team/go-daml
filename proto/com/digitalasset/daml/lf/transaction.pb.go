@@ -102,8 +102,7 @@ type ThinContractInstance struct {
 	TemplateId   *Identifier            `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
 	ArgVersioned *VersionedValue        `protobuf:"bytes,2,opt,name=arg_versioned,json=argVersioned,proto3" json:"arg_versioned,omitempty"`
 	// TODO: https://github.com/digital-asset/daml/issues/18240
-	//
-	//	remove agreement text for the proto
+	//  remove agreement text for the proto
 	Agreement     string `protobuf:"bytes,3,opt,name=agreement,proto3" json:"agreement,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

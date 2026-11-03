@@ -690,6 +690,7 @@ func (x *StoreResponse) GetSignature() *v30.Signature {
 type BatchRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BatchId       []byte                 `protobuf:"bytes,1,opt,name=batch_id,json=batchId,proto3" json:"batch_id,omitempty"`
+	EpochNumber   int64                  `protobuf:"varint,2,opt,name=epoch_number,json=epochNumber,proto3" json:"epoch_number,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -729,6 +730,13 @@ func (x *BatchRequest) GetBatchId() []byte {
 		return x.BatchId
 	}
 	return nil
+}
+
+func (x *BatchRequest) GetEpochNumber() int64 {
+	if x != nil {
+		return x.EpochNumber
+	}
+	return 0
 }
 
 type BatchResponse struct {
@@ -2390,9 +2398,10 @@ const file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering
 	"\x16ordering_start_instant\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x14orderingStartInstant\"w\n" +
 	"\rStoreResponse\x12\x19\n" +
 	"\bbatch_id\x18\x01 \x01(\fR\abatchId\x12K\n" +
-	"\tsignature\x18\x02 \x01(\v2-.com.digitalasset.canton.crypto.v30.SignatureR\tsignature\")\n" +
+	"\tsignature\x18\x02 \x01(\v2-.com.digitalasset.canton.crypto.v30.SignatureR\tsignature\"L\n" +
 	"\fBatchRequest\x12\x19\n" +
-	"\bbatch_id\x18\x01 \x01(\fR\abatchId\"\x92\x01\n" +
+	"\bbatch_id\x18\x01 \x01(\fR\abatchId\x12!\n" +
+	"\fepoch_number\x18\x02 \x01(\x03R\vepochNumber\"\x92\x01\n" +
 	"\rBatchResponse\x12\x19\n" +
 	"\bbatch_id\x18\x01 \x01(\fR\abatchId\x12f\n" +
 	"\x05batch\x18\x02 \x01(\v2P.com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v30.BatchR\x05batch\"\x87\x01\n" +

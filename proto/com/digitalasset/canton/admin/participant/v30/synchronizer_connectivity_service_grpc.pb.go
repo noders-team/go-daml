@@ -71,9 +71,9 @@ type SynchronizerConnectivityServiceClient interface {
 	// Get the physical synchronizer id of the given synchronizer alias
 	// Fail if there is more than one active synchronizer connection for the alias
 	GetSynchronizerId(ctx context.Context, in *GetSynchronizerIdRequest, opts ...grpc.CallOption) (*GetSynchronizerIdResponse, error)
-	// *
-	// Perform a manual logical synchronizer upgrade
-	// This endpoint should ONLY be used when the current synchronizer was declared irrevocably broken.
+	//*
+	//Perform a manual logical synchronizer upgrade
+	//This endpoint should ONLY be used when the current synchronizer was declared irrevocably broken.
 	PerformManualLsu(ctx context.Context, in *PerformManualLsuRequest, opts ...grpc.CallOption) (*PerformManualLsuResponse, error)
 }
 
@@ -240,9 +240,9 @@ type SynchronizerConnectivityServiceServer interface {
 	// Get the physical synchronizer id of the given synchronizer alias
 	// Fail if there is more than one active synchronizer connection for the alias
 	GetSynchronizerId(context.Context, *GetSynchronizerIdRequest) (*GetSynchronizerIdResponse, error)
-	// *
-	// Perform a manual logical synchronizer upgrade
-	// This endpoint should ONLY be used when the current synchronizer was declared irrevocably broken.
+	//*
+	//Perform a manual logical synchronizer upgrade
+	//This endpoint should ONLY be used when the current synchronizer was declared irrevocably broken.
 	PerformManualLsu(context.Context, *PerformManualLsuRequest) (*PerformManualLsuResponse, error)
 	mustEmbedUnimplementedSynchronizerConnectivityServiceServer()
 }

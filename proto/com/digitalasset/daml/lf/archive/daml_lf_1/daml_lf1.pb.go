@@ -2164,7 +2164,7 @@ type isPrimLit_Sum interface {
 }
 
 type PrimLit_Int64 struct {
-	// 64-bit integer literal ('LitInt64')
+	//  64-bit integer literal ('LitInt64')
 	Int64 int64 `protobuf:"zigzag64,1,opt,name=int64,proto3,oneof"`
 }
 
@@ -9793,7 +9793,8 @@ type Scenario_Commit struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// committing party
 	Party *Expr `protobuf:"bytes,1,opt,name=party,proto3" json:"party,omitempty"`
-	Expr  *Expr `protobuf:"bytes,2,opt,name=expr,proto3" json:"expr,omitempty"`
+	//
+	Expr *Expr `protobuf:"bytes,2,opt,name=expr,proto3" json:"expr,omitempty"`
 	// type of result
 	RetType       *Type `protobuf:"bytes,3,opt,name=ret_type,json=retType,proto3" json:"ret_type,omitempty"`
 	unknownFields protoimpl.UnknownFields

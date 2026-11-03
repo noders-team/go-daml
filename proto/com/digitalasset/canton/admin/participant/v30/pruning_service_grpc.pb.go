@@ -45,14 +45,11 @@ type PruningServiceClient interface {
 	// Prune the participant specifying the offset before and at which ledger transactions
 	// should be removed. Only returns when the potentially long-running prune request ends
 	// successfully or with one of the following errors:
-	//   - “INVALID_ARGUMENT“: if the payload, particularly the offset is malformed or missing
-	//   - “INTERNAL“: if the participant has encountered a failure and has potentially
-	//     applied pruning partially. Such cases warrant verifying the participant health before
-	//     retrying the prune with the same (or a larger, valid) offset. Successful retries
-	//     after such errors ensure that different components reach a consistent pruning state.
-	//   - “FAILED_PRECONDITION“: if the participant is not yet able to prune at the specified
-	//     offset or if pruning is invoked on a participant running the Community Edition.
-	//
+	// - ``INVALID_ARGUMENT``: if the payload, particularly the offset is malformed or missing
+	// - ``INTERNAL``: if the participant has encountered a failure and has potentially
+	//   applied pruning partially. Such cases warrant verifying the participant health before
+	//   retrying the prune with the same (or a larger, valid) offset. Successful retries
+	//   after such errors ensure that different components reach a consistent pruning state.
 	// Note that this endpoint only prunes the Canton stores not the ledger API stores. For the latter,
 	// use the pruning service on the ledger API. This limitation only applies to this endpoint, the other endpoints in this service,
 	// most notably the ones for scheduled pruning prune all stores.
@@ -60,16 +57,11 @@ type PruningServiceClient interface {
 	// Retrieve the safe pruning offset
 	GetSafePruningOffset(ctx context.Context, in *GetSafePruningOffsetRequest, opts ...grpc.CallOption) (*GetSafePruningOffsetResponse, error)
 	// Enable automatic pruning using the specified schedule parameters
-	// The following errors may occur on the SetSchedule or Update commands:
-	//   - “INVALID_ARGUMENT“: if a parameter is missing or an invalid cron expression
-	//     or duration.
-	//   - “FAILED_PRECONDITION“: if automatic background pruning has not been enabled
-	//     or if invoked on a participant running the Community Edition.
 	SetSchedule(ctx context.Context, in *v30.SetScheduleRequest, opts ...grpc.CallOption) (*v30.SetScheduleResponse, error)
 	// Enable automatic pruning with participant-specific schedule parameters.
 	SetParticipantSchedule(ctx context.Context, in *v30.SetParticipantScheduleRequest, opts ...grpc.CallOption) (*v30.SetParticipantScheduleResponse, error)
 	// Modify individual pruning schedule parameters.
-	// - “INVALID_ARGUMENT“: if the payload is malformed or no schedule is configured
+	// - ``INVALID_ARGUMENT``: if the payload is malformed or no schedule is configured
 	SetCron(ctx context.Context, in *v30.SetCronRequest, opts ...grpc.CallOption) (*v30.SetCronResponse, error)
 	SetMaxDuration(ctx context.Context, in *v30.SetMaxDurationRequest, opts ...grpc.CallOption) (*v30.SetMaxDurationResponse, error)
 	SetRetention(ctx context.Context, in *v30.SetRetentionRequest, opts ...grpc.CallOption) (*v30.SetRetentionResponse, error)
@@ -237,14 +229,11 @@ type PruningServiceServer interface {
 	// Prune the participant specifying the offset before and at which ledger transactions
 	// should be removed. Only returns when the potentially long-running prune request ends
 	// successfully or with one of the following errors:
-	//   - “INVALID_ARGUMENT“: if the payload, particularly the offset is malformed or missing
-	//   - “INTERNAL“: if the participant has encountered a failure and has potentially
-	//     applied pruning partially. Such cases warrant verifying the participant health before
-	//     retrying the prune with the same (or a larger, valid) offset. Successful retries
-	//     after such errors ensure that different components reach a consistent pruning state.
-	//   - “FAILED_PRECONDITION“: if the participant is not yet able to prune at the specified
-	//     offset or if pruning is invoked on a participant running the Community Edition.
-	//
+	// - ``INVALID_ARGUMENT``: if the payload, particularly the offset is malformed or missing
+	// - ``INTERNAL``: if the participant has encountered a failure and has potentially
+	//   applied pruning partially. Such cases warrant verifying the participant health before
+	//   retrying the prune with the same (or a larger, valid) offset. Successful retries
+	//   after such errors ensure that different components reach a consistent pruning state.
 	// Note that this endpoint only prunes the Canton stores not the ledger API stores. For the latter,
 	// use the pruning service on the ledger API. This limitation only applies to this endpoint, the other endpoints in this service,
 	// most notably the ones for scheduled pruning prune all stores.
@@ -252,16 +241,11 @@ type PruningServiceServer interface {
 	// Retrieve the safe pruning offset
 	GetSafePruningOffset(context.Context, *GetSafePruningOffsetRequest) (*GetSafePruningOffsetResponse, error)
 	// Enable automatic pruning using the specified schedule parameters
-	// The following errors may occur on the SetSchedule or Update commands:
-	//   - “INVALID_ARGUMENT“: if a parameter is missing or an invalid cron expression
-	//     or duration.
-	//   - “FAILED_PRECONDITION“: if automatic background pruning has not been enabled
-	//     or if invoked on a participant running the Community Edition.
 	SetSchedule(context.Context, *v30.SetScheduleRequest) (*v30.SetScheduleResponse, error)
 	// Enable automatic pruning with participant-specific schedule parameters.
 	SetParticipantSchedule(context.Context, *v30.SetParticipantScheduleRequest) (*v30.SetParticipantScheduleResponse, error)
 	// Modify individual pruning schedule parameters.
-	// - “INVALID_ARGUMENT“: if the payload is malformed or no schedule is configured
+	// - ``INVALID_ARGUMENT``: if the payload is malformed or no schedule is configured
 	SetCron(context.Context, *v30.SetCronRequest) (*v30.SetCronResponse, error)
 	SetMaxDuration(context.Context, *v30.SetMaxDurationRequest) (*v30.SetMaxDurationResponse, error)
 	SetRetention(context.Context, *v30.SetRetentionRequest) (*v30.SetRetentionResponse, error)

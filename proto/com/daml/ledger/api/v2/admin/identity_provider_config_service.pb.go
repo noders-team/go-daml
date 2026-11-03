@@ -28,7 +28,7 @@ const (
 type IdentityProviderConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The identity provider identifier
-	// Must be a valid LedgerString (as describe in “value.proto“).
+	// Must be a valid LedgerString (as describe in ``value.proto``).
 	//
 	// Required
 	IdentityProviderId string `protobuf:"bytes,1,opt,name=identity_provider_id,json=identityProviderId,proto3" json:"identity_provider_id,omitempty"`
@@ -400,16 +400,16 @@ type UpdateIdentityProviderConfigRequest struct {
 	//
 	// Required
 	IdentityProviderConfig *IdentityProviderConfig `protobuf:"bytes,1,opt,name=identity_provider_config,json=identityProviderConfig,proto3" json:"identity_provider_config,omitempty"`
-	// An update mask specifies how and which properties of the “IdentityProviderConfig“ message are to be updated.
+	// An update mask specifies how and which properties of the ``IdentityProviderConfig`` message are to be updated.
 	// An update mask consists of a set of update paths.
-	// A valid update path points to a field or a subfield relative to the “IdentityProviderConfig“ message.
+	// A valid update path points to a field or a subfield relative to the ``IdentityProviderConfig`` message.
 	// A valid update mask must:
 	//
 	// 1. contain at least one update path,
 	// 2. contain only valid update paths.
 	//
-	// Fields that can be updated are marked as “Modifiable“.
-	// For additional information see the documentation for standard protobuf3's “google.protobuf.FieldMask“.
+	// Fields that can be updated are marked as ``Modifiable``.
+	// For additional information see the documentation for standard protobuf3's ``google.protobuf.FieldMask``.
 	//
 	// Required
 	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
