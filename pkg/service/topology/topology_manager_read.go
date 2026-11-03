@@ -20,6 +20,7 @@ type TopologyManagerRead interface {
 	// PartyToParticipant mapping for externally signed parties.
 	ListPartyToKeyMapping(ctx context.Context, req *model.ListPartyToKeyMappingRequest) (*model.ListPartyToKeyMappingResponse, error)
 	ListPartyToParticipant(ctx context.Context, req *model.ListPartyToParticipantRequest) (*model.ListPartyToParticipantResponse, error)
+	ListAllV2(ctx context.Context, req *model.ListAllV2Request) (*model.ListAllV2Response, error)
 }
 
 type topologyManagerRead struct {
@@ -67,6 +68,17 @@ func (c *topologyManagerRead) ListPartyToParticipant(ctx context.Context, req *m
 	}
 
 	return listPartyToParticipantResponseFromProto(resp), nil
+}
+
+func (c *topologyManagerRead) ListAllV2(ctx context.Context, req *model.ListAllV2Request) (*model.ListAllV2Response, error) {
+	protoReq := listAllV2RequestToProto(req)
+
+	resp, err := c.client.ListAllV2(ctx, protoReq)
+	if err != nil {
+		return nil, err
+	}
+
+	return listAllV2ResponseFromProto(resp), nil
 }
 
 func listNamespaceDelegationRequestToProto(req *model.ListNamespaceDelegationRequest) *topov30.ListNamespaceDelegationRequest {
@@ -147,6 +159,63 @@ func listPartyToParticipantResponseFromProto(pb *topov30.ListPartyToParticipantR
 	return &model.ListPartyToParticipantResponse{
 		Results: results,
 	}
+}
+
+func listAllV2RequestToProto(req *model.ListAllV2Request) *topov30.ListAllV2Request {
+	if req == nil {
+		return nil
+	}
+
+	return &topov30.ListAllV2Request{
+		BaseQuery:       baseQueryToProto(req.BaseQuery),
+		IncludeMappings: req.IncludeMappings,
+		FilterNamespace: req.FilterNamespace,
+	}
+}
+
+func listAllV2ResponseFromProto(pb *topov30.ListAllV2Response) *model.ListAllV2Response {
+	if pb == nil {
+		return nil
+	}
+
+	result := &model.ListAllV2Response{}
+	if pb.Result == nil {
+		return result
+	}
+
+	result.Result = &model.TopologyTransactions{
+		Items: make([]*model.TopologyTransactionItem, len(pb.Result.Items)),
+	}
+	for i, item := range pb.Result.Items {
+		result.Result.Items[i] = topologyTransactionItemFromProto(item)
+	}
+
+	return result
+}
+
+func topologyTransactionItemFromProto(pb *topov30.TopologyTransactions_Item) *model.TopologyTransactionItem {
+	if pb == nil {
+		return nil
+	}
+
+	item := &model.TopologyTransactionItem{
+		Transaction:     pb.Transaction,
+		RejectionReason: pb.RejectionReason,
+	}
+	if pb.Sequenced != nil {
+		t := pb.Sequenced.AsTime()
+		item.Sequenced = &t
+	}
+	if pb.ValidFrom != nil {
+		t := pb.ValidFrom.AsTime()
+		item.ValidFrom = &t
+	}
+	if pb.ValidUntil != nil {
+		t := pb.ValidUntil.AsTime()
+		item.ValidUntil = &t
+	}
+
+	return item
 }
 
 func baseQueryToProto(query *model.BaseQuery) *topov30.BaseQuery {

@@ -56,6 +56,28 @@ type ListPartyToParticipantResponse struct {
 	Results []*PartyToParticipantResult
 }
 
+type ListAllV2Request struct {
+	BaseQuery       *BaseQuery
+	IncludeMappings []string
+	FilterNamespace string
+}
+
+type ListAllV2Response struct {
+	Result *TopologyTransactions
+}
+
+type TopologyTransactions struct {
+	Items []*TopologyTransactionItem
+}
+
+type TopologyTransactionItem struct {
+	Sequenced       *time.Time
+	ValidFrom       *time.Time
+	ValidUntil      *time.Time
+	Transaction     []byte
+	RejectionReason *string
+}
+
 type BaseQuery struct {
 	Store           *StoreID
 	Proposals       bool
