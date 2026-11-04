@@ -22,6 +22,7 @@ type DamlBindingClient struct {
 	CommandInspectionMng         admin.CommandInspection
 	IdentityProviderMng          admin.IdentityProviderConfig
 	TrafficControl               admin.TrafficControl
+	SequencerBFT                 admin.SequencerBFT
 	CommandCompletion            ledger.CommandCompletion
 	CommandService               ledger.CommandService
 	CommandSubmission            ledger.CommandSubmission
@@ -52,6 +53,7 @@ func NewDamlBindingClient(client *DamlClient, conn *Connection) *DamlBindingClie
 		CommandInspectionMng:         admin.NewCommandInspectionClient(grpc),
 		IdentityProviderMng:          admin.NewIdentityProviderConfigClient(grpc),
 		TrafficControl:               admin.NewTrafficControlClient(adminGrpc),
+		SequencerBFT:                 admin.NewSequencerBFTClient(adminGrpc),
 		CommandCompletion:            ledger.NewCommandCompletionClient(grpc),
 		CommandService:               ledger.NewCommandServiceClient(grpc),
 		CommandSubmission:            ledger.NewCommandSubmissionClient(grpc),

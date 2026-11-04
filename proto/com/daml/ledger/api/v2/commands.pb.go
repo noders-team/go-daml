@@ -215,12 +215,12 @@ type ExerciseCommand struct {
 	// Required
 	TemplateId *Identifier `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
 	// The ID of the contract the client wants to exercise upon.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	ContractId string `protobuf:"bytes,2,opt,name=contract_id,json=contractId,proto3" json:"contract_id,omitempty"`
 	// The name of the choice the client wants to exercise.
-	// Must be a valid NameString (as described in “value.proto“)
+	// Must be a valid NameString (as described in ``value.proto``)
 	//
 	// Required
 	Choice string `protobuf:"bytes,3,opt,name=choice,proto3" json:"choice,omitempty"`
@@ -304,7 +304,7 @@ type ExerciseByKeyCommand struct {
 	// Required
 	ContractKey *Value `protobuf:"bytes,2,opt,name=contract_key,json=contractKey,proto3" json:"contract_key,omitempty"`
 	// The name of the choice the client wants to exercise.
-	// Must be a valid NameString (as described in “value.proto“)
+	// Must be a valid NameString (as described in ``value.proto``)
 	//
 	// Required
 	Choice string `protobuf:"bytes,3,opt,name=choice,proto3" json:"choice,omitempty"`
@@ -388,7 +388,7 @@ type CreateAndExerciseCommand struct {
 	// Required
 	CreateArguments *Record `protobuf:"bytes,2,opt,name=create_arguments,json=createArguments,proto3" json:"create_arguments,omitempty"`
 	// The name of the choice the client wants to exercise.
-	// Must be a valid NameString (as described in “value.proto“).
+	// Must be a valid NameString (as described in ``value.proto``).
 	//
 	// Required
 	Choice string `protobuf:"bytes,3,opt,name=choice,proto3" json:"choice,omitempty"`
@@ -550,12 +550,12 @@ func (x *DisclosedContract) GetSynchronizerId() string {
 type Commands struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Identifier of the on-ledger workflow that this command is a part of.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Optional
 	WorkflowId string `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
 	// Uniquely identifies the participant user that issued the command.
-	// Must be a valid UserIdString (as described in “value.proto“).
+	// Must be a valid UserIdString (as described in ``value.proto``).
 	// Required unless authentication is used with a user token.
 	// In that case, the token's user-id will be used for the request's user_id.
 	//
@@ -565,7 +565,7 @@ type Commands struct {
 	// The triple (user_id, act_as, command_id) constitutes the change ID for the intended ledger change,
 	// where act_as is interpreted as a set of party names.
 	// The change ID can be used for matching the intended ledger changes with all their completions.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	CommandId string `protobuf:"bytes,3,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
@@ -576,7 +576,7 @@ type Commands struct {
 	// Specifies the deduplication period for the change ID.
 	// If omitted, the participant will assume the configured maximum deduplication time.
 	//
-	// # Optional
+	// Optional
 	//
 	// Types that are valid to be assigned to DeduplicationPeriod:
 	//
@@ -599,15 +599,15 @@ type Commands struct {
 	// Set of parties on whose behalf the command should be executed.
 	// If ledger API authorization is enabled, then the authorization metadata must authorize the sender of the request
 	// to act on behalf of each of the given parties.
-	// Each element must be a valid PartyIdString (as described in “value.proto“).
+	// Each element must be a valid PartyIdString (as described in ``value.proto``).
 	//
 	// Required: must be non-empty
 	ActAs []string `protobuf:"bytes,9,rep,name=act_as,json=actAs,proto3" json:"act_as,omitempty"`
-	// Set of parties on whose behalf (in addition to all parties listed in “act_as“) contracts can be retrieved.
-	// This affects Daml operations such as “fetch“, “fetchByKey“, “lookupByKey“, “exercise“, and “exerciseByKey“.
+	// Set of parties on whose behalf (in addition to all parties listed in ``act_as``) contracts can be retrieved.
+	// This affects Daml operations such as ``fetch``, ``fetchByKey``, ``lookupByKey``, ``exercise``, and ``exerciseByKey``.
 	// Note: A participant node of a Daml network can host multiple parties. Each contract present on the participant
 	// node is only visible to a subset of these parties. A command can only use contracts that are visible to at least
-	// one of the parties in “act_as“ or “read_as“. This visibility check is independent from the Daml authorization
+	// one of the parties in ``act_as`` or ``read_as``. This visibility check is independent from the Daml authorization
 	// rules for fetch operations.
 	// If ledger API authorization is enabled, then the authorization metadata must authorize the sender of the request
 	// to read contract data on behalf of each of the given parties.
@@ -617,7 +617,7 @@ type Commands struct {
 	// A unique identifier to distinguish completions for different submissions with the same change ID.
 	// Typically a random UUID. Applications are expected to use a different UUID for each retry of a submission
 	// with the same change ID.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// If omitted, the participant or the committer may set a value of their choice.
 	//

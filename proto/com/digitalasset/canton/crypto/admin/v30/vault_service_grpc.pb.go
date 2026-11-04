@@ -57,7 +57,7 @@ const (
 // In addition, we also provide access to the locally stored certificates which are used
 // either by the HTTP/1.1 sequencer client or for legal identity claims.
 type VaultServiceClient interface {
-	// *
+	//*
 	// List public keys according to request filter for which we have a private key in our key vault.
 	//
 	// The request includes a filter for fingerprints which can be used for lookups.
@@ -65,39 +65,39 @@ type VaultServiceClient interface {
 	// @param ListMyKeysRequest: request with optional fingerprint filter
 	// @return: all serialized keys and metadata that have the fingerprint filter as a substring in their fingerprint
 	ListMyKeys(ctx context.Context, in *ListMyKeysRequest, opts ...grpc.CallOption) (*ListMyKeysResponse, error)
-	// *
+	//*
 	// Generates a new public / private key pair for signing.
 	//
 	// Stores the private key in the vault, and returns the public key
 	GenerateSigningKey(ctx context.Context, in *GenerateSigningKeyRequest, opts ...grpc.CallOption) (*GenerateSigningKeyResponse, error)
-	// *
+	//*
 	// Generates a new public / private key pair for hybrid encryption.
 	//
 	// Stores the private key in the vault, and returns the public key
 	GenerateEncryptionKey(ctx context.Context, in *GenerateEncryptionKeyRequest, opts ...grpc.CallOption) (*GenerateEncryptionKeyResponse, error)
-	// *
+	//*
 	// Registers a KMS key for asymmetric/hybrid encryption.
 	//
 	// Stores the corresponding public key in the vault, and returns it
 	RegisterKmsEncryptionKey(ctx context.Context, in *RegisterKmsEncryptionKeyRequest, opts ...grpc.CallOption) (*RegisterKmsEncryptionKeyResponse, error)
-	// *
+	//*
 	// Registers a KMS key for signing.
 	//
 	// Stores the corresponding public key in the vault, and returns it
 	RegisterKmsSigningKey(ctx context.Context, in *RegisterKmsSigningKeyRequest, opts ...grpc.CallOption) (*RegisterKmsSigningKeyResponse, error)
-	// *
+	//*
 	// Import a public key into the registry in order to provide that Fingerprint -> PublicKey lookups
 	//
 	// @param: ImportPublicKeyRequest serialized public key to be imported
 	// @return: fingerprint and serialized public key of imported public key
 	ImportPublicKey(ctx context.Context, in *ImportPublicKeyRequest, opts ...grpc.CallOption) (*ImportPublicKeyResponse, error)
-	// *
+	//*
 	// Lists all public keys matching the supplied filter which are internally cached
 	//
 	// Any public key returned here can be referenced in topology transaction building
 	// by fingerprint.
 	ListPublicKeys(ctx context.Context, in *ListPublicKeysRequest, opts ...grpc.CallOption) (*ListPublicKeysResponse, error)
-	// *
+	//*
 	// Changes the wrapper key that is used to encrypt private keys when stored
 	RotateWrapperKey(ctx context.Context, in *RotateWrapperKeyRequest, opts ...grpc.CallOption) (*RotateWrapperKeyResponse, error)
 	GetWrapperKeyId(ctx context.Context, in *GetWrapperKeyIdRequest, opts ...grpc.CallOption) (*GetWrapperKeyIdResponse, error)
@@ -255,7 +255,7 @@ func (c *vaultServiceClient) DeleteKeyPair(ctx context.Context, in *DeleteKeyPai
 // In addition, we also provide access to the locally stored certificates which are used
 // either by the HTTP/1.1 sequencer client or for legal identity claims.
 type VaultServiceServer interface {
-	// *
+	//*
 	// List public keys according to request filter for which we have a private key in our key vault.
 	//
 	// The request includes a filter for fingerprints which can be used for lookups.
@@ -263,39 +263,39 @@ type VaultServiceServer interface {
 	// @param ListMyKeysRequest: request with optional fingerprint filter
 	// @return: all serialized keys and metadata that have the fingerprint filter as a substring in their fingerprint
 	ListMyKeys(context.Context, *ListMyKeysRequest) (*ListMyKeysResponse, error)
-	// *
+	//*
 	// Generates a new public / private key pair for signing.
 	//
 	// Stores the private key in the vault, and returns the public key
 	GenerateSigningKey(context.Context, *GenerateSigningKeyRequest) (*GenerateSigningKeyResponse, error)
-	// *
+	//*
 	// Generates a new public / private key pair for hybrid encryption.
 	//
 	// Stores the private key in the vault, and returns the public key
 	GenerateEncryptionKey(context.Context, *GenerateEncryptionKeyRequest) (*GenerateEncryptionKeyResponse, error)
-	// *
+	//*
 	// Registers a KMS key for asymmetric/hybrid encryption.
 	//
 	// Stores the corresponding public key in the vault, and returns it
 	RegisterKmsEncryptionKey(context.Context, *RegisterKmsEncryptionKeyRequest) (*RegisterKmsEncryptionKeyResponse, error)
-	// *
+	//*
 	// Registers a KMS key for signing.
 	//
 	// Stores the corresponding public key in the vault, and returns it
 	RegisterKmsSigningKey(context.Context, *RegisterKmsSigningKeyRequest) (*RegisterKmsSigningKeyResponse, error)
-	// *
+	//*
 	// Import a public key into the registry in order to provide that Fingerprint -> PublicKey lookups
 	//
 	// @param: ImportPublicKeyRequest serialized public key to be imported
 	// @return: fingerprint and serialized public key of imported public key
 	ImportPublicKey(context.Context, *ImportPublicKeyRequest) (*ImportPublicKeyResponse, error)
-	// *
+	//*
 	// Lists all public keys matching the supplied filter which are internally cached
 	//
 	// Any public key returned here can be referenced in topology transaction building
 	// by fingerprint.
 	ListPublicKeys(context.Context, *ListPublicKeysRequest) (*ListPublicKeysResponse, error)
-	// *
+	//*
 	// Changes the wrapper key that is used to encrypt private keys when stored
 	RotateWrapperKey(context.Context, *RotateWrapperKeyRequest) (*RotateWrapperKeyResponse, error)
 	GetWrapperKeyId(context.Context, *GetWrapperKeyIdRequest) (*GetWrapperKeyIdResponse, error)

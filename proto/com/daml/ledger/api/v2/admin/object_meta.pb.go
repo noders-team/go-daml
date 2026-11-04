@@ -31,7 +31,7 @@ const (
 type ObjectMeta struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// An opaque, non-empty value, populated by a participant server which represents the internal version of the resource
-	// this “ObjectMeta“ message is attached to. The participant server will change it to a unique value each time the corresponding resource is updated.
+	// this ``ObjectMeta`` message is attached to. The participant server will change it to a unique value each time the corresponding resource is updated.
 	// You must not rely on the format of resource version. The participant server might change it without notice.
 	// You can obtain the newest resource version value by issuing a read request.
 	// You may use it for concurrent change detection by passing it back unmodified in an update request.
@@ -51,9 +51,9 @@ type ObjectMeta struct {
 	// 1. The total size over all keys and values cannot exceed 256kb in UTF-8 encoding.
 	// 2. Keys are composed of an optional prefix segment and a required name segment such that:
 	//
-	//   - key prefix, when present, must be a valid DNS subdomain with at most 253 characters, followed by a '/' (forward slash) character,
-	//   - name segment must have at most 63 characters that are either alphanumeric ([a-z0-9A-Z]), or a '.' (dot), '-' (dash) or '_' (underscore);
-	//     and it must start and end with an alphanumeric character.
+	//    - key prefix, when present, must be a valid DNS subdomain with at most 253 characters, followed by a '/' (forward slash) character,
+	//    - name segment must have at most 63 characters that are either alphanumeric ([a-z0-9A-Z]), or a '.' (dot), '-' (dash) or '_' (underscore);
+	//      and it must start and end with an alphanumeric character.
 	//
 	// 3. Values can be any non-empty strings.
 	//

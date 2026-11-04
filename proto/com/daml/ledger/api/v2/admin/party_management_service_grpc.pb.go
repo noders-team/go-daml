@@ -76,9 +76,9 @@ type PartyManagementServiceClient interface {
 	// Caller can specify party metadata that is stored locally on the participant.
 	// This call may:
 	//
-	//   - Succeed, in which case the actual allocated identifier is visible in
-	//     the response.
-	//   - Respond with a gRPC error
+	// - Succeed, in which case the actual allocated identifier is visible in
+	//   the response.
+	// - Respond with a gRPC error
 	//
 	// daml-on-kv-ledger: suggestion's uniqueness is checked by the validators in
 	// the consensus layer and call rejected if the identifier is already present.
@@ -88,10 +88,6 @@ type PartyManagementServiceClient interface {
 	// The party identifier suggestion must be a valid party name. Party names are required to be non-empty US-ASCII strings built from letters, digits, space,
 	// colon, minus and underscore limited to 255 chars
 	AllocateParty(ctx context.Context, in *AllocatePartyRequest, opts ...grpc.CallOption) (*AllocatePartyResponse, error)
-	// Alpha 3.3: Endpoint to allocate a new external party on a synchronizer
-	//
-	// # Expected to be stable in 3.5
-	//
 	// The external party must be hosted (at least) on this node with either confirmation or observation permissions
 	// It can optionally be hosted on other nodes (then called a multi-hosted party).
 	// If hosted on additional nodes, explicit authorization of the hosting relationship must be performed on those nodes
@@ -107,10 +103,6 @@ type PartyManagementServiceClient interface {
 	UpdatePartyDetails(ctx context.Context, in *UpdatePartyDetailsRequest, opts ...grpc.CallOption) (*UpdatePartyDetailsResponse, error)
 	// Update the assignment of a party from one IDP to another.
 	UpdatePartyIdentityProviderId(ctx context.Context, in *UpdatePartyIdentityProviderIdRequest, opts ...grpc.CallOption) (*UpdatePartyIdentityProviderIdResponse, error)
-	// Alpha 3.3: Convenience endpoint to generate topology transactions for external signing
-	//
-	// # Expected to be stable in 3.5
-	//
 	// You may use this endpoint to generate the common external topology transactions
 	// which can be signed externally and uploaded as part of the allocate party process
 	//
@@ -252,9 +244,9 @@ type PartyManagementServiceServer interface {
 	// Caller can specify party metadata that is stored locally on the participant.
 	// This call may:
 	//
-	//   - Succeed, in which case the actual allocated identifier is visible in
-	//     the response.
-	//   - Respond with a gRPC error
+	// - Succeed, in which case the actual allocated identifier is visible in
+	//   the response.
+	// - Respond with a gRPC error
 	//
 	// daml-on-kv-ledger: suggestion's uniqueness is checked by the validators in
 	// the consensus layer and call rejected if the identifier is already present.
@@ -264,10 +256,6 @@ type PartyManagementServiceServer interface {
 	// The party identifier suggestion must be a valid party name. Party names are required to be non-empty US-ASCII strings built from letters, digits, space,
 	// colon, minus and underscore limited to 255 chars
 	AllocateParty(context.Context, *AllocatePartyRequest) (*AllocatePartyResponse, error)
-	// Alpha 3.3: Endpoint to allocate a new external party on a synchronizer
-	//
-	// # Expected to be stable in 3.5
-	//
 	// The external party must be hosted (at least) on this node with either confirmation or observation permissions
 	// It can optionally be hosted on other nodes (then called a multi-hosted party).
 	// If hosted on additional nodes, explicit authorization of the hosting relationship must be performed on those nodes
@@ -283,10 +271,6 @@ type PartyManagementServiceServer interface {
 	UpdatePartyDetails(context.Context, *UpdatePartyDetailsRequest) (*UpdatePartyDetailsResponse, error)
 	// Update the assignment of a party from one IDP to another.
 	UpdatePartyIdentityProviderId(context.Context, *UpdatePartyIdentityProviderIdRequest) (*UpdatePartyIdentityProviderIdResponse, error)
-	// Alpha 3.3: Convenience endpoint to generate topology transactions for external signing
-	//
-	// # Expected to be stable in 3.5
-	//
 	// You may use this endpoint to generate the common external topology transactions
 	// which can be signed externally and uploaded as part of the allocate party process
 	//

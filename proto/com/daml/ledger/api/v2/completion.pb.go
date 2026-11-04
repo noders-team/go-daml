@@ -30,7 +30,7 @@ const (
 type Completion struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID of the succeeded or failed command.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	CommandId string `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
@@ -42,37 +42,37 @@ type Completion struct {
 	// The update_id of the transaction or reassignment that resulted from the command with command_id.
 	//
 	// Only set for successfully executed commands.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Optional
 	UpdateId string `protobuf:"bytes,3,opt,name=update_id,json=updateId,proto3" json:"update_id,omitempty"`
-	// The user-id that was used for the submission, as described in “commands.proto“.
-	// Must be a valid UserIdString (as described in “value.proto“).
+	// The user-id that was used for the submission, as described in ``commands.proto``.
+	// Must be a valid UserIdString (as described in ``value.proto``).
 	//
 	// Required
 	UserId string `protobuf:"bytes,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	// The set of parties on whose behalf the commands were executed.
-	// Contains the “act_as“ parties from “commands.proto“
+	// Contains the ``act_as`` parties from ``commands.proto``
 	// filtered to the requesting parties in CompletionStreamRequest.
 	// The order of the parties need not be the same as in the submission.
-	// Each element must be a valid PartyIdString (as described in “value.proto“).
+	// Each element must be a valid PartyIdString (as described in ``value.proto``).
 	//
 	// Required: must be non-empty
 	ActAs []string `protobuf:"bytes,5,rep,name=act_as,json=actAs,proto3" json:"act_as,omitempty"`
-	// The submission ID this completion refers to, as described in “commands.proto“.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// The submission ID this completion refers to, as described in ``commands.proto``.
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Optional
 	SubmissionId string `protobuf:"bytes,6,opt,name=submission_id,json=submissionId,proto3" json:"submission_id,omitempty"`
 	// The actual deduplication window used for the submission, which is derived from
-	// “Commands.deduplication_period“. The ledger may convert the deduplication period into other
+	// ``Commands.deduplication_period``. The ledger may convert the deduplication period into other
 	// descriptions and extend the period in implementation-specified ways.
 	//
-	// Used to audit the deduplication guarantee described in “commands.proto“.
+	// Used to audit the deduplication guarantee described in ``commands.proto``.
 	//
 	// The deduplication guarantee applies even if the completion omits this field.
 	//
-	// # Optional
+	// Optional
 	//
 	// Types that are valid to be assigned to DeduplicationPeriod:
 	//
@@ -117,9 +117,9 @@ type Completion struct {
 	//
 	// If you want to correlate the traffic cost of a successful completion
 	// with the transaction that resulted from the command, you can use the
-	// “offset“ field to retrieve the transaction using
-	// “UpdateService.GetUpdateByOffset“ on the same participant node; or alternatively use the “update_id“
-	// field to retrieve the transaction using “UpdateService.GetUpdateById“ on any participant node
+	// ``offset`` field to retrieve the transaction using
+	// ``UpdateService.GetUpdateByOffset`` on the same participant node; or alternatively use the ``update_id``
+	// field to retrieve the transaction using ``UpdateService.GetUpdateById`` on any participant node
 	// that sees the transaction.
 	//
 	// Note: for completions processed before the participant started serving

@@ -31,9 +31,9 @@ type UpdateVettedPackagesForceFlag int32
 const (
 	// Force flag left unspecified, defaults to no force flag used in the backend.
 	UpdateVettedPackagesForceFlag_UPDATE_VETTED_PACKAGES_FORCE_FLAG_UNSPECIFIED UpdateVettedPackagesForceFlag = 0
-	// * Allow vetting a package that is upgrade-incompatible with other vetted packages
+	//* Allow vetting a package that is upgrade-incompatible with other vetted packages
 	UpdateVettedPackagesForceFlag_UPDATE_VETTED_PACKAGES_FORCE_FLAG_ALLOW_VET_INCOMPATIBLE_UPGRADES UpdateVettedPackagesForceFlag = 2
-	// * Allow vetting a package without vetting one or more of its dependencies
+	//* Allow vetting a package without vetting one or more of its dependencies
 	UpdateVettedPackagesForceFlag_UPDATE_VETTED_PACKAGES_FORCE_FLAG_ALLOW_UNVETTED_DEPENDENCIES UpdateVettedPackagesForceFlag = 3
 )
 
@@ -217,13 +217,13 @@ func (x *ListKnownPackagesResponse) GetPackageDetails() []*PackageDetails {
 type PackageDetails struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The identity of the Daml-LF package.
-	// Must be a valid PackageIdString (as describe in “value.proto“).
+	// Must be a valid PackageIdString (as describe in ``value.proto``).
 	//
 	// Required
 	PackageId string `protobuf:"bytes,1,opt,name=package_id,json=packageId,proto3" json:"package_id,omitempty"`
 	// Size of the package in bytes.
-	// The size of the package is given by the size of the “daml_lf“
-	// ArchivePayload. See further details in “daml_lf.proto“.
+	// The size of the package is given by the size of the ``daml_lf``
+	// ArchivePayload. See further details in ``daml_lf.proto``.
 	//
 	// Required
 	PackageSize uint64 `protobuf:"varint,2,opt,name=package_size,json=packageSize,proto3" json:"package_size,omitempty"`
@@ -310,8 +310,8 @@ func (x *PackageDetails) GetVersion() string {
 type UploadDarFileRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Contains a Daml archive DAR file, which in turn is a jar like zipped
-	// container for “daml_lf“ archives. See further details in
-	// “daml_lf.proto“.
+	// container for ``daml_lf`` archives. See further details in
+	// ``daml_lf.proto``.
 	//
 	// Required: must be non-empty
 	DarFile []byte `protobuf:"bytes,1,opt,name=dar_file,json=darFile,proto3" json:"dar_file,omitempty"`
@@ -439,8 +439,8 @@ func (*UploadDarFileResponse) Descriptor() ([]byte, []int) {
 type ValidateDarFileRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Contains a Daml archive DAR file, which in turn is a jar like zipped
-	// container for “daml_lf“ archives. See further details in
-	// “daml_lf.proto“.
+	// container for ``daml_lf`` archives. See further details in
+	// ``daml_lf.proto``.
 	//
 	// Required: must be non-empty
 	DarFile []byte `protobuf:"bytes,1,opt,name=dar_file,json=darFile,proto3" json:"dar_file,omitempty"`
@@ -740,7 +740,7 @@ type UpdateVettedPackagesRequest struct {
 	//
 	// Optional
 	SynchronizerId string `protobuf:"bytes,3,opt,name=synchronizer_id,json=synchronizerId,proto3" json:"synchronizer_id,omitempty"`
-	// The serial of the last “VettedPackages“ topology transaction of this
+	// The serial of the last ``VettedPackages`` topology transaction of this
 	// participant and on this synchronizer.
 	//
 	// Execution of the request fails if this is not correct. Use this to guard

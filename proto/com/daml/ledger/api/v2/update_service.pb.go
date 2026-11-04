@@ -111,7 +111,7 @@ type GetUpdatesResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The update that matches the filter in the request.
 	//
-	// # Required
+	// Required
 	//
 	// Types that are valid to be assigned to Update:
 	//
@@ -287,7 +287,7 @@ func (x *GetUpdateByOffsetRequest) GetUpdateFormat() *UpdateFormat {
 type GetUpdateByIdRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID of a particular update.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	UpdateId string `protobuf:"bytes,1,opt,name=update_id,json=updateId,proto3" json:"update_id,omitempty"`
@@ -347,7 +347,7 @@ type GetUpdateResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The update that matches the filter in the request.
 	//
-	// # Required
+	// Required
 	//
 	// Types that are valid to be assigned to Update:
 	//
@@ -469,15 +469,15 @@ type GetUpdatesPageRequest struct {
 	MaxPageSize *int32 `protobuf:"varint,3,opt,name=max_page_size,json=maxPageSize,proto3,oneof" json:"max_page_size,omitempty"`
 	// Required
 	UpdateFormat *UpdateFormat `protobuf:"bytes,4,opt,name=update_format,json=updateFormat,proto3" json:"update_format,omitempty"`
-	// If set, the page will populate the elements in descending order starting from the end_offset_inclusive.
+	//If set, the page will populate the elements in descending order starting from the end_offset_inclusive.
 	//
 	// Optional
 	DescendingOrder bool `protobuf:"varint,5,opt,name=descending_order,json=descendingOrder,proto3" json:"descending_order,omitempty"`
-	// To get the next page of updates, the “page_token“ should be set to the
-	// “next_page_token“ of the last “GetUpdatesPageResponse“.
+	// To get the next page of updates, the ``page_token`` should be set to the
+	// ``next_page_token`` of the last ``GetUpdatesPageResponse``.
 	// To achieve correct paging: subsequent requests must
 	//
-	// - be executed on the same participant with the same version of canton,
+	// - be executed on the same participant,
 	// - have the same begin_offset_exclusive,
 	// - have the same end_offset_inclusive,
 	// - have the same update_format and
@@ -580,7 +580,7 @@ type GetUpdatesPageResponse struct {
 	HighestPageOffsetInclusive int64 `protobuf:"varint,3,opt,name=highest_page_offset_inclusive,json=highestPageOffsetInclusive,proto3" json:"highest_page_offset_inclusive,omitempty"`
 	// If the value is not populated, this is the last page.
 	// If the value is populated, this token can be used to get the next page.
-	// If the original “GetFirstUpdatePageRequest“ end_offset_inclusive was not specified and the request uses
+	// If the original ``GetFirstUpdatePageRequest`` end_offset_inclusive was not specified and the request uses
 	// ascending order, then this token will always be populated, so you can use it to "tail" the ledger by
 	// repeatedly polling with the new page token returned.
 	//

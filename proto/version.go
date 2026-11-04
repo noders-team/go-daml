@@ -4,7 +4,7 @@ package proto
 
 // CantonVersion is the digital-asset/canton open-source release whose
 // protobuf definitions these Go bindings were generated from.
-const CantonVersion = "3.5.1-rc5"
+const CantonVersion = "3.5.19"
 
 // Version returns the Canton release the generated bindings were built from.
 func Version() string { return CantonVersion }

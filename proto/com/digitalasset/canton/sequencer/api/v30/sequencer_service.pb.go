@@ -764,7 +764,7 @@ func (*GetTimeRequest) Descriptor() ([]byte, []int) {
 
 type GetTimeResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The result can be empty if the sequencer is still initializing.
+	//  The result can be empty if the sequencer is still initializing.
 	SequencingTimestamp *int64 `protobuf:"varint,1,opt,name=sequencing_timestamp,json=sequencingTimestamp,proto3,oneof" json:"sequencing_timestamp,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache

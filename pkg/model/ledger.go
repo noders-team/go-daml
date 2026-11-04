@@ -76,6 +76,14 @@ type CompletionStreamRequest struct {
 	BeginExclusive int64
 }
 
+// GetCompletionsRequest selects completions from the command completion stream.
+// Unlike CompletionStreamRequest, the newer Ledger API endpoint does not take
+// a user ID.
+type GetCompletionsRequest struct {
+	Parties        []string
+	BeginExclusive int64
+}
+
 type CompletionStreamResponse struct {
 	Response CompletionResponse
 }

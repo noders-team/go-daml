@@ -266,6 +266,7 @@ type NotInitialized struct {
 	state                   protoimpl.MessageState                 `protogen:"open.v1"`
 	Active                  bool                                   `protobuf:"varint,1,opt,name=active,proto3" json:"active,omitempty"`                                                                                                                                                           // Indicate if the node is active, usually true unless it's a replicated node that is passive
 	WaitingForExternalInput NotInitialized_WaitingForExternalInput `protobuf:"varint,2,opt,name=waiting_for_external_input,json=waitingForExternalInput,proto3,enum=com.digitalasset.canton.admin.health.v30.NotInitialized_WaitingForExternalInput" json:"waiting_for_external_input,omitempty"` // Indicates whether the node is waiting for external input
+	Version                 string                                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`                                                                                                                                                          // Version of the binary
 	unknownFields           protoimpl.UnknownFields
 	sizeCache               protoimpl.SizeCache
 }
@@ -312,6 +313,13 @@ func (x *NotInitialized) GetWaitingForExternalInput() NotInitialized_WaitingForE
 		return x.WaitingForExternalInput
 	}
 	return NotInitialized_WAITING_FOR_EXTERNAL_INPUT_UNSPECIFIED
+}
+
+func (x *NotInitialized) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
 }
 
 type Status struct {
@@ -643,10 +651,11 @@ const file_com_digitalasset_canton_admin_health_v30_status_service_proto_rawDesc
 	"StatusData\x12%\n" +
 	"\vdescription\x18\x01 \x01(\tH\x00R\vdescription\x88\x01\x01B\x0e\n" +
 	"\f_descriptionB\b\n" +
-	"\x06status\"\x80\x03\n" +
+	"\x06status\"\x9a\x03\n" +
 	"\x0eNotInitialized\x12\x16\n" +
 	"\x06active\x18\x01 \x01(\bR\x06active\x12\x8d\x01\n" +
-	"\x1awaiting_for_external_input\x18\x02 \x01(\x0e2P.com.digitalasset.canton.admin.health.v30.NotInitialized.WaitingForExternalInputR\x17waitingForExternalInput\"\xc5\x01\n" +
+	"\x1awaiting_for_external_input\x18\x02 \x01(\x0e2P.com.digitalasset.canton.admin.health.v30.NotInitialized.WaitingForExternalInputR\x17waitingForExternalInput\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\tR\aversion\"\xc5\x01\n" +
 	"\x17WaitingForExternalInput\x12*\n" +
 	"&WAITING_FOR_EXTERNAL_INPUT_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dWAITING_FOR_EXTERNAL_INPUT_ID\x10\x01\x12,\n" +

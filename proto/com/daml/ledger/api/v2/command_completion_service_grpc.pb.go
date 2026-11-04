@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	CommandCompletionService_CompletionStream_FullMethodName = "/com.daml.ledger.api.v2.CommandCompletionService/CompletionStream"
+	CommandCompletionService_GetCompletions_FullMethodName   = "/com.daml.ledger.api.v2.CommandCompletionService/GetCompletions"
 )
 
 // CommandCompletionServiceClient is the client API for CommandCompletionService service.
@@ -44,8 +45,12 @@ const (
 // Clients that do not receive a successful completion about their submission MUST NOT assume that it was successful.
 // Clients SHOULD subscribe to the CompletionStream before starting to submit commands to prevent race conditions.
 type CommandCompletionServiceClient interface {
+	// Deprecated: please use ``GetCompletions`` instead.
 	// Subscribe to command completion events.
 	CompletionStream(ctx context.Context, in *CompletionStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CompletionStreamResponse], error)
+	// Subscribe to command completion events.
+	// This streaming endpoint provides more flexibility in filtering than the predecessor ``CompletionStream``.
+	GetCompletions(ctx context.Context, in *GetCompletionsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CompletionStreamResponse], error)
 }
 
 type commandCompletionServiceClient struct {
@@ -75,6 +80,25 @@ func (c *commandCompletionServiceClient) CompletionStream(ctx context.Context, i
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type CommandCompletionService_CompletionStreamClient = grpc.ServerStreamingClient[CompletionStreamResponse]
 
+func (c *commandCompletionServiceClient) GetCompletions(ctx context.Context, in *GetCompletionsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CompletionStreamResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &CommandCompletionService_ServiceDesc.Streams[1], CommandCompletionService_GetCompletions_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[GetCompletionsRequest, CompletionStreamResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CommandCompletionService_GetCompletionsClient = grpc.ServerStreamingClient[CompletionStreamResponse]
+
 // CommandCompletionServiceServer is the server API for CommandCompletionService service.
 // All implementations must embed UnimplementedCommandCompletionServiceServer
 // for forward compatibility.
@@ -94,8 +118,12 @@ type CommandCompletionService_CompletionStreamClient = grpc.ServerStreamingClien
 // Clients that do not receive a successful completion about their submission MUST NOT assume that it was successful.
 // Clients SHOULD subscribe to the CompletionStream before starting to submit commands to prevent race conditions.
 type CommandCompletionServiceServer interface {
+	// Deprecated: please use ``GetCompletions`` instead.
 	// Subscribe to command completion events.
 	CompletionStream(*CompletionStreamRequest, grpc.ServerStreamingServer[CompletionStreamResponse]) error
+	// Subscribe to command completion events.
+	// This streaming endpoint provides more flexibility in filtering than the predecessor ``CompletionStream``.
+	GetCompletions(*GetCompletionsRequest, grpc.ServerStreamingServer[CompletionStreamResponse]) error
 	mustEmbedUnimplementedCommandCompletionServiceServer()
 }
 
@@ -108,6 +136,9 @@ type UnimplementedCommandCompletionServiceServer struct{}
 
 func (UnimplementedCommandCompletionServiceServer) CompletionStream(*CompletionStreamRequest, grpc.ServerStreamingServer[CompletionStreamResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method CompletionStream not implemented")
+}
+func (UnimplementedCommandCompletionServiceServer) GetCompletions(*GetCompletionsRequest, grpc.ServerStreamingServer[CompletionStreamResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method GetCompletions not implemented")
 }
 func (UnimplementedCommandCompletionServiceServer) mustEmbedUnimplementedCommandCompletionServiceServer() {
 }
@@ -142,6 +173,17 @@ func _CommandCompletionService_CompletionStream_Handler(srv interface{}, stream 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type CommandCompletionService_CompletionStreamServer = grpc.ServerStreamingServer[CompletionStreamResponse]
 
+func _CommandCompletionService_GetCompletions_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetCompletionsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(CommandCompletionServiceServer).GetCompletions(m, &grpc.GenericServerStream[GetCompletionsRequest, CompletionStreamResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CommandCompletionService_GetCompletionsServer = grpc.ServerStreamingServer[CompletionStreamResponse]
+
 // CommandCompletionService_ServiceDesc is the grpc.ServiceDesc for CommandCompletionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -153,6 +195,11 @@ var CommandCompletionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "CompletionStream",
 			Handler:       _CommandCompletionService_CompletionStream_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetCompletions",
+			Handler:       _CommandCompletionService_GetCompletions_Handler,
 			ServerStreams: true,
 		},
 	},

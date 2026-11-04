@@ -228,7 +228,7 @@ upstream Canton Ledger API protobuf definitions. To update them:
 make proto
 
 # Or use a specific Canton release
-CANTON_VERSION=3.5.1-rc5 make proto
+CANTON_VERSION=3.5.19 make proto
 ```
 
 The target downloads and caches the selected Canton source archive under

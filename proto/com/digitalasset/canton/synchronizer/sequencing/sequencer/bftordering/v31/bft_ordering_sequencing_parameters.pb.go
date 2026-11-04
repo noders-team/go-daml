@@ -26,12 +26,17 @@ const (
 )
 
 type DynamicSequencingParametersPayload struct {
-	state                          protoimpl.MessageState          `protogen:"open.v1"`
-	PbftViewChangeTimeout          *durationpb.Duration            `protobuf:"bytes,1,opt,name=pbft_view_change_timeout,json=pbftViewChangeTimeout,proto3" json:"pbft_view_change_timeout,omitempty"`
-	SegmentLength                  int64                           `protobuf:"varint,2,opt,name=segment_length,json=segmentLength,proto3" json:"segment_length,omitempty"`
-	BlacklistLeaderSelectionPolicy *BlacklistLeaderSelectionPolicy `protobuf:"bytes,3,opt,name=blacklist_leader_selection_policy,json=blacklistLeaderSelectionPolicy,proto3" json:"blacklist_leader_selection_policy,omitempty"`
-	unknownFields                  protoimpl.UnknownFields
-	sizeCache                      protoimpl.SizeCache
+	state                                                          protoimpl.MessageState          `protogen:"open.v1"`
+	PbftViewChangeTimeout                                          *durationpb.Duration            `protobuf:"bytes,1,opt,name=pbft_view_change_timeout,json=pbftViewChangeTimeout,proto3" json:"pbft_view_change_timeout,omitempty"`
+	SegmentLength                                                  int64                           `protobuf:"varint,2,opt,name=segment_length,json=segmentLength,proto3" json:"segment_length,omitempty"`
+	BlacklistLeaderSelectionPolicy                                 *BlacklistLeaderSelectionPolicy `protobuf:"bytes,3,opt,name=blacklist_leader_selection_policy,json=blacklistLeaderSelectionPolicy,proto3" json:"blacklist_leader_selection_policy,omitempty"`
+	MaxRequestsInBatch                                             int32                           `protobuf:"varint,4,opt,name=max_requests_in_batch,json=maxRequestsInBatch,proto3" json:"max_requests_in_batch,omitempty"`
+	MaxBatchesPerProposal                                          int32                           `protobuf:"varint,5,opt,name=max_batches_per_proposal,json=maxBatchesPerProposal,proto3" json:"max_batches_per_proposal,omitempty"`
+	PbftViewChangeTimeoutStep                                      *durationpb.Duration            `protobuf:"bytes,6,opt,name=pbft_view_change_timeout_step,json=pbftViewChangeTimeoutStep,proto3" json:"pbft_view_change_timeout_step,omitempty"`
+	PbftViewChangeTimeoutUpperBound                                *durationpb.Duration            `protobuf:"bytes,7,opt,name=pbft_view_change_timeout_upper_bound,json=pbftViewChangeTimeoutUpperBound,proto3" json:"pbft_view_change_timeout_upper_bound,omitempty"`
+	StricterDetectionOfRequestsPotentiallyChangingOrderingTopology bool                            `protobuf:"varint,8,opt,name=stricter_detection_of_requests_potentially_changing_ordering_topology,json=stricterDetectionOfRequestsPotentiallyChangingOrderingTopology,proto3" json:"stricter_detection_of_requests_potentially_changing_ordering_topology,omitempty"`
+	unknownFields                                                  protoimpl.UnknownFields
+	sizeCache                                                      protoimpl.SizeCache
 }
 
 func (x *DynamicSequencingParametersPayload) Reset() {
@@ -85,12 +90,49 @@ func (x *DynamicSequencingParametersPayload) GetBlacklistLeaderSelectionPolicy()
 	return nil
 }
 
+func (x *DynamicSequencingParametersPayload) GetMaxRequestsInBatch() int32 {
+	if x != nil {
+		return x.MaxRequestsInBatch
+	}
+	return 0
+}
+
+func (x *DynamicSequencingParametersPayload) GetMaxBatchesPerProposal() int32 {
+	if x != nil {
+		return x.MaxBatchesPerProposal
+	}
+	return 0
+}
+
+func (x *DynamicSequencingParametersPayload) GetPbftViewChangeTimeoutStep() *durationpb.Duration {
+	if x != nil {
+		return x.PbftViewChangeTimeoutStep
+	}
+	return nil
+}
+
+func (x *DynamicSequencingParametersPayload) GetPbftViewChangeTimeoutUpperBound() *durationpb.Duration {
+	if x != nil {
+		return x.PbftViewChangeTimeoutUpperBound
+	}
+	return nil
+}
+
+func (x *DynamicSequencingParametersPayload) GetStricterDetectionOfRequestsPotentiallyChangingOrderingTopology() bool {
+	if x != nil {
+		return x.StricterDetectionOfRequestsPotentiallyChangingOrderingTopology
+	}
+	return false
+}
+
 type BlacklistLeaderSelectionPolicy struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to HowLongToBlacklist:
 	//
 	//	*BlacklistLeaderSelectionPolicy_HowLongLinear
 	//	*BlacklistLeaderSelectionPolicy_HowLongNoBlacklisting
+	//	*BlacklistLeaderSelectionPolicy_HowLongLinearWithParameters
+	//	*BlacklistLeaderSelectionPolicy_HowLongExponential
 	HowLongToBlacklist isBlacklistLeaderSelectionPolicy_HowLongToBlacklist `protobuf_oneof:"how_long_to_blacklist"`
 	// Types that are valid to be assigned to HowManyCanWeBlacklist:
 	//
@@ -156,6 +198,24 @@ func (x *BlacklistLeaderSelectionPolicy) GetHowLongNoBlacklisting() *HowLongNoBl
 	return nil
 }
 
+func (x *BlacklistLeaderSelectionPolicy) GetHowLongLinearWithParameters() *HowLongLinearWithParameters {
+	if x != nil {
+		if x, ok := x.HowLongToBlacklist.(*BlacklistLeaderSelectionPolicy_HowLongLinearWithParameters); ok {
+			return x.HowLongLinearWithParameters
+		}
+	}
+	return nil
+}
+
+func (x *BlacklistLeaderSelectionPolicy) GetHowLongExponential() *HowLongExponential {
+	if x != nil {
+		if x, ok := x.HowLongToBlacklist.(*BlacklistLeaderSelectionPolicy_HowLongExponential); ok {
+			return x.HowLongExponential
+		}
+	}
+	return nil
+}
+
 func (x *BlacklistLeaderSelectionPolicy) GetHowManyCanWeBlacklist() isBlacklistLeaderSelectionPolicy_HowManyCanWeBlacklist {
 	if x != nil {
 		return x.HowManyCanWeBlacklist
@@ -193,10 +253,24 @@ type BlacklistLeaderSelectionPolicy_HowLongNoBlacklisting struct {
 	HowLongNoBlacklisting *HowLongNoBlacklisting `protobuf:"bytes,2,opt,name=how_long_no_blacklisting,json=howLongNoBlacklisting,proto3,oneof"`
 }
 
+type BlacklistLeaderSelectionPolicy_HowLongLinearWithParameters struct {
+	HowLongLinearWithParameters *HowLongLinearWithParameters `protobuf:"bytes,5,opt,name=how_long_linear_with_parameters,json=howLongLinearWithParameters,proto3,oneof"`
+}
+
+type BlacklistLeaderSelectionPolicy_HowLongExponential struct {
+	HowLongExponential *HowLongExponential `protobuf:"bytes,6,opt,name=how_long_exponential,json=howLongExponential,proto3,oneof"`
+}
+
 func (*BlacklistLeaderSelectionPolicy_HowLongLinear) isBlacklistLeaderSelectionPolicy_HowLongToBlacklist() {
 }
 
 func (*BlacklistLeaderSelectionPolicy_HowLongNoBlacklisting) isBlacklistLeaderSelectionPolicy_HowLongToBlacklist() {
+}
+
+func (*BlacklistLeaderSelectionPolicy_HowLongLinearWithParameters) isBlacklistLeaderSelectionPolicy_HowLongToBlacklist() {
+}
+
+func (*BlacklistLeaderSelectionPolicy_HowLongExponential) isBlacklistLeaderSelectionPolicy_HowLongToBlacklist() {
 }
 
 type isBlacklistLeaderSelectionPolicy_HowManyCanWeBlacklist interface {
@@ -297,6 +371,118 @@ func (*HowLongNoBlacklisting) Descriptor() ([]byte, []int) {
 	return file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_rawDescGZIP(), []int{3}
 }
 
+type HowLongLinearWithParameters struct {
+	state                         protoimpl.MessageState `protogen:"open.v1"`
+	Slope                         int64                  `protobuf:"varint,1,opt,name=slope,proto3" json:"slope,omitempty"`
+	InitialValue                  int64                  `protobuf:"varint,2,opt,name=initial_value,json=initialValue,proto3" json:"initial_value,omitempty"`
+	MaximumEpochLengthBlacklisted *int64                 `protobuf:"varint,3,opt,name=maximum_epoch_length_blacklisted,json=maximumEpochLengthBlacklisted,proto3,oneof" json:"maximum_epoch_length_blacklisted,omitempty"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
+}
+
+func (x *HowLongLinearWithParameters) Reset() {
+	*x = HowLongLinearWithParameters{}
+	mi := &file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HowLongLinearWithParameters) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HowLongLinearWithParameters) ProtoMessage() {}
+
+func (x *HowLongLinearWithParameters) ProtoReflect() protoreflect.Message {
+	mi := &file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HowLongLinearWithParameters.ProtoReflect.Descriptor instead.
+func (*HowLongLinearWithParameters) Descriptor() ([]byte, []int) {
+	return file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *HowLongLinearWithParameters) GetSlope() int64 {
+	if x != nil {
+		return x.Slope
+	}
+	return 0
+}
+
+func (x *HowLongLinearWithParameters) GetInitialValue() int64 {
+	if x != nil {
+		return x.InitialValue
+	}
+	return 0
+}
+
+func (x *HowLongLinearWithParameters) GetMaximumEpochLengthBlacklisted() int64 {
+	if x != nil && x.MaximumEpochLengthBlacklisted != nil {
+		return *x.MaximumEpochLengthBlacklisted
+	}
+	return 0
+}
+
+type HowLongExponential struct {
+	state                         protoimpl.MessageState `protogen:"open.v1"`
+	InitialValue                  int64                  `protobuf:"varint,1,opt,name=initial_value,json=initialValue,proto3" json:"initial_value,omitempty"`
+	MaximumEpochLengthBlacklisted *int64                 `protobuf:"varint,2,opt,name=maximum_epoch_length_blacklisted,json=maximumEpochLengthBlacklisted,proto3,oneof" json:"maximum_epoch_length_blacklisted,omitempty"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
+}
+
+func (x *HowLongExponential) Reset() {
+	*x = HowLongExponential{}
+	mi := &file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HowLongExponential) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HowLongExponential) ProtoMessage() {}
+
+func (x *HowLongExponential) ProtoReflect() protoreflect.Message {
+	mi := &file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HowLongExponential.ProtoReflect.Descriptor instead.
+func (*HowLongExponential) Descriptor() ([]byte, []int) {
+	return file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *HowLongExponential) GetInitialValue() int64 {
+	if x != nil {
+		return x.InitialValue
+	}
+	return 0
+}
+
+func (x *HowLongExponential) GetMaximumEpochLengthBlacklisted() int64 {
+	if x != nil && x.MaximumEpochLengthBlacklisted != nil {
+		return *x.MaximumEpochLengthBlacklisted
+	}
+	return 0
+}
+
 type HowManyNumFaultsTolerated struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -305,7 +491,7 @@ type HowManyNumFaultsTolerated struct {
 
 func (x *HowManyNumFaultsTolerated) Reset() {
 	*x = HowManyNumFaultsTolerated{}
-	mi := &file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[4]
+	mi := &file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -317,7 +503,7 @@ func (x *HowManyNumFaultsTolerated) String() string {
 func (*HowManyNumFaultsTolerated) ProtoMessage() {}
 
 func (x *HowManyNumFaultsTolerated) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[4]
+	mi := &file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -330,7 +516,7 @@ func (x *HowManyNumFaultsTolerated) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HowManyNumFaultsTolerated.ProtoReflect.Descriptor instead.
 func (*HowManyNumFaultsTolerated) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_rawDescGZIP(), []int{4}
+	return file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_rawDescGZIP(), []int{6}
 }
 
 type HowManyNoBlacklisting struct {
@@ -341,7 +527,7 @@ type HowManyNoBlacklisting struct {
 
 func (x *HowManyNoBlacklisting) Reset() {
 	*x = HowManyNoBlacklisting{}
-	mi := &file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[5]
+	mi := &file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -353,7 +539,7 @@ func (x *HowManyNoBlacklisting) String() string {
 func (*HowManyNoBlacklisting) ProtoMessage() {}
 
 func (x *HowManyNoBlacklisting) ProtoReflect() protoreflect.Message {
-	mi := &file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[5]
+	mi := &file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -366,21 +552,28 @@ func (x *HowManyNoBlacklisting) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HowManyNoBlacklisting.ProtoReflect.Descriptor instead.
 func (*HowManyNoBlacklisting) Descriptor() ([]byte, []int) {
-	return file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_rawDescGZIP(), []int{5}
+	return file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_rawDescGZIP(), []int{7}
 }
 
 var File_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto protoreflect.FileDescriptor
 
 const file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_rawDesc = "" +
 	"\n" +
-	"rcom/digitalasset/canton/synchronizer/sequencing/sequencer/bftordering/v31/bft_ordering_sequencing_parameters.proto\x12Icom.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31\x1a\x1egoogle/protobuf/duration.proto\"\xd6\x02\n" +
+	"rcom/digitalasset/canton/synchronizer/sequencing/sequencer/bftordering/v31/bft_ordering_sequencing_parameters.proto\x12Icom.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31\x1a\x1egoogle/protobuf/duration.proto\"\x99\x06\n" +
 	"\"DynamicSequencingParametersPayload\x12R\n" +
 	"\x18pbft_view_change_timeout\x18\x01 \x01(\v2\x19.google.protobuf.DurationR\x15pbftViewChangeTimeout\x12%\n" +
 	"\x0esegment_length\x18\x02 \x01(\x03R\rsegmentLength\x12\xb4\x01\n" +
-	"!blacklist_leader_selection_policy\x18\x03 \x01(\v2i.com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.BlacklistLeaderSelectionPolicyR\x1eblacklistLeaderSelectionPolicy\"\xc2\x05\n" +
+	"!blacklist_leader_selection_policy\x18\x03 \x01(\v2i.com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.BlacklistLeaderSelectionPolicyR\x1eblacklistLeaderSelectionPolicy\x121\n" +
+	"\x15max_requests_in_batch\x18\x04 \x01(\x05R\x12maxRequestsInBatch\x127\n" +
+	"\x18max_batches_per_proposal\x18\x05 \x01(\x05R\x15maxBatchesPerProposal\x12[\n" +
+	"\x1dpbft_view_change_timeout_step\x18\x06 \x01(\v2\x19.google.protobuf.DurationR\x19pbftViewChangeTimeoutStep\x12h\n" +
+	"$pbft_view_change_timeout_upper_bound\x18\a \x01(\v2\x19.google.protobuf.DurationR\x1fpbftViewChangeTimeoutUpperBound\x12\x8d\x01\n" +
+	"Estricter_detection_of_requests_potentially_changing_ordering_topology\x18\b \x01(\bR>stricterDetectionOfRequestsPotentiallyChangingOrderingTopology\"\x87\b\n" +
 	"\x1eBlacklistLeaderSelectionPolicy\x12\x82\x01\n" +
 	"\x0fhow_long_linear\x18\x01 \x01(\v2X.com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowLongLinearH\x00R\rhowLongLinear\x12\x9b\x01\n" +
-	"\x18how_long_no_blacklisting\x18\x02 \x01(\v2`.com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowLongNoBlacklistingH\x00R\x15howLongNoBlacklisting\x12\xa8\x01\n" +
+	"\x18how_long_no_blacklisting\x18\x02 \x01(\v2`.com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowLongNoBlacklistingH\x00R\x15howLongNoBlacklisting\x12\xae\x01\n" +
+	"\x1fhow_long_linear_with_parameters\x18\x05 \x01(\v2f.com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowLongLinearWithParametersH\x00R\x1bhowLongLinearWithParameters\x12\x91\x01\n" +
+	"\x14how_long_exponential\x18\x06 \x01(\v2].com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowLongExponentialH\x00R\x12howLongExponential\x12\xa8\x01\n" +
 	"\x1dhow_many_num_faults_tolerated\x18\x03 \x01(\v2d.com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowManyNumFaultsToleratedH\x01R\x19howManyNumFaultsTolerated\x12\x9b\x01\n" +
 	"\x18how_many_no_blacklisting\x18\x04 \x01(\v2`.com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowManyNoBlacklistingH\x01R\x15howManyNoBlacklistingB\x17\n" +
 	"\x15how_long_to_blacklistB\x1b\n" +
@@ -388,7 +581,16 @@ const file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering
 	"\rHowLongLinear\x12L\n" +
 	" maximum_epoch_length_blacklisted\x18\x01 \x01(\x03H\x00R\x1dmaximumEpochLengthBlacklisted\x88\x01\x01B#\n" +
 	"!_maximum_epoch_length_blacklisted\"\x17\n" +
-	"\x15HowLongNoBlacklisting\"\x1b\n" +
+	"\x15HowLongNoBlacklisting\"\xcb\x01\n" +
+	"\x1bHowLongLinearWithParameters\x12\x14\n" +
+	"\x05slope\x18\x01 \x01(\x03R\x05slope\x12#\n" +
+	"\rinitial_value\x18\x02 \x01(\x03R\finitialValue\x12L\n" +
+	" maximum_epoch_length_blacklisted\x18\x03 \x01(\x03H\x00R\x1dmaximumEpochLengthBlacklisted\x88\x01\x01B#\n" +
+	"!_maximum_epoch_length_blacklisted\"\xac\x01\n" +
+	"\x12HowLongExponential\x12#\n" +
+	"\rinitial_value\x18\x01 \x01(\x03R\finitialValue\x12L\n" +
+	" maximum_epoch_length_blacklisted\x18\x02 \x01(\x03H\x00R\x1dmaximumEpochLengthBlacklisted\x88\x01\x01B#\n" +
+	"!_maximum_epoch_length_blacklisted\"\x1b\n" +
 	"\x19HowManyNumFaultsTolerated\"\x17\n" +
 	"\x15HowManyNoBlacklistingBpZngithub.com/noders-team/go-daml/proto/com/digitalasset/canton/synchronizer/sequencing/sequencer/bftordering/v31b\x06proto3"
 
@@ -404,28 +606,34 @@ func file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_
 	return file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_rawDescData
 }
 
-var file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_goTypes = []any{
 	(*DynamicSequencingParametersPayload)(nil), // 0: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.DynamicSequencingParametersPayload
 	(*BlacklistLeaderSelectionPolicy)(nil),     // 1: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.BlacklistLeaderSelectionPolicy
 	(*HowLongLinear)(nil),                      // 2: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowLongLinear
 	(*HowLongNoBlacklisting)(nil),              // 3: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowLongNoBlacklisting
-	(*HowManyNumFaultsTolerated)(nil),          // 4: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowManyNumFaultsTolerated
-	(*HowManyNoBlacklisting)(nil),              // 5: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowManyNoBlacklisting
-	(*durationpb.Duration)(nil),                // 6: google.protobuf.Duration
+	(*HowLongLinearWithParameters)(nil),        // 4: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowLongLinearWithParameters
+	(*HowLongExponential)(nil),                 // 5: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowLongExponential
+	(*HowManyNumFaultsTolerated)(nil),          // 6: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowManyNumFaultsTolerated
+	(*HowManyNoBlacklisting)(nil),              // 7: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowManyNoBlacklisting
+	(*durationpb.Duration)(nil),                // 8: google.protobuf.Duration
 }
 var file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_depIdxs = []int32{
-	6, // 0: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.DynamicSequencingParametersPayload.pbft_view_change_timeout:type_name -> google.protobuf.Duration
-	1, // 1: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.DynamicSequencingParametersPayload.blacklist_leader_selection_policy:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.BlacklistLeaderSelectionPolicy
-	2, // 2: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.BlacklistLeaderSelectionPolicy.how_long_linear:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowLongLinear
-	3, // 3: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.BlacklistLeaderSelectionPolicy.how_long_no_blacklisting:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowLongNoBlacklisting
-	4, // 4: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.BlacklistLeaderSelectionPolicy.how_many_num_faults_tolerated:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowManyNumFaultsTolerated
-	5, // 5: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.BlacklistLeaderSelectionPolicy.how_many_no_blacklisting:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowManyNoBlacklisting
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	8,  // 0: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.DynamicSequencingParametersPayload.pbft_view_change_timeout:type_name -> google.protobuf.Duration
+	1,  // 1: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.DynamicSequencingParametersPayload.blacklist_leader_selection_policy:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.BlacklistLeaderSelectionPolicy
+	8,  // 2: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.DynamicSequencingParametersPayload.pbft_view_change_timeout_step:type_name -> google.protobuf.Duration
+	8,  // 3: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.DynamicSequencingParametersPayload.pbft_view_change_timeout_upper_bound:type_name -> google.protobuf.Duration
+	2,  // 4: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.BlacklistLeaderSelectionPolicy.how_long_linear:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowLongLinear
+	3,  // 5: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.BlacklistLeaderSelectionPolicy.how_long_no_blacklisting:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowLongNoBlacklisting
+	4,  // 6: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.BlacklistLeaderSelectionPolicy.how_long_linear_with_parameters:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowLongLinearWithParameters
+	5,  // 7: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.BlacklistLeaderSelectionPolicy.how_long_exponential:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowLongExponential
+	6,  // 8: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.BlacklistLeaderSelectionPolicy.how_many_num_faults_tolerated:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowManyNumFaultsTolerated
+	7,  // 9: com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.BlacklistLeaderSelectionPolicy.how_many_no_blacklisting:type_name -> com.digitalasset.canton.synchronizer.sequencing.sequencer.bftordering.v31.HowManyNoBlacklisting
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() {
@@ -438,17 +646,21 @@ func file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_
 	file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[1].OneofWrappers = []any{
 		(*BlacklistLeaderSelectionPolicy_HowLongLinear)(nil),
 		(*BlacklistLeaderSelectionPolicy_HowLongNoBlacklisting)(nil),
+		(*BlacklistLeaderSelectionPolicy_HowLongLinearWithParameters)(nil),
+		(*BlacklistLeaderSelectionPolicy_HowLongExponential)(nil),
 		(*BlacklistLeaderSelectionPolicy_HowManyNumFaultsTolerated)(nil),
 		(*BlacklistLeaderSelectionPolicy_HowManyNoBlacklisting)(nil),
 	}
 	file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[2].OneofWrappers = []any{}
+	file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[4].OneofWrappers = []any{}
+	file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_rawDesc), len(file_com_digitalasset_canton_synchronizer_sequencing_sequencer_bftordering_v31_bft_ordering_sequencing_parameters_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

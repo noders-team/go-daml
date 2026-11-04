@@ -66,8 +66,7 @@ type PackageServiceClient interface {
 	VetDar(ctx context.Context, in *VetDarRequest, opts ...grpc.CallOption) (*VetDarResponse, error)
 	// Revoke vetting for all packages pertaining to a specific DAR.
 	// NOTE:  Experimental operation for which expert-level knowledge is required.
-	//
-	//	Erroneous usage might result in the participant failing to process transactions.
+	//        Erroneous usage might result in the participant failing to process transactions.
 	UnvetDar(ctx context.Context, in *UnvetDarRequest, opts ...grpc.CallOption) (*UnvetDarResponse, error)
 }
 
@@ -229,8 +228,7 @@ type PackageServiceServer interface {
 	VetDar(context.Context, *VetDarRequest) (*VetDarResponse, error)
 	// Revoke vetting for all packages pertaining to a specific DAR.
 	// NOTE:  Experimental operation for which expert-level knowledge is required.
-	//
-	//	Erroneous usage might result in the participant failing to process transactions.
+	//        Erroneous usage might result in the participant failing to process transactions.
 	UnvetDar(context.Context, *UnvetDarRequest) (*UnvetDarResponse, error)
 	mustEmbedUnimplementedPackageServiceServer()
 }

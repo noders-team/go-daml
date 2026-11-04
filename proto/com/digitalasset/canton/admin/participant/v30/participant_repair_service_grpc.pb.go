@@ -50,12 +50,12 @@ type ParticipantRepairServiceClient interface {
 	ExportAcs(ctx context.Context, in *ExportAcsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ExportAcsResponse], error)
 	// Import an existing export into the participant
 	//
-	//	This operation assumes the provided snapshot
-	//	contains the complete and untampered ACS originating from a trusted source participant.
-	//	Because the target participant cannot independently verify the historical provenance
-	//	of the imported contracts, validation is performed on a best-effort basis,
-	//	even if `contractImportMode` is `Validation`.
-	//	Use only when the provided snapshot comes from a known, trusted authority.
+	//  This operation assumes the provided snapshot
+	//  contains the complete and untampered ACS originating from a trusted source participant.
+	//  Because the target participant cannot independently verify the historical provenance
+	//  of the imported contracts, validation is performed on a best-effort basis,
+	//  even if `contractImportMode` is `Validation`.
+	//  Use only when the provided snapshot comes from a known, trusted authority.
 	ImportAcs(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ImportAcsRequest, ImportAcsResponse], error)
 	// Remove the given contracts from the participant
 	PurgeContracts(ctx context.Context, in *PurgeContractsRequest, opts ...grpc.CallOption) (*PurgeContractsResponse, error)
@@ -73,14 +73,14 @@ type ParticipantRepairServiceClient interface {
 	// Rollback the unassignment of a contract: the contract will be re-assigned back to the source synchronizer
 	RollbackUnassignment(ctx context.Context, in *RollbackUnassignmentRequest, opts ...grpc.CallOption) (*RollbackUnassignmentResponse, error)
 	RepairCommitmentsUsingAcs(ctx context.Context, in *RepairCommitmentsUsingAcsRequest, opts ...grpc.CallOption) (*RepairCommitmentsUsingAcsResponse, error)
-	// *
-	// Perform a late logical synchronizer upgrade
-	// This endpoint should ONLY be used when the following two conditions are met:
-	// - The participant node missed the upgrade on the old synchronizer, and
-	// - The old synchronizer has been decommissioned in the meantime.
+	//*
+	//Perform a late logical synchronizer upgrade
+	//This endpoint should ONLY be used when the following two conditions are met:
+	//- The participant node missed the upgrade on the old synchronizer, and
+	//- The old synchronizer has been decommissioned in the meantime.
 	//
-	// After the upgrade has been done, other repair operations might need to be done.
-	// This includes manually repairing the ACS to account for missed activity on both the old and new synchronizer.
+	//After the upgrade has been done, other repair operations might need to be done.
+	//This includes manually repairing the ACS to account for missed activity on both the old and new synchronizer.
 	PerformLateLsu(ctx context.Context, in *PerformLateLsuRequest, opts ...grpc.CallOption) (*PerformLateLsuResponse, error)
 }
 
@@ -229,12 +229,12 @@ type ParticipantRepairServiceServer interface {
 	ExportAcs(*ExportAcsRequest, grpc.ServerStreamingServer[ExportAcsResponse]) error
 	// Import an existing export into the participant
 	//
-	//	This operation assumes the provided snapshot
-	//	contains the complete and untampered ACS originating from a trusted source participant.
-	//	Because the target participant cannot independently verify the historical provenance
-	//	of the imported contracts, validation is performed on a best-effort basis,
-	//	even if `contractImportMode` is `Validation`.
-	//	Use only when the provided snapshot comes from a known, trusted authority.
+	//  This operation assumes the provided snapshot
+	//  contains the complete and untampered ACS originating from a trusted source participant.
+	//  Because the target participant cannot independently verify the historical provenance
+	//  of the imported contracts, validation is performed on a best-effort basis,
+	//  even if `contractImportMode` is `Validation`.
+	//  Use only when the provided snapshot comes from a known, trusted authority.
 	ImportAcs(grpc.ClientStreamingServer[ImportAcsRequest, ImportAcsResponse]) error
 	// Remove the given contracts from the participant
 	PurgeContracts(context.Context, *PurgeContractsRequest) (*PurgeContractsResponse, error)
@@ -252,14 +252,14 @@ type ParticipantRepairServiceServer interface {
 	// Rollback the unassignment of a contract: the contract will be re-assigned back to the source synchronizer
 	RollbackUnassignment(context.Context, *RollbackUnassignmentRequest) (*RollbackUnassignmentResponse, error)
 	RepairCommitmentsUsingAcs(context.Context, *RepairCommitmentsUsingAcsRequest) (*RepairCommitmentsUsingAcsResponse, error)
-	// *
-	// Perform a late logical synchronizer upgrade
-	// This endpoint should ONLY be used when the following two conditions are met:
-	// - The participant node missed the upgrade on the old synchronizer, and
-	// - The old synchronizer has been decommissioned in the meantime.
+	//*
+	//Perform a late logical synchronizer upgrade
+	//This endpoint should ONLY be used when the following two conditions are met:
+	//- The participant node missed the upgrade on the old synchronizer, and
+	//- The old synchronizer has been decommissioned in the meantime.
 	//
-	// After the upgrade has been done, other repair operations might need to be done.
-	// This includes manually repairing the ACS to account for missed activity on both the old and new synchronizer.
+	//After the upgrade has been done, other repair operations might need to be done.
+	//This includes manually repairing the ACS to account for missed activity on both the old and new synchronizer.
 	PerformLateLsu(context.Context, *PerformLateLsuRequest) (*PerformLateLsuResponse, error)
 	mustEmbedUnimplementedParticipantRepairServiceServer()
 }

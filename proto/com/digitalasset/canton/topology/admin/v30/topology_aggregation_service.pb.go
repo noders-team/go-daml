@@ -322,7 +322,7 @@ func (x *ListPartiesResponse_Result) GetParticipants() []*ListPartiesResponse_Re
 type ListPartiesResponse_Result_ParticipantSynchronizers struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	ParticipantUid string                 `protobuf:"bytes,1,opt,name=participant_uid,json=participantUid,proto3" json:"participant_uid,omitempty"`
-	// *
+	//*
 	// permissions of this participant for this party on a per synchronizer basis
 	//
 	// for records that only exist in the authorized store, this list will be empty.

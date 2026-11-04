@@ -12,6 +12,7 @@ package v30
 import (
 	v30 "github.com/noders-team/go-daml/proto/com/digitalasset/canton/admin/sequencer/v30"
 	v301 "github.com/noders-team/go-daml/proto/com/digitalasset/canton/admin/time/v30"
+	v302 "github.com/noders-team/go-daml/proto/com/digitalasset/canton/admin/topology/v30"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
@@ -81,6 +82,79 @@ func (x RegisterSynchronizerRequest_SynchronizerConnection) Number() protoreflec
 // Deprecated: Use RegisterSynchronizerRequest_SynchronizerConnection.Descriptor instead.
 func (RegisterSynchronizerRequest_SynchronizerConnection) EnumDescriptor() ([]byte, []int) {
 	return file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivity_service_proto_rawDescGZIP(), []int{3, 0}
+}
+
+type ListRegisteredSynchronizersResponse_Status int32
+
+const (
+	ListRegisteredSynchronizersResponse_STATUS_UNSPECIFIED ListRegisteredSynchronizersResponse_Status = 0
+	// The node can connect to the synchronizer.
+	// At most one connection per alias/synchronizer id can be active.
+	ListRegisteredSynchronizersResponse_STATUS_ACTIVE ListRegisteredSynchronizersResponse_Status = 1
+	// Source and target synchronizer in the context of hard domain migration.
+	// The node will refuse to connect to a synchronizer with these statuses.
+	ListRegisteredSynchronizersResponse_STATUS_HARD_MIGRATING_SOURCE ListRegisteredSynchronizersResponse_Status = 2
+	ListRegisteredSynchronizersResponse_STATUS_HARD_MIGRATING_TARGET ListRegisteredSynchronizersResponse_Status = 3
+	// Around LSU, the connection of the successor is initially stored with status LSU target.
+	// When upgrade time is reached and the participant node performs the LSU, then:
+	//   1. The status of the current synchronizer is changed from Active to LSU source.
+	//   2. The status of the successor is changes from LSU target to Active.
+	// The node will refuse to connect to a synchronizer with these statuses.
+	ListRegisteredSynchronizersResponse_STATUS_LSU_SOURCE ListRegisteredSynchronizersResponse_Status = 4
+	ListRegisteredSynchronizersResponse_STATUS_LSU_TARGET ListRegisteredSynchronizersResponse_Status = 5
+	// Currently only used in the context of hard domain migration.
+	// The old synchronizer connection is marked as Inactive at the end of the migration.
+	// The node will refuse to connect to a synchronizer with this status.
+	ListRegisteredSynchronizersResponse_STATUS_INACTIVE ListRegisteredSynchronizersResponse_Status = 6
+)
+
+// Enum value maps for ListRegisteredSynchronizersResponse_Status.
+var (
+	ListRegisteredSynchronizersResponse_Status_name = map[int32]string{
+		0: "STATUS_UNSPECIFIED",
+		1: "STATUS_ACTIVE",
+		2: "STATUS_HARD_MIGRATING_SOURCE",
+		3: "STATUS_HARD_MIGRATING_TARGET",
+		4: "STATUS_LSU_SOURCE",
+		5: "STATUS_LSU_TARGET",
+		6: "STATUS_INACTIVE",
+	}
+	ListRegisteredSynchronizersResponse_Status_value = map[string]int32{
+		"STATUS_UNSPECIFIED":           0,
+		"STATUS_ACTIVE":                1,
+		"STATUS_HARD_MIGRATING_SOURCE": 2,
+		"STATUS_HARD_MIGRATING_TARGET": 3,
+		"STATUS_LSU_SOURCE":            4,
+		"STATUS_LSU_TARGET":            5,
+		"STATUS_INACTIVE":              6,
+	}
+)
+
+func (x ListRegisteredSynchronizersResponse_Status) Enum() *ListRegisteredSynchronizersResponse_Status {
+	p := new(ListRegisteredSynchronizersResponse_Status)
+	*p = x
+	return p
+}
+
+func (x ListRegisteredSynchronizersResponse_Status) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ListRegisteredSynchronizersResponse_Status) Descriptor() protoreflect.EnumDescriptor {
+	return file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivity_service_proto_enumTypes[1].Descriptor()
+}
+
+func (ListRegisteredSynchronizersResponse_Status) Type() protoreflect.EnumType {
+	return &file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivity_service_proto_enumTypes[1]
+}
+
+func (x ListRegisteredSynchronizersResponse_Status) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ListRegisteredSynchronizersResponse_Status.Descriptor instead.
+func (ListRegisteredSynchronizersResponse_Status) EnumDescriptor() ([]byte, []int) {
+	return file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivity_service_proto_rawDescGZIP(), []int{8, 0}
 }
 
 type SynchronizerConnectionConfig struct {
@@ -481,7 +555,9 @@ func (*ModifySynchronizerResponse) Descriptor() ([]byte, []int) {
 }
 
 type ListRegisteredSynchronizersRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// If false (default) returns only active synchronizers. Otherwise, return all synchronizers.
+	AllStatuses   bool `protobuf:"varint,1,opt,name=all_statuses,json=allStatuses,proto3" json:"all_statuses,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -514,6 +590,13 @@ func (x *ListRegisteredSynchronizersRequest) ProtoReflect() protoreflect.Message
 // Deprecated: Use ListRegisteredSynchronizersRequest.ProtoReflect.Descriptor instead.
 func (*ListRegisteredSynchronizersRequest) Descriptor() ([]byte, []int) {
 	return file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivity_service_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListRegisteredSynchronizersRequest) GetAllStatuses() bool {
+	if x != nil {
+		return x.AllStatuses
+	}
+	return false
 }
 
 type ListRegisteredSynchronizersResponse struct {
@@ -1171,18 +1254,20 @@ type PerformManualLsuRequest struct {
 	// the current physical synchronizer_id
 	PhysicalSynchronizerId          string `protobuf:"bytes,1,opt,name=physical_synchronizer_id,json=physicalSynchronizerId,proto3" json:"physical_synchronizer_id,omitempty"`
 	SuccessorPhysicalSynchronizerId string `protobuf:"bytes,2,opt,name=successor_physical_synchronizer_id,json=successorPhysicalSynchronizerId,proto3" json:"successor_physical_synchronizer_id,omitempty"`
-	// Upgrade time that will be used.
-	// If defined:
-	// - MUST be higher than any message received by the participant on the logical synchronizer id
-	// - Upgrade will not start until all events up to upgrade_time have been processed
 	//
-	// If empty:
-	// - Clean synchronizer index from ledger api server will be used.
+	//Upgrade time that will be used.
+	//If defined:
+	//- MUST be higher than any message received by the participant on the logical synchronizer id
+	//- Upgrade will not start until all events up to upgrade_time have been processed
+	//
+	//If empty:
+	//- Clean synchronizer index from ledger api server will be used.
 	UpgradeTime *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=upgrade_time,json=upgradeTime,proto3,oneof" json:"upgrade_time,omitempty"`
-	// Contains the list of successors or a new config
-	// - The new config allows to replace the existing config.
-	// This is useful if one sequencer does not migrate (and thus does not have a successor).
-	// - The successors should be used in all other cases.
+	//
+	//Contains the list of successors or a new config
+	//- The new config allows to replace the existing config.
+	//This is useful if one sequencer does not migrate (and thus does not have a successor).
+	//- The successors should be used in all other cases.
 	//
 	// Types that are valid to be assigned to SuccessorConnectionConfiguration:
 	//
@@ -1324,12 +1409,14 @@ func (*PerformManualLsuResponse) Descriptor() ([]byte, []int) {
 }
 
 type ListRegisteredSynchronizersResponse_Result struct {
-	state                  protoimpl.MessageState        `protogen:"open.v1"`
-	Config                 *SynchronizerConnectionConfig `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
-	Connected              bool                          `protobuf:"varint,2,opt,name=connected,proto3" json:"connected,omitempty"`
-	PhysicalSynchronizerId *string                       `protobuf:"bytes,3,opt,name=physical_synchronizer_id,json=physicalSynchronizerId,proto3,oneof" json:"physical_synchronizer_id,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                   protoimpl.MessageState                     `protogen:"open.v1"`
+	Config                  *SynchronizerConnectionConfig              `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	Connected               bool                                       `protobuf:"varint,2,opt,name=connected,proto3" json:"connected,omitempty"`
+	PhysicalSynchronizerId  *string                                    `protobuf:"bytes,3,opt,name=physical_synchronizer_id,json=physicalSynchronizerId,proto3,oneof" json:"physical_synchronizer_id,omitempty"`
+	Status                  ListRegisteredSynchronizersResponse_Status `protobuf:"varint,4,opt,name=status,proto3,enum=com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse_Status" json:"status,omitempty"`
+	SynchronizerPredecessor *v302.SynchronizerPredecessor              `protobuf:"bytes,5,opt,name=synchronizer_predecessor,json=synchronizerPredecessor,proto3,oneof" json:"synchronizer_predecessor,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ListRegisteredSynchronizersResponse_Result) Reset() {
@@ -1381,6 +1468,20 @@ func (x *ListRegisteredSynchronizersResponse_Result) GetPhysicalSynchronizerId()
 		return *x.PhysicalSynchronizerId
 	}
 	return ""
+}
+
+func (x *ListRegisteredSynchronizersResponse_Result) GetStatus() ListRegisteredSynchronizersResponse_Status {
+	if x != nil {
+		return x.Status
+	}
+	return ListRegisteredSynchronizersResponse_STATUS_UNSPECIFIED
+}
+
+func (x *ListRegisteredSynchronizersResponse_Result) GetSynchronizerPredecessor() *v302.SynchronizerPredecessor {
+	if x != nil {
+		return x.SynchronizerPredecessor
+	}
+	return nil
 }
 
 type ListConnectedSynchronizersResponse_Result struct {
@@ -1553,7 +1654,7 @@ var File_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivity
 
 const file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivity_service_proto_rawDesc = "" +
 	"\n" +
-	"Ucom/digitalasset/canton/admin/participant/v30/synchronizer_connectivity_service.proto\x12-com.digitalasset.canton.admin.participant.v30\x1aFcom/digitalasset/canton/admin/sequencer/v30/sequencer_connection.proto\x1a@com/digitalasset/canton/admin/time/v30/time_tracker_config.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8b\x05\n" +
+	"Ucom/digitalasset/canton/admin/participant/v30/synchronizer_connectivity_service.proto\x12-com.digitalasset.canton.admin.participant.v30\x1aFcom/digitalasset/canton/admin/sequencer/v30/sequencer_connection.proto\x1a@com/digitalasset/canton/admin/time/v30/time_tracker_config.proto\x1a7com/digitalasset/canton/admin/topology/v30/common.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8b\x05\n" +
 	"\x1cSynchronizerConnectionConfig\x12-\n" +
 	"\x12synchronizer_alias\x18\x01 \x01(\tR\x11synchronizerAlias\x12v\n" +
 	"\x15sequencer_connections\x18\x02 \x01(\v2A.com.digitalasset.canton.admin.sequencer.v30.SequencerConnectionsR\x14sequencerConnections\x12%\n" +
@@ -1583,15 +1684,27 @@ const file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivi
 	"new_config\x18\x02 \x01(\v2K.com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfigR\tnewConfig\x12\x92\x01\n" +
 	"\x1fsequencer_connection_validation\x18\x03 \x01(\x0e2J.com.digitalasset.canton.admin.sequencer.v30.SequencerConnectionValidationR\x1dsequencerConnectionValidationB\x1b\n" +
 	"\x19_physical_synchronizer_id\"\x1c\n" +
-	"\x1aModifySynchronizerResponse\"$\n" +
-	"\"ListRegisteredSynchronizersRequest\"\x84\x03\n" +
+	"\x1aModifySynchronizerResponse\"G\n" +
+	"\"ListRegisteredSynchronizersRequest\x12!\n" +
+	"\fall_statuses\x18\x01 \x01(\bR\vallStatuses\"\xd7\x06\n" +
 	"#ListRegisteredSynchronizersResponse\x12s\n" +
-	"\aresults\x18\x01 \x03(\v2Y.com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse.ResultR\aresults\x1a\xe7\x01\n" +
+	"\aresults\x18\x01 \x03(\v2Y.com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse.ResultR\aresults\x1a\xfd\x03\n" +
 	"\x06Result\x12c\n" +
 	"\x06config\x18\x01 \x01(\v2K.com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfigR\x06config\x12\x1c\n" +
 	"\tconnected\x18\x02 \x01(\bR\tconnected\x12=\n" +
-	"\x18physical_synchronizer_id\x18\x03 \x01(\tH\x00R\x16physicalSynchronizerId\x88\x01\x01B\x1b\n" +
-	"\x19_physical_synchronizer_id\"c\n" +
+	"\x18physical_synchronizer_id\x18\x03 \x01(\tH\x00R\x16physicalSynchronizerId\x88\x01\x01\x12q\n" +
+	"\x06status\x18\x04 \x01(\x0e2Y.com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse.StatusR\x06status\x12\x83\x01\n" +
+	"\x18synchronizer_predecessor\x18\x05 \x01(\v2C.com.digitalasset.canton.admin.topology.v30.SynchronizerPredecessorH\x01R\x17synchronizerPredecessor\x88\x01\x01B\x1b\n" +
+	"\x19_physical_synchronizer_idB\x1b\n" +
+	"\x19_synchronizer_predecessor\"\xba\x01\n" +
+	"\x06Status\x12\x16\n" +
+	"\x12STATUS_UNSPECIFIED\x10\x00\x12\x11\n" +
+	"\rSTATUS_ACTIVE\x10\x01\x12 \n" +
+	"\x1cSTATUS_HARD_MIGRATING_SOURCE\x10\x02\x12 \n" +
+	"\x1cSTATUS_HARD_MIGRATING_TARGET\x10\x03\x12\x15\n" +
+	"\x11STATUS_LSU_SOURCE\x10\x04\x12\x15\n" +
+	"\x11STATUS_LSU_TARGET\x10\x05\x12\x13\n" +
+	"\x0fSTATUS_INACTIVE\x10\x06\"c\n" +
 	"\x1cReconnectSynchronizerRequest\x12-\n" +
 	"\x12synchronizer_alias\x18\x01 \x01(\tR\x11synchronizerAlias\x12\x14\n" +
 	"\x05retry\x18\x02 \x01(\bR\x05retry\"V\n" +
@@ -1669,95 +1782,99 @@ func file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivit
 	return file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivity_service_proto_rawDescData
 }
 
-var file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivity_service_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivity_service_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivity_service_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
 var file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivity_service_proto_goTypes = []any{
 	(RegisterSynchronizerRequest_SynchronizerConnection)(0), // 0: com.digitalasset.canton.admin.participant.v30.RegisterSynchronizerRequest.SynchronizerConnection
-	(*SynchronizerConnectionConfig)(nil),                    // 1: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig
-	(*ReconnectSynchronizersRequest)(nil),                   // 2: com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizersRequest
-	(*ReconnectSynchronizersResponse)(nil),                  // 3: com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizersResponse
-	(*RegisterSynchronizerRequest)(nil),                     // 4: com.digitalasset.canton.admin.participant.v30.RegisterSynchronizerRequest
-	(*RegisterSynchronizerResponse)(nil),                    // 5: com.digitalasset.canton.admin.participant.v30.RegisterSynchronizerResponse
-	(*ModifySynchronizerRequest)(nil),                       // 6: com.digitalasset.canton.admin.participant.v30.ModifySynchronizerRequest
-	(*ModifySynchronizerResponse)(nil),                      // 7: com.digitalasset.canton.admin.participant.v30.ModifySynchronizerResponse
-	(*ListRegisteredSynchronizersRequest)(nil),              // 8: com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersRequest
-	(*ListRegisteredSynchronizersResponse)(nil),             // 9: com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse
-	(*ReconnectSynchronizerRequest)(nil),                    // 10: com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizerRequest
-	(*ReconnectSynchronizerResponse)(nil),                   // 11: com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizerResponse
-	(*ConnectSynchronizerRequest)(nil),                      // 12: com.digitalasset.canton.admin.participant.v30.ConnectSynchronizerRequest
-	(*ConnectSynchronizerResponse)(nil),                     // 13: com.digitalasset.canton.admin.participant.v30.ConnectSynchronizerResponse
-	(*DisconnectSynchronizerRequest)(nil),                   // 14: com.digitalasset.canton.admin.participant.v30.DisconnectSynchronizerRequest
-	(*DisconnectSynchronizerResponse)(nil),                  // 15: com.digitalasset.canton.admin.participant.v30.DisconnectSynchronizerResponse
-	(*DisconnectAllSynchronizersRequest)(nil),               // 16: com.digitalasset.canton.admin.participant.v30.DisconnectAllSynchronizersRequest
-	(*DisconnectAllSynchronizersResponse)(nil),              // 17: com.digitalasset.canton.admin.participant.v30.DisconnectAllSynchronizersResponse
-	(*ListConnectedSynchronizersRequest)(nil),               // 18: com.digitalasset.canton.admin.participant.v30.ListConnectedSynchronizersRequest
-	(*ListConnectedSynchronizersResponse)(nil),              // 19: com.digitalasset.canton.admin.participant.v30.ListConnectedSynchronizersResponse
-	(*GetSynchronizerIdRequest)(nil),                        // 20: com.digitalasset.canton.admin.participant.v30.GetSynchronizerIdRequest
-	(*GetSynchronizerIdResponse)(nil),                       // 21: com.digitalasset.canton.admin.participant.v30.GetSynchronizerIdResponse
-	(*LogoutRequest)(nil),                                   // 22: com.digitalasset.canton.admin.participant.v30.LogoutRequest
-	(*LogoutResponse)(nil),                                  // 23: com.digitalasset.canton.admin.participant.v30.LogoutResponse
-	(*PerformManualLsuRequest)(nil),                         // 24: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest
-	(*PerformManualLsuResponse)(nil),                        // 25: com.digitalasset.canton.admin.participant.v30.PerformManualLsuResponse
-	(*ListRegisteredSynchronizersResponse_Result)(nil),      // 26: com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse.Result
-	(*ListConnectedSynchronizersResponse_Result)(nil),       // 27: com.digitalasset.canton.admin.participant.v30.ListConnectedSynchronizersResponse.Result
-	(*PerformManualLsuRequest_SequencerConnection)(nil),     // 28: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerConnection
-	(*PerformManualLsuRequest_SequencerSuccessors)(nil),     // 29: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerSuccessors
-	nil,                              // 30: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerSuccessors.SuccessorsEntry
-	(*v30.SequencerConnections)(nil), // 31: com.digitalasset.canton.admin.sequencer.v30.SequencerConnections
-	(*durationpb.Duration)(nil),      // 32: google.protobuf.Duration
-	(*v301.SynchronizerTimeTrackerConfig)(nil), // 33: com.digitalasset.canton.admin.time.v30.SynchronizerTimeTrackerConfig
-	(v30.SequencerConnectionValidation)(0),     // 34: com.digitalasset.canton.admin.sequencer.v30.SequencerConnectionValidation
-	(*timestamppb.Timestamp)(nil),              // 35: google.protobuf.Timestamp
+	(ListRegisteredSynchronizersResponse_Status)(0),         // 1: com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse.Status
+	(*SynchronizerConnectionConfig)(nil),                    // 2: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig
+	(*ReconnectSynchronizersRequest)(nil),                   // 3: com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizersRequest
+	(*ReconnectSynchronizersResponse)(nil),                  // 4: com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizersResponse
+	(*RegisterSynchronizerRequest)(nil),                     // 5: com.digitalasset.canton.admin.participant.v30.RegisterSynchronizerRequest
+	(*RegisterSynchronizerResponse)(nil),                    // 6: com.digitalasset.canton.admin.participant.v30.RegisterSynchronizerResponse
+	(*ModifySynchronizerRequest)(nil),                       // 7: com.digitalasset.canton.admin.participant.v30.ModifySynchronizerRequest
+	(*ModifySynchronizerResponse)(nil),                      // 8: com.digitalasset.canton.admin.participant.v30.ModifySynchronizerResponse
+	(*ListRegisteredSynchronizersRequest)(nil),              // 9: com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersRequest
+	(*ListRegisteredSynchronizersResponse)(nil),             // 10: com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse
+	(*ReconnectSynchronizerRequest)(nil),                    // 11: com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizerRequest
+	(*ReconnectSynchronizerResponse)(nil),                   // 12: com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizerResponse
+	(*ConnectSynchronizerRequest)(nil),                      // 13: com.digitalasset.canton.admin.participant.v30.ConnectSynchronizerRequest
+	(*ConnectSynchronizerResponse)(nil),                     // 14: com.digitalasset.canton.admin.participant.v30.ConnectSynchronizerResponse
+	(*DisconnectSynchronizerRequest)(nil),                   // 15: com.digitalasset.canton.admin.participant.v30.DisconnectSynchronizerRequest
+	(*DisconnectSynchronizerResponse)(nil),                  // 16: com.digitalasset.canton.admin.participant.v30.DisconnectSynchronizerResponse
+	(*DisconnectAllSynchronizersRequest)(nil),               // 17: com.digitalasset.canton.admin.participant.v30.DisconnectAllSynchronizersRequest
+	(*DisconnectAllSynchronizersResponse)(nil),              // 18: com.digitalasset.canton.admin.participant.v30.DisconnectAllSynchronizersResponse
+	(*ListConnectedSynchronizersRequest)(nil),               // 19: com.digitalasset.canton.admin.participant.v30.ListConnectedSynchronizersRequest
+	(*ListConnectedSynchronizersResponse)(nil),              // 20: com.digitalasset.canton.admin.participant.v30.ListConnectedSynchronizersResponse
+	(*GetSynchronizerIdRequest)(nil),                        // 21: com.digitalasset.canton.admin.participant.v30.GetSynchronizerIdRequest
+	(*GetSynchronizerIdResponse)(nil),                       // 22: com.digitalasset.canton.admin.participant.v30.GetSynchronizerIdResponse
+	(*LogoutRequest)(nil),                                   // 23: com.digitalasset.canton.admin.participant.v30.LogoutRequest
+	(*LogoutResponse)(nil),                                  // 24: com.digitalasset.canton.admin.participant.v30.LogoutResponse
+	(*PerformManualLsuRequest)(nil),                         // 25: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest
+	(*PerformManualLsuResponse)(nil),                        // 26: com.digitalasset.canton.admin.participant.v30.PerformManualLsuResponse
+	(*ListRegisteredSynchronizersResponse_Result)(nil),      // 27: com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse.Result
+	(*ListConnectedSynchronizersResponse_Result)(nil),       // 28: com.digitalasset.canton.admin.participant.v30.ListConnectedSynchronizersResponse.Result
+	(*PerformManualLsuRequest_SequencerConnection)(nil),     // 29: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerConnection
+	(*PerformManualLsuRequest_SequencerSuccessors)(nil),     // 30: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerSuccessors
+	nil,                              // 31: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerSuccessors.SuccessorsEntry
+	(*v30.SequencerConnections)(nil), // 32: com.digitalasset.canton.admin.sequencer.v30.SequencerConnections
+	(*durationpb.Duration)(nil),      // 33: google.protobuf.Duration
+	(*v301.SynchronizerTimeTrackerConfig)(nil), // 34: com.digitalasset.canton.admin.time.v30.SynchronizerTimeTrackerConfig
+	(v30.SequencerConnectionValidation)(0),     // 35: com.digitalasset.canton.admin.sequencer.v30.SequencerConnectionValidation
+	(*timestamppb.Timestamp)(nil),              // 36: google.protobuf.Timestamp
+	(*v302.SynchronizerPredecessor)(nil),       // 37: com.digitalasset.canton.admin.topology.v30.SynchronizerPredecessor
 }
 var file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivity_service_proto_depIdxs = []int32{
-	31, // 0: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig.sequencer_connections:type_name -> com.digitalasset.canton.admin.sequencer.v30.SequencerConnections
-	32, // 1: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig.initial_retry_delay:type_name -> google.protobuf.Duration
-	32, // 2: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig.max_retry_delay:type_name -> google.protobuf.Duration
-	33, // 3: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig.time_tracker:type_name -> com.digitalasset.canton.admin.time.v30.SynchronizerTimeTrackerConfig
-	1,  // 4: com.digitalasset.canton.admin.participant.v30.RegisterSynchronizerRequest.config:type_name -> com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig
+	32, // 0: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig.sequencer_connections:type_name -> com.digitalasset.canton.admin.sequencer.v30.SequencerConnections
+	33, // 1: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig.initial_retry_delay:type_name -> google.protobuf.Duration
+	33, // 2: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig.max_retry_delay:type_name -> google.protobuf.Duration
+	34, // 3: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig.time_tracker:type_name -> com.digitalasset.canton.admin.time.v30.SynchronizerTimeTrackerConfig
+	2,  // 4: com.digitalasset.canton.admin.participant.v30.RegisterSynchronizerRequest.config:type_name -> com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig
 	0,  // 5: com.digitalasset.canton.admin.participant.v30.RegisterSynchronizerRequest.synchronizer_connection:type_name -> com.digitalasset.canton.admin.participant.v30.RegisterSynchronizerRequest.SynchronizerConnection
-	34, // 6: com.digitalasset.canton.admin.participant.v30.RegisterSynchronizerRequest.sequencer_connection_validation:type_name -> com.digitalasset.canton.admin.sequencer.v30.SequencerConnectionValidation
-	1,  // 7: com.digitalasset.canton.admin.participant.v30.ModifySynchronizerRequest.new_config:type_name -> com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig
-	34, // 8: com.digitalasset.canton.admin.participant.v30.ModifySynchronizerRequest.sequencer_connection_validation:type_name -> com.digitalasset.canton.admin.sequencer.v30.SequencerConnectionValidation
-	26, // 9: com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse.results:type_name -> com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse.Result
-	1,  // 10: com.digitalasset.canton.admin.participant.v30.ConnectSynchronizerRequest.config:type_name -> com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig
-	34, // 11: com.digitalasset.canton.admin.participant.v30.ConnectSynchronizerRequest.sequencer_connection_validation:type_name -> com.digitalasset.canton.admin.sequencer.v30.SequencerConnectionValidation
-	27, // 12: com.digitalasset.canton.admin.participant.v30.ListConnectedSynchronizersResponse.connected_synchronizers:type_name -> com.digitalasset.canton.admin.participant.v30.ListConnectedSynchronizersResponse.Result
-	35, // 13: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.upgrade_time:type_name -> google.protobuf.Timestamp
-	29, // 14: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.sequencer_successors:type_name -> com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerSuccessors
-	1,  // 15: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.config:type_name -> com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig
-	1,  // 16: com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse.Result.config:type_name -> com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig
-	30, // 17: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerSuccessors.successors:type_name -> com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerSuccessors.SuccessorsEntry
-	28, // 18: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerSuccessors.SuccessorsEntry.value:type_name -> com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerConnection
-	12, // 19: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ConnectSynchronizer:input_type -> com.digitalasset.canton.admin.participant.v30.ConnectSynchronizerRequest
-	4,  // 20: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.RegisterSynchronizer:input_type -> com.digitalasset.canton.admin.participant.v30.RegisterSynchronizerRequest
-	2,  // 21: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ReconnectSynchronizers:input_type -> com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizersRequest
-	10, // 22: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ReconnectSynchronizer:input_type -> com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizerRequest
-	6,  // 23: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ModifySynchronizer:input_type -> com.digitalasset.canton.admin.participant.v30.ModifySynchronizerRequest
-	14, // 24: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.DisconnectSynchronizer:input_type -> com.digitalasset.canton.admin.participant.v30.DisconnectSynchronizerRequest
-	16, // 25: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.DisconnectAllSynchronizers:input_type -> com.digitalasset.canton.admin.participant.v30.DisconnectAllSynchronizersRequest
-	22, // 26: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.Logout:input_type -> com.digitalasset.canton.admin.participant.v30.LogoutRequest
-	18, // 27: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ListConnectedSynchronizers:input_type -> com.digitalasset.canton.admin.participant.v30.ListConnectedSynchronizersRequest
-	8,  // 28: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ListRegisteredSynchronizers:input_type -> com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersRequest
-	20, // 29: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.GetSynchronizerId:input_type -> com.digitalasset.canton.admin.participant.v30.GetSynchronizerIdRequest
-	24, // 30: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.PerformManualLsu:input_type -> com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest
-	13, // 31: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ConnectSynchronizer:output_type -> com.digitalasset.canton.admin.participant.v30.ConnectSynchronizerResponse
-	5,  // 32: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.RegisterSynchronizer:output_type -> com.digitalasset.canton.admin.participant.v30.RegisterSynchronizerResponse
-	3,  // 33: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ReconnectSynchronizers:output_type -> com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizersResponse
-	11, // 34: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ReconnectSynchronizer:output_type -> com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizerResponse
-	7,  // 35: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ModifySynchronizer:output_type -> com.digitalasset.canton.admin.participant.v30.ModifySynchronizerResponse
-	15, // 36: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.DisconnectSynchronizer:output_type -> com.digitalasset.canton.admin.participant.v30.DisconnectSynchronizerResponse
-	17, // 37: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.DisconnectAllSynchronizers:output_type -> com.digitalasset.canton.admin.participant.v30.DisconnectAllSynchronizersResponse
-	23, // 38: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.Logout:output_type -> com.digitalasset.canton.admin.participant.v30.LogoutResponse
-	19, // 39: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ListConnectedSynchronizers:output_type -> com.digitalasset.canton.admin.participant.v30.ListConnectedSynchronizersResponse
-	9,  // 40: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ListRegisteredSynchronizers:output_type -> com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse
-	21, // 41: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.GetSynchronizerId:output_type -> com.digitalasset.canton.admin.participant.v30.GetSynchronizerIdResponse
-	25, // 42: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.PerformManualLsu:output_type -> com.digitalasset.canton.admin.participant.v30.PerformManualLsuResponse
-	31, // [31:43] is the sub-list for method output_type
-	19, // [19:31] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	35, // 6: com.digitalasset.canton.admin.participant.v30.RegisterSynchronizerRequest.sequencer_connection_validation:type_name -> com.digitalasset.canton.admin.sequencer.v30.SequencerConnectionValidation
+	2,  // 7: com.digitalasset.canton.admin.participant.v30.ModifySynchronizerRequest.new_config:type_name -> com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig
+	35, // 8: com.digitalasset.canton.admin.participant.v30.ModifySynchronizerRequest.sequencer_connection_validation:type_name -> com.digitalasset.canton.admin.sequencer.v30.SequencerConnectionValidation
+	27, // 9: com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse.results:type_name -> com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse.Result
+	2,  // 10: com.digitalasset.canton.admin.participant.v30.ConnectSynchronizerRequest.config:type_name -> com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig
+	35, // 11: com.digitalasset.canton.admin.participant.v30.ConnectSynchronizerRequest.sequencer_connection_validation:type_name -> com.digitalasset.canton.admin.sequencer.v30.SequencerConnectionValidation
+	28, // 12: com.digitalasset.canton.admin.participant.v30.ListConnectedSynchronizersResponse.connected_synchronizers:type_name -> com.digitalasset.canton.admin.participant.v30.ListConnectedSynchronizersResponse.Result
+	36, // 13: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.upgrade_time:type_name -> google.protobuf.Timestamp
+	30, // 14: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.sequencer_successors:type_name -> com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerSuccessors
+	2,  // 15: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.config:type_name -> com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig
+	2,  // 16: com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse.Result.config:type_name -> com.digitalasset.canton.admin.participant.v30.SynchronizerConnectionConfig
+	1,  // 17: com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse.Result.status:type_name -> com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse.Status
+	37, // 18: com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse.Result.synchronizer_predecessor:type_name -> com.digitalasset.canton.admin.topology.v30.SynchronizerPredecessor
+	31, // 19: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerSuccessors.successors:type_name -> com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerSuccessors.SuccessorsEntry
+	29, // 20: com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerSuccessors.SuccessorsEntry.value:type_name -> com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest.SequencerConnection
+	13, // 21: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ConnectSynchronizer:input_type -> com.digitalasset.canton.admin.participant.v30.ConnectSynchronizerRequest
+	5,  // 22: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.RegisterSynchronizer:input_type -> com.digitalasset.canton.admin.participant.v30.RegisterSynchronizerRequest
+	3,  // 23: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ReconnectSynchronizers:input_type -> com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizersRequest
+	11, // 24: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ReconnectSynchronizer:input_type -> com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizerRequest
+	7,  // 25: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ModifySynchronizer:input_type -> com.digitalasset.canton.admin.participant.v30.ModifySynchronizerRequest
+	15, // 26: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.DisconnectSynchronizer:input_type -> com.digitalasset.canton.admin.participant.v30.DisconnectSynchronizerRequest
+	17, // 27: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.DisconnectAllSynchronizers:input_type -> com.digitalasset.canton.admin.participant.v30.DisconnectAllSynchronizersRequest
+	23, // 28: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.Logout:input_type -> com.digitalasset.canton.admin.participant.v30.LogoutRequest
+	19, // 29: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ListConnectedSynchronizers:input_type -> com.digitalasset.canton.admin.participant.v30.ListConnectedSynchronizersRequest
+	9,  // 30: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ListRegisteredSynchronizers:input_type -> com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersRequest
+	21, // 31: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.GetSynchronizerId:input_type -> com.digitalasset.canton.admin.participant.v30.GetSynchronizerIdRequest
+	25, // 32: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.PerformManualLsu:input_type -> com.digitalasset.canton.admin.participant.v30.PerformManualLsuRequest
+	14, // 33: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ConnectSynchronizer:output_type -> com.digitalasset.canton.admin.participant.v30.ConnectSynchronizerResponse
+	6,  // 34: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.RegisterSynchronizer:output_type -> com.digitalasset.canton.admin.participant.v30.RegisterSynchronizerResponse
+	4,  // 35: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ReconnectSynchronizers:output_type -> com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizersResponse
+	12, // 36: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ReconnectSynchronizer:output_type -> com.digitalasset.canton.admin.participant.v30.ReconnectSynchronizerResponse
+	8,  // 37: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ModifySynchronizer:output_type -> com.digitalasset.canton.admin.participant.v30.ModifySynchronizerResponse
+	16, // 38: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.DisconnectSynchronizer:output_type -> com.digitalasset.canton.admin.participant.v30.DisconnectSynchronizerResponse
+	18, // 39: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.DisconnectAllSynchronizers:output_type -> com.digitalasset.canton.admin.participant.v30.DisconnectAllSynchronizersResponse
+	24, // 40: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.Logout:output_type -> com.digitalasset.canton.admin.participant.v30.LogoutResponse
+	20, // 41: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ListConnectedSynchronizers:output_type -> com.digitalasset.canton.admin.participant.v30.ListConnectedSynchronizersResponse
+	10, // 42: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.ListRegisteredSynchronizers:output_type -> com.digitalasset.canton.admin.participant.v30.ListRegisteredSynchronizersResponse
+	22, // 43: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.GetSynchronizerId:output_type -> com.digitalasset.canton.admin.participant.v30.GetSynchronizerIdResponse
+	26, // 44: com.digitalasset.canton.admin.participant.v30.SynchronizerConnectivityService.PerformManualLsu:output_type -> com.digitalasset.canton.admin.participant.v30.PerformManualLsuResponse
+	33, // [33:45] is the sub-list for method output_type
+	21, // [21:33] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() {
@@ -1779,7 +1896,7 @@ func file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivit
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivity_service_proto_rawDesc), len(file_com_digitalasset_canton_admin_participant_v30_synchronizer_connectivity_service_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   30,
 			NumExtensions: 0,
 			NumServices:   1,

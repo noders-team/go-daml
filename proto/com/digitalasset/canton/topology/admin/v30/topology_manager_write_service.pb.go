@@ -30,32 +30,32 @@ type ForceFlag int32
 
 const (
 	ForceFlag_FORCE_FLAG_UNSPECIFIED ForceFlag = 0
-	// * Required when authorizing adding a topology transaction on behalf of another node.
+	//* Required when authorizing adding a topology transaction on behalf of another node.
 	ForceFlag_FORCE_FLAG_ALIEN_MEMBER ForceFlag = 1
 	// Deprecated, increasing ledger time record time tolerance does not require a force flag for PV >= 32
 	ForceFlag_FORCE_FLAG_LEDGER_TIME_RECORD_TIME_TOLERANCE_INCREASE ForceFlag = 2
-	// * Required when vetting unknown packages (not uploaded).
+	//* Required when vetting unknown packages (not uploaded).
 	ForceFlag_FORCE_FLAG_ALLOW_UNKNOWN_PACKAGE ForceFlag = 4
-	// * Required when vetting a package with unvetted dependencies
+	//* Required when vetting a package with unvetted dependencies
 	ForceFlag_FORCE_FLAG_ALLOW_UNVETTED_DEPENDENCIES ForceFlag = 5
-	// * Required when disabling a party with active contracts
+	//* Required when disabling a party with active contracts
 	ForceFlag_FORCE_FLAG_DISABLE_PARTY_WITH_ACTIVE_CONTRACTS ForceFlag = 6
-	// *
+	//*
 	// Required when using a key that is not suitable to sign a topology transaction.
 	// Using this force flag likely causes the transaction to be rejected at a later stage of the processing.
 	ForceFlag_FORCE_FLAG_ALLOW_UNVALIDATED_SIGNING_KEYS ForceFlag = 7
-	// * Required when increasing the submission time record time tolerance
+	//* Required when increasing the submission time record time tolerance
 	ForceFlag_FORCE_FLAG_PREPARATION_TIME_RECORD_TIME_TOLERANCE_INCREASE ForceFlag = 9
-	// * Required when we want to change all participants' permissions to observation while the party is still a signatory of a contract.
+	//* Required when we want to change all participants' permissions to observation while the party is still a signatory of a contract.
 	ForceFlag_FORCE_FLAG_ALLOW_INSUFFICIENT_PARTICIPANT_PERMISSION_FOR_SIGNATORY_PARTY ForceFlag = 10
-	// * Required when changing the party-to-participant mapping, that would result in insufficient
+	//* Required when changing the party-to-participant mapping, that would result in insufficient
 	// signatory-assigning participants and thus the assignment would be stuck.
 	ForceFlag_FORCE_FLAG_ALLOW_INSUFFICIENT_SIGNATORY_ASSIGNING_PARTICIPANTS_FOR_PARTY ForceFlag = 11
-	// * Required when vetting a package that fails upgrade checking
+	//* Required when vetting a package that fails upgrade checking
 	ForceFlag_FORCE_FLAG_ALLOW_VET_INCOMPATIBLE_UPGRADES ForceFlag = 12
-	// * Required when submitting dynamic synchronizer parameters that have out-of-bounds values
+	//* Required when submitting dynamic synchronizer parameters that have out-of-bounds values
 	ForceFlag_FORCE_FLAG_ALLOW_OUT_OF_BOUNDS_VALUE ForceFlag = 13
-	// * Required when changing the confirming threshold to a value higher than the number of confirming participants
+	//* Required when changing the confirming threshold to a value higher than the number of confirming participants
 	ForceFlag_FORCE_FLAG_ALLOW_CONFIRMING_THRESHOLD_CANNOT_BE_MET ForceFlag = 14
 )
 
@@ -217,22 +217,22 @@ type AuthorizeRequest struct {
 	//	*AuthorizeRequest_Proposal_
 	//	*AuthorizeRequest_TransactionHash
 	Type isAuthorizeRequest_Type `protobuf_oneof:"type"`
-	// *
+	//*
 	// If true: the transaction is only signed if the new signatures will result in the transaction being fully
 	// authorized. Otherwise returns as an error.
 	// If false: the transaction is signed and the signature distributed. The transaction may still not be fully
 	// authorized and remain as a proposal.
 	MustFullyAuthorize bool `protobuf:"varint,3,opt,name=must_fully_authorize,json=mustFullyAuthorize,proto3" json:"must_fully_authorize,omitempty"`
-	// * Force specific changes even if dangerous
+	//* Force specific changes even if dangerous
 	ForceChanges []ForceFlag `protobuf:"varint,4,rep,packed,name=force_changes,json=forceChanges,proto3,enum=com.digitalasset.canton.topology.admin.v30.ForceFlag" json:"force_changes,omitempty"`
-	// *
+	//*
 	// Fingerprint of the keys signing the authorization
 	//
 	// The signing key is used to identify a particular `NamespaceDelegation` certificate,
 	// which is used to justify the given authorization.
 	// Optional, if empty, suitable signing keys available known to the node are automatically selected.
 	SignedBy []string `protobuf:"bytes,5,rep,name=signed_by,json=signedBy,proto3" json:"signed_by,omitempty"`
-	// *
+	//*
 	// The store that is used as the underlying source for executing this request.
 	// If `store` is a synchronizer store, the resulting topology transaction will only be available on the respective synchronizer.
 	// If `store` is the authorized store, the resulting topology transaction may or may not be synchronized automatically
@@ -241,7 +241,7 @@ type AuthorizeRequest struct {
 	// Selecting a specific synchronizers store might be necessary, if the transaction to authorize by hash or the previous
 	// generation of the submitted proposal is only available on the synchronizers store and not in the authorized store.
 	Store *StoreId `protobuf:"bytes,6,opt,name=store,proto3" json:"store,omitempty"`
-	// * Optional timeout to wait for the transaction to become effective in the store.
+	//* Optional timeout to wait for the transaction to become effective in the store.
 	WaitToBecomeEffective *durationpb.Duration `protobuf:"bytes,7,opt,name=wait_to_become_effective,json=waitToBecomeEffective,proto3" json:"wait_to_become_effective,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
@@ -342,14 +342,14 @@ type isAuthorizeRequest_Type interface {
 }
 
 type AuthorizeRequest_Proposal_ struct {
-	// *
+	//*
 	// Propose a transaction and distribute it.
 	// If authorize if the node has enough signing keys
 	Proposal *AuthorizeRequest_Proposal `protobuf:"bytes,1,opt,name=proposal,proto3,oneof"`
 }
 
 type AuthorizeRequest_TransactionHash struct {
-	// *
+	//*
 	// Authorize a transaction, meaning the node needs to be able to fully sign it locally.
 	// Hash is in hexadecimal format.
 	TransactionHash string `protobuf:"bytes,2,opt,name=transaction_hash,json=transactionHash,proto3,oneof"`
@@ -361,7 +361,7 @@ func (*AuthorizeRequest_TransactionHash) isAuthorizeRequest_Type() {}
 
 type AuthorizeResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// * the generated signed topology transaction
+	//* the generated signed topology transaction
 	Transaction   *v30.SignedTopologyTransaction `protobuf:"bytes,1,opt,name=transaction,proto3" json:"transaction,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -406,12 +406,12 @@ func (x *AuthorizeResponse) GetTransaction() *v30.SignedTopologyTransaction {
 
 type AddTransactionsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// *
+	//*
 	// The transactions that should be added to the target store as indicated by the parameter `store`.
 	Transactions []*v30.SignedTopologyTransaction `protobuf:"bytes,1,rep,name=transactions,proto3" json:"transactions,omitempty"`
-	// * Force specific changes even if dangerous
+	//* Force specific changes even if dangerous
 	ForceChanges []ForceFlag `protobuf:"varint,2,rep,packed,name=force_changes,json=forceChanges,proto3,enum=com.digitalasset.canton.topology.admin.v30.ForceFlag" json:"force_changes,omitempty"`
-	// *
+	//*
 	// The store that is used as the underlying source for executing this request.
 	// If `store` is a synchronizers store, the resulting topology transaction will only be available on the respective synchronizers.
 	// If `store` is the authorized store, the resulting topology transaction may or may not be synchronized automatically
@@ -420,7 +420,7 @@ type AddTransactionsRequest struct {
 	// Selecting a specific synchronizers store might be necessary, if the transaction to authorize by hash or the previous
 	// generation of the submitted proposal is only available on the synchronizers store and not in the authorized store.
 	Store *StoreId `protobuf:"bytes,3,opt,name=store,proto3" json:"store,omitempty"`
-	// * Optional timeout to wait for the transaction to become effective in the store.
+	//* Optional timeout to wait for the transaction to become effective in the store.
 	WaitToBecomeEffective *durationpb.Duration `protobuf:"bytes,7,opt,name=wait_to_become_effective,json=waitToBecomeEffective,proto3" json:"wait_to_become_effective,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
@@ -526,7 +526,7 @@ type ImportTopologySnapshotRequest struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	TopologySnapshot []byte                 `protobuf:"bytes,1,opt,name=topology_snapshot,json=topologySnapshot,proto3" json:"topology_snapshot,omitempty"`
 	Store            *StoreId               `protobuf:"bytes,2,opt,name=store,proto3" json:"store,omitempty"`
-	// * Optional timeout to wait for the transaction to become effective in the store.
+	//* Optional timeout to wait for the transaction to become effective in the store.
 	WaitToBecomeEffective *durationpb.Duration `protobuf:"bytes,3,opt,name=wait_to_become_effective,json=waitToBecomeEffective,proto3" json:"wait_to_become_effective,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
@@ -625,7 +625,7 @@ type ImportTopologySnapshotV2Request struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	TopologySnapshot []byte                 `protobuf:"bytes,1,opt,name=topology_snapshot,json=topologySnapshot,proto3" json:"topology_snapshot,omitempty"`
 	Store            *StoreId               `protobuf:"bytes,2,opt,name=store,proto3" json:"store,omitempty"`
-	// * Optional timeout to wait for the transaction to become effective in the store.
+	//* Optional timeout to wait for the transaction to become effective in the store.
 	WaitToBecomeEffective *durationpb.Duration `protobuf:"bytes,3,opt,name=wait_to_become_effective,json=waitToBecomeEffective,proto3" json:"wait_to_become_effective,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
@@ -720,9 +720,9 @@ func (*ImportTopologySnapshotV2Response) Descriptor() ([]byte, []int) {
 
 type SignTransactionsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// * The transactions to be signed, but will not be stored in the authorized store
+	//* The transactions to be signed, but will not be stored in the authorized store
 	Transactions []*v30.SignedTopologyTransaction `protobuf:"bytes,1,rep,name=transactions,proto3" json:"transactions,omitempty"`
-	// *
+	//*
 	// Fingerprint of the keys signing the authorization
 	//
 	// The signing key is used to identify a particular `NamespaceDelegation` certificate,
@@ -731,7 +731,7 @@ type SignTransactionsRequest struct {
 	SignedBy []string `protobuf:"bytes,2,rep,name=signed_by,json=signedBy,proto3" json:"signed_by,omitempty"`
 	// Target store
 	Store *StoreId `protobuf:"bytes,3,opt,name=store,proto3" json:"store,omitempty"`
-	// * Force specific changes even if dangerous
+	//* Force specific changes even if dangerous
 	ForceFlags    []ForceFlag `protobuf:"varint,4,rep,packed,name=force_flags,json=forceFlags,proto3,enum=com.digitalasset.canton.topology.admin.v30.ForceFlag" json:"force_flags,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -797,7 +797,7 @@ func (x *SignTransactionsRequest) GetForceFlags() []ForceFlag {
 
 type SignTransactionsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// * The transactions with the additional signatures from this node.
+	//* The transactions with the additional signatures from this node.
 	Transactions  []*v30.SignedTopologyTransaction `protobuf:"bytes,1,rep,name=transactions,proto3" json:"transactions,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -842,9 +842,9 @@ func (x *SignTransactionsResponse) GetTransactions() []*v30.SignedTopologyTransa
 
 type CreateTemporaryTopologyStoreRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// * The name of the topology store
+	//* The name of the topology store
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// * The protocol version that should be used by the store
+	//* The protocol version that should be used by the store
 	ProtocolVersion uint32 `protobuf:"varint,2,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocol_version,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -896,7 +896,7 @@ func (x *CreateTemporaryTopologyStoreRequest) GetProtocolVersion() uint32 {
 
 type CreateTemporaryTopologyStoreResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// * The identifier of the topology store that should be used as a store filter string
+	//* The identifier of the topology store that should be used as a store filter string
 	StoreId       *StoreId_Temporary `protobuf:"bytes,1,opt,name=store_id,json=storeId,proto3" json:"store_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -941,7 +941,7 @@ func (x *CreateTemporaryTopologyStoreResponse) GetStoreId() *StoreId_Temporary {
 
 type DropTemporaryTopologyStoreRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// * The identifier of the topology store that should be dropped
+	//* The identifier of the topology store that should be dropped
 	StoreId       *StoreId_Temporary `protobuf:"bytes,1,opt,name=store_id,json=storeId,proto3" json:"store_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1022,14 +1022,14 @@ func (*DropTemporaryTopologyStoreResponse) Descriptor() ([]byte, []int) {
 
 type GenerateTransactionsRequest_Proposal struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// * Replace / Remove
+	//* Replace / Remove
 	Operation v30.Enums_TopologyChangeOp `protobuf:"varint,1,opt,name=operation,proto3,enum=com.digitalasset.canton.protocol.v30.Enums_TopologyChangeOp" json:"operation,omitempty"`
-	// * Optionally, the serial number of this request (auto-determined if omitted)
+	//* Optionally, the serial number of this request (auto-determined if omitted)
 	// NOTE: omitting the serial MAY end up overwriting previous mappings processed concurrently.
 	// To avoid such cases, First read the state using the TopologyManagerReadService and update the mappings
 	// accordingly, incrementing the serial by one and setting it here explicitly.
 	Serial uint32 `protobuf:"varint,2,opt,name=serial,proto3" json:"serial,omitempty"`
-	// * The mapping to be authorized
+	//* The mapping to be authorized
 	Mapping *v30.TopologyMapping `protobuf:"bytes,3,opt,name=mapping,proto3" json:"mapping,omitempty"`
 	// Target store
 	Store         *StoreId `protobuf:"bytes,4,opt,name=store,proto3" json:"store,omitempty"`
@@ -1151,11 +1151,11 @@ func (x *GenerateTransactionsResponse_GeneratedTransaction) GetTransactionHash()
 
 type AuthorizeRequest_Proposal struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// * Replace / Remove
+	//* Replace / Remove
 	Change v30.Enums_TopologyChangeOp `protobuf:"varint,1,opt,name=change,proto3,enum=com.digitalasset.canton.protocol.v30.Enums_TopologyChangeOp" json:"change,omitempty"`
-	// * Optionally, the serial number of this request (auto-determined if omitted)
+	//* Optionally, the serial number of this request (auto-determined if omitted)
 	Serial uint32 `protobuf:"varint,2,opt,name=serial,proto3" json:"serial,omitempty"`
-	// * The mapping to be authorized
+	//* The mapping to be authorized
 	Mapping       *v30.TopologyMapping `protobuf:"bytes,3,opt,name=mapping,proto3" json:"mapping,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

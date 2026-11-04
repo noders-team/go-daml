@@ -34,7 +34,7 @@ const (
 // *
 // The node identity initialization service
 type IdentityInitializationServiceClient interface {
-	// *
+	//*
 	// Initialize the node with the unique identifier (can and must be done once)
 	//
 	// When a node starts for the first time, we need to bind it
@@ -43,10 +43,10 @@ type IdentityInitializationServiceClient interface {
 	//
 	// This method is only used once during initialization.
 	InitId(ctx context.Context, in *InitIdRequest, opts ...grpc.CallOption) (*InitIdResponse, error)
-	// *
+	//*
 	// Returns the id of the node (or empty if not initialized)
 	GetId(ctx context.Context, in *GetIdRequest, opts ...grpc.CallOption) (*GetIdResponse, error)
-	// *
+	//*
 	// Returns the current time of the node (used for testing with static time)
 	CurrentTime(ctx context.Context, in *CurrentTimeRequest, opts ...grpc.CallOption) (*CurrentTimeResponse, error)
 }
@@ -96,7 +96,7 @@ func (c *identityInitializationServiceClient) CurrentTime(ctx context.Context, i
 // *
 // The node identity initialization service
 type IdentityInitializationServiceServer interface {
-	// *
+	//*
 	// Initialize the node with the unique identifier (can and must be done once)
 	//
 	// When a node starts for the first time, we need to bind it
@@ -105,10 +105,10 @@ type IdentityInitializationServiceServer interface {
 	//
 	// This method is only used once during initialization.
 	InitId(context.Context, *InitIdRequest) (*InitIdResponse, error)
-	// *
+	//*
 	// Returns the id of the node (or empty if not initialized)
 	GetId(context.Context, *GetIdRequest) (*GetIdResponse, error)
-	// *
+	//*
 	// Returns the current time of the node (used for testing with static time)
 	CurrentTime(context.Context, *CurrentTimeRequest) (*CurrentTimeResponse, error)
 	mustEmbedUnimplementedIdentityInitializationServiceServer()

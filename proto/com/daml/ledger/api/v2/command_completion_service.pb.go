@@ -27,7 +27,7 @@ const (
 type CompletionStreamRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Only completions of commands submitted with the same user_id will be visible in the stream.
-	// Must be a valid UserIdString (as described in “value.proto“).
+	// Must be a valid UserIdString (as described in ``value.proto``).
 	//
 	// Required unless authentication is used with a user token.
 	// In that case, the token's user-id will be used for the request's user_id.
@@ -35,8 +35,8 @@ type CompletionStreamRequest struct {
 	// Optional
 	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	// Non-empty list of parties whose data should be included.
-	// The stream shows only completions of commands for which at least one of the “act_as“ parties is in the given set of parties.
-	// Must be a valid PartyIdString (as described in “value.proto“).
+	// The stream shows only completions of commands for which at least one of the ``act_as`` parties is in the given set of parties.
+	// Must be a valid PartyIdString (as described in ``value.proto``).
 	//
 	// Required: must be non-empty
 	Parties []string `protobuf:"bytes,2,rep,name=parties,proto3" json:"parties,omitempty"`
@@ -102,6 +102,71 @@ func (x *CompletionStreamRequest) GetBeginExclusive() int64 {
 	return 0
 }
 
+type GetCompletionsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// If specified, only completions of commands are included, which have at least one of the ``act_as`` parties
+	// in the given set of parties.
+	// Only Ledger API users with CanReadAsAnyParty permission allowed to provide no ``parties``.
+	// Must be a valid PartyIdString (as described in ``value.proto``).
+	//
+	// Optional: can be empty
+	Parties []string `protobuf:"bytes,1,rep,name=parties,proto3" json:"parties,omitempty"`
+	// This optional field indicates the minimum offset for completions. This can be used to resume an earlier completion stream.
+	// If not set the ledger uses the ledger begin offset instead.
+	// If specified, it must be a valid absolute offset (positive integer) or zero (ledger begin offset).
+	// If the ledger has been pruned, this parameter must be specified and greater than the pruning offset. (the pruning
+	// offset is accessible on the StateService.GetLatestPrunedOffsets endpoint)
+	//
+	// Optional
+	BeginExclusive int64 `protobuf:"varint,2,opt,name=begin_exclusive,json=beginExclusive,proto3" json:"begin_exclusive,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetCompletionsRequest) Reset() {
+	*x = GetCompletionsRequest{}
+	mi := &file_com_daml_ledger_api_v2_command_completion_service_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCompletionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCompletionsRequest) ProtoMessage() {}
+
+func (x *GetCompletionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_com_daml_ledger_api_v2_command_completion_service_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCompletionsRequest.ProtoReflect.Descriptor instead.
+func (*GetCompletionsRequest) Descriptor() ([]byte, []int) {
+	return file_com_daml_ledger_api_v2_command_completion_service_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GetCompletionsRequest) GetParties() []string {
+	if x != nil {
+		return x.Parties
+	}
+	return nil
+}
+
+func (x *GetCompletionsRequest) GetBeginExclusive() int64 {
+	if x != nil {
+		return x.BeginExclusive
+	}
+	return 0
+}
+
 type CompletionStreamResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Required
@@ -117,7 +182,7 @@ type CompletionStreamResponse struct {
 
 func (x *CompletionStreamResponse) Reset() {
 	*x = CompletionStreamResponse{}
-	mi := &file_com_daml_ledger_api_v2_command_completion_service_proto_msgTypes[1]
+	mi := &file_com_daml_ledger_api_v2_command_completion_service_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -129,7 +194,7 @@ func (x *CompletionStreamResponse) String() string {
 func (*CompletionStreamResponse) ProtoMessage() {}
 
 func (x *CompletionStreamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_com_daml_ledger_api_v2_command_completion_service_proto_msgTypes[1]
+	mi := &file_com_daml_ledger_api_v2_command_completion_service_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -142,7 +207,7 @@ func (x *CompletionStreamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompletionStreamResponse.ProtoReflect.Descriptor instead.
 func (*CompletionStreamResponse) Descriptor() ([]byte, []int) {
-	return file_com_daml_ledger_api_v2_command_completion_service_proto_rawDescGZIP(), []int{1}
+	return file_com_daml_ledger_api_v2_command_completion_service_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CompletionStreamResponse) GetCompletionResponse() isCompletionStreamResponse_CompletionResponse {
@@ -194,15 +259,19 @@ const file_com_daml_ledger_api_v2_command_completion_service_proto_rawDesc = "" 
 	"\x17CompletionStreamRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x18\n" +
 	"\aparties\x18\x02 \x03(\tR\aparties\x12'\n" +
-	"\x0fbegin_exclusive\x18\x03 \x01(\x03R\x0ebeginExclusive\"\xd0\x01\n" +
+	"\x0fbegin_exclusive\x18\x03 \x01(\x03R\x0ebeginExclusive\"Z\n" +
+	"\x15GetCompletionsRequest\x12\x18\n" +
+	"\aparties\x18\x01 \x03(\tR\aparties\x12'\n" +
+	"\x0fbegin_exclusive\x18\x02 \x01(\x03R\x0ebeginExclusive\"\xd0\x01\n" +
 	"\x18CompletionStreamResponse\x12D\n" +
 	"\n" +
 	"completion\x18\x01 \x01(\v2\".com.daml.ledger.api.v2.CompletionH\x00R\n" +
 	"completion\x12W\n" +
 	"\x11offset_checkpoint\x18\x02 \x01(\v2(.com.daml.ledger.api.v2.OffsetCheckpointH\x00R\x10offsetCheckpointB\x15\n" +
-	"\x13completion_response2\x93\x01\n" +
+	"\x13completion_response2\x88\x02\n" +
 	"\x18CommandCompletionService\x12w\n" +
-	"\x10CompletionStream\x12/.com.daml.ledger.api.v2.CompletionStreamRequest\x1a0.com.daml.ledger.api.v2.CompletionStreamResponse0\x01B\x92\x01\n" +
+	"\x10CompletionStream\x12/.com.daml.ledger.api.v2.CompletionStreamRequest\x1a0.com.daml.ledger.api.v2.CompletionStreamResponse0\x01\x12s\n" +
+	"\x0eGetCompletions\x12-.com.daml.ledger.api.v2.GetCompletionsRequest\x1a0.com.daml.ledger.api.v2.CompletionStreamResponse0\x01B\x92\x01\n" +
 	"\x16com.daml.ledger.api.v2B\"CommandCompletionServiceOuterClassZ;github.com/noders-team/go-daml/proto/com/daml/ledger/api/v2\xaa\x02\x16Com.Daml.Ledger.Api.V2b\x06proto3"
 
 var (
@@ -217,20 +286,23 @@ func file_com_daml_ledger_api_v2_command_completion_service_proto_rawDescGZIP() 
 	return file_com_daml_ledger_api_v2_command_completion_service_proto_rawDescData
 }
 
-var file_com_daml_ledger_api_v2_command_completion_service_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_com_daml_ledger_api_v2_command_completion_service_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_com_daml_ledger_api_v2_command_completion_service_proto_goTypes = []any{
 	(*CompletionStreamRequest)(nil),  // 0: com.daml.ledger.api.v2.CompletionStreamRequest
-	(*CompletionStreamResponse)(nil), // 1: com.daml.ledger.api.v2.CompletionStreamResponse
-	(*Completion)(nil),               // 2: com.daml.ledger.api.v2.Completion
-	(*OffsetCheckpoint)(nil),         // 3: com.daml.ledger.api.v2.OffsetCheckpoint
+	(*GetCompletionsRequest)(nil),    // 1: com.daml.ledger.api.v2.GetCompletionsRequest
+	(*CompletionStreamResponse)(nil), // 2: com.daml.ledger.api.v2.CompletionStreamResponse
+	(*Completion)(nil),               // 3: com.daml.ledger.api.v2.Completion
+	(*OffsetCheckpoint)(nil),         // 4: com.daml.ledger.api.v2.OffsetCheckpoint
 }
 var file_com_daml_ledger_api_v2_command_completion_service_proto_depIdxs = []int32{
-	2, // 0: com.daml.ledger.api.v2.CompletionStreamResponse.completion:type_name -> com.daml.ledger.api.v2.Completion
-	3, // 1: com.daml.ledger.api.v2.CompletionStreamResponse.offset_checkpoint:type_name -> com.daml.ledger.api.v2.OffsetCheckpoint
+	3, // 0: com.daml.ledger.api.v2.CompletionStreamResponse.completion:type_name -> com.daml.ledger.api.v2.Completion
+	4, // 1: com.daml.ledger.api.v2.CompletionStreamResponse.offset_checkpoint:type_name -> com.daml.ledger.api.v2.OffsetCheckpoint
 	0, // 2: com.daml.ledger.api.v2.CommandCompletionService.CompletionStream:input_type -> com.daml.ledger.api.v2.CompletionStreamRequest
-	1, // 3: com.daml.ledger.api.v2.CommandCompletionService.CompletionStream:output_type -> com.daml.ledger.api.v2.CompletionStreamResponse
-	3, // [3:4] is the sub-list for method output_type
-	2, // [2:3] is the sub-list for method input_type
+	1, // 3: com.daml.ledger.api.v2.CommandCompletionService.GetCompletions:input_type -> com.daml.ledger.api.v2.GetCompletionsRequest
+	2, // 4: com.daml.ledger.api.v2.CommandCompletionService.CompletionStream:output_type -> com.daml.ledger.api.v2.CompletionStreamResponse
+	2, // 5: com.daml.ledger.api.v2.CommandCompletionService.GetCompletions:output_type -> com.daml.ledger.api.v2.CompletionStreamResponse
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name
@@ -243,7 +315,7 @@ func file_com_daml_ledger_api_v2_command_completion_service_proto_init() {
 	}
 	file_com_daml_ledger_api_v2_completion_proto_init()
 	file_com_daml_ledger_api_v2_offset_checkpoint_proto_init()
-	file_com_daml_ledger_api_v2_command_completion_service_proto_msgTypes[1].OneofWrappers = []any{
+	file_com_daml_ledger_api_v2_command_completion_service_proto_msgTypes[2].OneofWrappers = []any{
 		(*CompletionStreamResponse_Completion)(nil),
 		(*CompletionStreamResponse_OffsetCheckpoint)(nil),
 	}
@@ -253,7 +325,7 @@ func file_com_daml_ledger_api_v2_command_completion_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_com_daml_ledger_api_v2_command_completion_service_proto_rawDesc), len(file_com_daml_ledger_api_v2_command_completion_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

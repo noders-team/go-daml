@@ -79,9 +79,9 @@ type SubmitAndWaitForTransactionRequest struct {
 	//
 	// Required
 	Commands *Commands `protobuf:"bytes,1,opt,name=commands,proto3" json:"commands,omitempty"`
-	// If no “transaction_format“ is provided, a default will be used where “transaction_shape“ is set to
-	// TRANSACTION_SHAPE_ACS_DELTA, “event_format“ is defined with “filters_by_party“ containing wildcard-template
-	// filter for all original “act_as“ and “read_as“ parties and the “verbose“ flag is set.
+	// If no ``transaction_format`` is provided, a default will be used where ``transaction_shape`` is set to
+	// TRANSACTION_SHAPE_ACS_DELTA, ``event_format`` is defined with ``filters_by_party`` containing wildcard-template
+	// filter for all original ``act_as`` and ``read_as`` parties and the ``verbose`` flag is set.
 	//
 	// Optional
 	TransactionFormat *TransactionFormat `protobuf:"bytes,2,opt,name=transaction_format,json=transactionFormat,proto3" json:"transaction_format,omitempty"`
@@ -136,11 +136,11 @@ func (x *SubmitAndWaitForTransactionRequest) GetTransactionFormat() *Transaction
 type SubmitAndWaitResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The id of the transaction that resulted from the submitted command.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Required
 	UpdateId string `protobuf:"bytes,1,opt,name=update_id,json=updateId,proto3" json:"update_id,omitempty"`
-	// The details of the offset field are described in “community/ledger-api/README.md“.
+	// The details of the offset field are described in ``community/ledger-api/README.md``.
 	//
 	// Required
 	CompletionOffset int64 `protobuf:"varint,2,opt,name=completion_offset,json=completionOffset,proto3" json:"completion_offset,omitempty"`

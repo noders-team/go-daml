@@ -35,8 +35,8 @@ type User struct {
 	// Required
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The primary party as which this user reads and acts by default on the ledger
-	// *provided* it has the corresponding “CanReadAs(primary_party)“ or
-	// “CanActAs(primary_party)“ rights.
+	// *provided* it has the corresponding ``CanReadAs(primary_party)`` or
+	// ``CanActAs(primary_party)`` rights.
 	// Ledger API clients SHOULD set this field to a non-empty value for all users to
 	// enable the users to act on the ledger using their own Daml party.
 	// Users for participant administrators MAY have an associated primary party.
@@ -51,12 +51,12 @@ type User struct {
 	// Optional
 	IsDeactivated bool `protobuf:"varint,3,opt,name=is_deactivated,json=isDeactivated,proto3" json:"is_deactivated,omitempty"`
 	// The metadata of this user.
-	// Note that the “metadata.resource_version“ tracks changes to the properties described by the “User“ message and not the user's rights.
+	// Note that the ``metadata.resource_version`` tracks changes to the properties described by the ``User`` message and not the user's rights.
 	// Modifiable
 	//
 	// Optional
 	Metadata *ObjectMeta `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// The ID of the identity provider configured by “Identity Provider Config“
+	// The ID of the identity provider configured by ``Identity Provider Config``
 	// If not set, assume the user is managed by the default identity provider.
 	//
 	// Optional
@@ -323,7 +323,7 @@ type CreateUserRequest struct {
 	// Required
 	User *User `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
 	// The rights to be assigned to the user upon creation,
-	// which SHOULD include appropriate rights for the “user.primary_party“.
+	// which SHOULD include appropriate rights for the ``user.primary_party``.
 	//
 	// Optional: can be empty
 	Rights        []*Right `protobuf:"bytes,2,rep,name=rights,proto3" json:"rights,omitempty"`
@@ -430,7 +430,7 @@ type GetUserRequest struct {
 	//
 	// Optional
 	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	// The id of the “Identity Provider“
+	// The id of the ``Identity Provider``
 	// If not set, assume the user is managed by the default identity provider.
 	//
 	// Optional
@@ -538,24 +538,24 @@ type UpdateUserRequest struct {
 	//
 	// Required
 	User *User `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	// An update mask specifies how and which properties of the “User“ message are to be updated.
+	// An update mask specifies how and which properties of the ``User`` message are to be updated.
 	// An update mask consists of a set of update paths.
-	// A valid update path points to a field or a subfield relative to the “User“ message.
+	// A valid update path points to a field or a subfield relative to the ``User`` message.
 	// A valid update mask must:
 	//
 	// 1. contain at least one update path,
 	// 2. contain only valid update paths.
 	//
-	// Fields that can be updated are marked as “Modifiable“.
-	// An update path can also point to a non-“Modifiable“ fields such as 'id' and 'metadata.resource_version'
+	// Fields that can be updated are marked as ``Modifiable``.
+	// An update path can also point to a non-``Modifiable`` fields such as 'id' and 'metadata.resource_version'
 	// because they are used:
 	//
 	// 1. to identify the user resource subject to the update,
 	// 2. for concurrent change control.
 	//
 	// Examples of valid update paths: 'primary_party', 'metadata', 'metadata.annotations'.
-	// For additional information see the documentation for standard protobuf3's “google.protobuf.FieldMask“.
-	// For similar Ledger API see “com.daml.ledger.api.v2.admin.UpdatePartyDetailsRequest“.
+	// For additional information see the documentation for standard protobuf3's ``google.protobuf.FieldMask``.
+	// For similar Ledger API see ``com.daml.ledger.api.v2.admin.UpdatePartyDetailsRequest``.
 	//
 	// Required
 	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
@@ -661,7 +661,7 @@ type DeleteUserRequest struct {
 	//
 	// Required
 	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	// The id of the “Identity Provider“
+	// The id of the ``Identity Provider``
 	// If not set, assume the user is managed by the default identity provider.
 	//
 	// Optional
@@ -764,7 +764,7 @@ type ListUsersRequest struct {
 	//
 	// Optional
 	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// The id of the “Identity Provider“
+	// The id of the ``Identity Provider``
 	// If not set, assume the user is managed by the default identity provider.
 	//
 	// Optional
@@ -897,7 +897,7 @@ type GrantUserRightsRequest struct {
 	//
 	// Optional: can be empty
 	Rights []*Right `protobuf:"bytes,2,rep,name=rights,proto3" json:"rights,omitempty"`
-	// The id of the “Identity Provider“
+	// The id of the ``Identity Provider``
 	// If not set, assume the user is managed by the default identity provider.
 	//
 	// Optional
@@ -1017,7 +1017,7 @@ type RevokeUserRightsRequest struct {
 	//
 	// Optional: can be empty
 	Rights []*Right `protobuf:"bytes,2,rep,name=rights,proto3" json:"rights,omitempty"`
-	// The id of the “Identity Provider“
+	// The id of the ``Identity Provider``
 	// If not set, assume the user is managed by the default identity provider.
 	//
 	// Optional
@@ -1132,7 +1132,7 @@ type ListUserRightsRequest struct {
 	//
 	// Required
 	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	// The id of the “Identity Provider“
+	// The id of the ``Identity Provider``
 	// If not set, assume the user is managed by the default identity provider.
 	//
 	// Optional

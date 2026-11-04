@@ -63,7 +63,7 @@ type IdentityProviderConfigServiceClient interface {
 	// Get the identity provider configuration data by id.
 	GetIdentityProviderConfig(ctx context.Context, in *GetIdentityProviderConfigRequest, opts ...grpc.CallOption) (*GetIdentityProviderConfigResponse, error)
 	// Update selected modifiable attribute of an identity provider config resource described
-	// by the “IdentityProviderConfig“ message.
+	// by the ``IdentityProviderConfig`` message.
 	UpdateIdentityProviderConfig(ctx context.Context, in *UpdateIdentityProviderConfigRequest, opts ...grpc.CallOption) (*UpdateIdentityProviderConfigResponse, error)
 	// List all existing identity provider configurations.
 	ListIdentityProviderConfigs(ctx context.Context, in *ListIdentityProviderConfigsRequest, opts ...grpc.CallOption) (*ListIdentityProviderConfigsResponse, error)
@@ -163,7 +163,7 @@ type IdentityProviderConfigServiceServer interface {
 	// Get the identity provider configuration data by id.
 	GetIdentityProviderConfig(context.Context, *GetIdentityProviderConfigRequest) (*GetIdentityProviderConfigResponse, error)
 	// Update selected modifiable attribute of an identity provider config resource described
-	// by the “IdentityProviderConfig“ message.
+	// by the ``IdentityProviderConfig`` message.
 	UpdateIdentityProviderConfig(context.Context, *UpdateIdentityProviderConfigRequest) (*UpdateIdentityProviderConfigResponse, error)
 	// List all existing identity provider configurations.
 	ListIdentityProviderConfigs(context.Context, *ListIdentityProviderConfigsRequest) (*ListIdentityProviderConfigsResponse, error)

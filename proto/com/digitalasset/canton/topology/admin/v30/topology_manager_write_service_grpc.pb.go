@@ -48,12 +48,12 @@ type TopologyManagerWriteServiceClient interface {
 	ImportTopologySnapshot(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ImportTopologySnapshotRequest, ImportTopologySnapshotResponse], error)
 	ImportTopologySnapshotV2(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ImportTopologySnapshotV2Request, ImportTopologySnapshotV2Response], error)
 	SignTransactions(ctx context.Context, in *SignTransactionsRequest, opts ...grpc.CallOption) (*SignTransactionsResponse, error)
-	// * RPC to generate topology transactions that can be signed
+	//* RPC to generate topology transactions that can be signed
 	GenerateTransactions(ctx context.Context, in *GenerateTransactionsRequest, opts ...grpc.CallOption) (*GenerateTransactionsResponse, error)
-	// * Creates a temporary topology store.
+	//* Creates a temporary topology store.
 	// Trying to create a store with the same name results in an error.
 	CreateTemporaryTopologyStore(ctx context.Context, in *CreateTemporaryTopologyStoreRequest, opts ...grpc.CallOption) (*CreateTemporaryTopologyStoreResponse, error)
-	// * Drops a temporary topology store.
+	//* Drops a temporary topology store.
 	// Trying to drop a temporary store that does not exist results in an error.
 	DropTemporaryTopologyStore(ctx context.Context, in *DropTemporaryTopologyStoreRequest, opts ...grpc.CallOption) (*DropTemporaryTopologyStoreResponse, error)
 }
@@ -169,12 +169,12 @@ type TopologyManagerWriteServiceServer interface {
 	ImportTopologySnapshot(grpc.ClientStreamingServer[ImportTopologySnapshotRequest, ImportTopologySnapshotResponse]) error
 	ImportTopologySnapshotV2(grpc.ClientStreamingServer[ImportTopologySnapshotV2Request, ImportTopologySnapshotV2Response]) error
 	SignTransactions(context.Context, *SignTransactionsRequest) (*SignTransactionsResponse, error)
-	// * RPC to generate topology transactions that can be signed
+	//* RPC to generate topology transactions that can be signed
 	GenerateTransactions(context.Context, *GenerateTransactionsRequest) (*GenerateTransactionsResponse, error)
-	// * Creates a temporary topology store.
+	//* Creates a temporary topology store.
 	// Trying to create a store with the same name results in an error.
 	CreateTemporaryTopologyStore(context.Context, *CreateTemporaryTopologyStoreRequest) (*CreateTemporaryTopologyStoreResponse, error)
-	// * Drops a temporary topology store.
+	//* Drops a temporary topology store.
 	// Trying to drop a temporary store that does not exist results in an error.
 	DropTemporaryTopologyStore(context.Context, *DropTemporaryTopologyStoreRequest) (*DropTemporaryTopologyStoreResponse, error)
 	mustEmbedUnimplementedTopologyManagerWriteServiceServer()

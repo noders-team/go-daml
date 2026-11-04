@@ -136,3 +136,36 @@ const (
 	UpdateVettedPackagesForceFlagAllowVetIncompatibleUpgrades UpdateVettedPackagesForceFlag = 2
 	UpdateVettedPackagesForceFlagAllowUnvettedDependencies    UpdateVettedPackagesForceFlag = 3
 )
+
+type ListConfiguredEndpointsRequest struct{}
+
+type ListConfiguredEndpointsResponse struct {
+	Endpoints []*PeerEndpoint
+}
+
+type PeerEndpoint struct {
+	Address     string
+	Port        uint32
+	Security    PeerEndpointSecurity
+	SequencerID string
+}
+
+type PeerEndpointSecurity interface {
+	isPeerEndpointSecurity()
+}
+
+type PlainTextPeerEndpoint struct{}
+
+func (PlainTextPeerEndpoint) isPeerEndpointSecurity() {}
+
+type TLSPeerEndpoint struct {
+	CustomServerTrustCertificate []byte
+	ClientCertificate            *TLSClientCertificate
+}
+
+func (TLSPeerEndpoint) isPeerEndpointSecurity() {}
+
+type TLSClientCertificate struct {
+	CertificateChain []byte
+	PrivateKeyFile   string
+}

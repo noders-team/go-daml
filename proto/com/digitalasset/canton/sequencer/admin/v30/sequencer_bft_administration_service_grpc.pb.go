@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	SequencerBftAdministrationService_AddPeerEndpoint_FullMethodName              = "/com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService/AddPeerEndpoint"
 	SequencerBftAdministrationService_RemovePeerEndpoint_FullMethodName           = "/com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService/RemovePeerEndpoint"
+	SequencerBftAdministrationService_ListConfiguredEndpoints_FullMethodName      = "/com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService/ListConfiguredEndpoints"
 	SequencerBftAdministrationService_GetPeerNetworkStatus_FullMethodName         = "/com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService/GetPeerNetworkStatus"
 	SequencerBftAdministrationService_GetWriteReadiness_FullMethodName            = "/com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService/GetWriteReadiness"
 	SequencerBftAdministrationService_GetOrderingTopology_FullMethodName          = "/com.digitalasset.canton.sequencer.admin.v30.SequencerBftAdministrationService/GetOrderingTopology"
@@ -34,11 +35,24 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SequencerBftAdministrationServiceClient interface {
+	// Add a peer endpoint to the list of known endpoints. The sequencer will attempt to connect to the endpoint and
+	//  authenticate it.
 	AddPeerEndpoint(ctx context.Context, in *AddPeerEndpointRequest, opts ...grpc.CallOption) (*AddPeerEndpointResponse, error)
+	// Remove a peer endpoint from the list of known endpoints. The sequencer will disconnect from the endpoint if it is
+	//  currently connected.
 	RemovePeerEndpoint(ctx context.Context, in *RemovePeerEndpointRequest, opts ...grpc.CallOption) (*RemovePeerEndpointResponse, error)
+	// List the peer endpoints that have been configured and stored in DB.
+	ListConfiguredEndpoints(ctx context.Context, in *ListConfiguredEndpointsRequest, opts ...grpc.CallOption) (*ListConfiguredEndpointsResponse, error)
+	// Get the status of the peer network for the current node; if no endpoints are provided as arguments,
+	//  it returns the global P2P network status, including both outgoing and incoming connections.
 	GetPeerNetworkStatus(ctx context.Context, in *GetPeerNetworkStatusRequest, opts ...grpc.CallOption) (*GetPeerNetworkStatusResponse, error)
+	// Get the write readiness of the current node, which indicates whether the node is ready to accept writes
+	//  based on its peer connections and quorum requirements.
 	GetWriteReadiness(ctx context.Context, in *GetWriteReadinessRequest, opts ...grpc.CallOption) (*GetWriteReadinessResponse, error)
+	// Get the current ordering topology, including the active sequencer IDs, sequencing parameters,
+	//  and leader/blacklisted sequencer IDs.
 	GetOrderingTopology(ctx context.Context, in *GetOrderingTopologyRequest, opts ...grpc.CallOption) (*GetOrderingTopologyResponse, error)
+	// Enable or disable the collection of performance metrics on the sequencer node.
 	SetPerformanceMetricsEnabled(ctx context.Context, in *SetPerformanceMetricsEnabledRequest, opts ...grpc.CallOption) (*SetPerformanceMetricsEnabledResponse, error)
 }
 
@@ -64,6 +78,16 @@ func (c *sequencerBftAdministrationServiceClient) RemovePeerEndpoint(ctx context
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RemovePeerEndpointResponse)
 	err := c.cc.Invoke(ctx, SequencerBftAdministrationService_RemovePeerEndpoint_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *sequencerBftAdministrationServiceClient) ListConfiguredEndpoints(ctx context.Context, in *ListConfiguredEndpointsRequest, opts ...grpc.CallOption) (*ListConfiguredEndpointsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListConfiguredEndpointsResponse)
+	err := c.cc.Invoke(ctx, SequencerBftAdministrationService_ListConfiguredEndpoints_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -114,11 +138,24 @@ func (c *sequencerBftAdministrationServiceClient) SetPerformanceMetricsEnabled(c
 // All implementations must embed UnimplementedSequencerBftAdministrationServiceServer
 // for forward compatibility.
 type SequencerBftAdministrationServiceServer interface {
+	// Add a peer endpoint to the list of known endpoints. The sequencer will attempt to connect to the endpoint and
+	//  authenticate it.
 	AddPeerEndpoint(context.Context, *AddPeerEndpointRequest) (*AddPeerEndpointResponse, error)
+	// Remove a peer endpoint from the list of known endpoints. The sequencer will disconnect from the endpoint if it is
+	//  currently connected.
 	RemovePeerEndpoint(context.Context, *RemovePeerEndpointRequest) (*RemovePeerEndpointResponse, error)
+	// List the peer endpoints that have been configured and stored in DB.
+	ListConfiguredEndpoints(context.Context, *ListConfiguredEndpointsRequest) (*ListConfiguredEndpointsResponse, error)
+	// Get the status of the peer network for the current node; if no endpoints are provided as arguments,
+	//  it returns the global P2P network status, including both outgoing and incoming connections.
 	GetPeerNetworkStatus(context.Context, *GetPeerNetworkStatusRequest) (*GetPeerNetworkStatusResponse, error)
+	// Get the write readiness of the current node, which indicates whether the node is ready to accept writes
+	//  based on its peer connections and quorum requirements.
 	GetWriteReadiness(context.Context, *GetWriteReadinessRequest) (*GetWriteReadinessResponse, error)
+	// Get the current ordering topology, including the active sequencer IDs, sequencing parameters,
+	//  and leader/blacklisted sequencer IDs.
 	GetOrderingTopology(context.Context, *GetOrderingTopologyRequest) (*GetOrderingTopologyResponse, error)
+	// Enable or disable the collection of performance metrics on the sequencer node.
 	SetPerformanceMetricsEnabled(context.Context, *SetPerformanceMetricsEnabledRequest) (*SetPerformanceMetricsEnabledResponse, error)
 	mustEmbedUnimplementedSequencerBftAdministrationServiceServer()
 }
@@ -135,6 +172,9 @@ func (UnimplementedSequencerBftAdministrationServiceServer) AddPeerEndpoint(cont
 }
 func (UnimplementedSequencerBftAdministrationServiceServer) RemovePeerEndpoint(context.Context, *RemovePeerEndpointRequest) (*RemovePeerEndpointResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemovePeerEndpoint not implemented")
+}
+func (UnimplementedSequencerBftAdministrationServiceServer) ListConfiguredEndpoints(context.Context, *ListConfiguredEndpointsRequest) (*ListConfiguredEndpointsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListConfiguredEndpoints not implemented")
 }
 func (UnimplementedSequencerBftAdministrationServiceServer) GetPeerNetworkStatus(context.Context, *GetPeerNetworkStatusRequest) (*GetPeerNetworkStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPeerNetworkStatus not implemented")
@@ -202,6 +242,24 @@ func _SequencerBftAdministrationService_RemovePeerEndpoint_Handler(srv interface
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SequencerBftAdministrationServiceServer).RemovePeerEndpoint(ctx, req.(*RemovePeerEndpointRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SequencerBftAdministrationService_ListConfiguredEndpoints_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListConfiguredEndpointsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SequencerBftAdministrationServiceServer).ListConfiguredEndpoints(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SequencerBftAdministrationService_ListConfiguredEndpoints_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SequencerBftAdministrationServiceServer).ListConfiguredEndpoints(ctx, req.(*ListConfiguredEndpointsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -292,6 +350,10 @@ var SequencerBftAdministrationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemovePeerEndpoint",
 			Handler:    _SequencerBftAdministrationService_RemovePeerEndpoint_Handler,
+		},
+		{
+			MethodName: "ListConfiguredEndpoints",
+			Handler:    _SequencerBftAdministrationService_ListConfiguredEndpoints_Handler,
 		},
 		{
 			MethodName: "GetPeerNetworkStatus",

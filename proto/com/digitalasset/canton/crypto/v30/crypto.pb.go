@@ -527,10 +527,10 @@ type EncryptionAlgorithmSpec int32
 const (
 	EncryptionAlgorithmSpec_ENCRYPTION_ALGORITHM_SPEC_UNSPECIFIED EncryptionAlgorithmSpec = 0
 	// ECIES with ECDH, AES128 CBC, and HKDF and authentication (MAC) with HMAC-SHA256. This requires a P-256 key
-	// because we use SHA256 and we need to align the lengths of the curve and the hash function.
+	//because we use SHA256 and we need to align the lengths of the curve and the hash function.
 	EncryptionAlgorithmSpec_ENCRYPTION_ALGORITHM_SPEC_ECIES_HKDF_HMAC_SHA256_AES128CBC EncryptionAlgorithmSpec = 1
 	// RSA with OAEP Padding,
-	// using SHA-256 for both the hash and in the MGF1 mask generation function along with an empty label.
+	//using SHA-256 for both the hash and in the MGF1 mask generation function along with an empty label.
 	EncryptionAlgorithmSpec_ENCRYPTION_ALGORITHM_SPEC_RSA_OAEP_SHA256 EncryptionAlgorithmSpec = 2
 )
 
@@ -585,7 +585,7 @@ const (
 	// ECIES with ECDH over NIST P-256, AES128 CBC, and HKDF and authentication with HMAC-SHA256
 	EncryptionKeyScheme_ENCRYPTION_KEY_SCHEME_ECIES_P256_HMAC_SHA256A_ES128CBC EncryptionKeyScheme = 2
 	// RSA with a 2048 bit key with OAEP Padding,
-	// using SHA-256 for both the hash and in the MGF1 mask generation function along with an empty label.
+	//using SHA-256 for both the hash and in the MGF1 mask generation function along with an empty label.
 	EncryptionKeyScheme_ENCRYPTION_KEY_SCHEME_RSA2048_OAEP_SHA256 EncryptionKeyScheme = 3
 )
 

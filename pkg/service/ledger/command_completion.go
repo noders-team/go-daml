@@ -15,6 +15,7 @@ import (
 
 type CommandCompletion interface {
 	CompletionStream(ctx context.Context, req *model.CompletionStreamRequest) (<-chan *model.CompletionStreamResponse, <-chan error)
+	GetCompletions(ctx context.Context, req *model.GetCompletionsRequest) (<-chan *model.CompletionStreamResponse, <-chan error)
 }
 
 type commandCompletion struct {
@@ -36,6 +37,24 @@ func (c *commandCompletion) CompletionStream(ctx context.Context, req *model.Com
 	}
 
 	stream, err := c.client.CompletionStream(ctx, streamReq)
+	return receiveCompletions(ctx, stream, err)
+}
+
+func (c *commandCompletion) GetCompletions(ctx context.Context, req *model.GetCompletionsRequest) (<-chan *model.CompletionStreamResponse, <-chan error) {
+	streamReq := &v2.GetCompletionsRequest{
+		Parties:        req.Parties,
+		BeginExclusive: req.BeginExclusive,
+	}
+
+	stream, err := c.client.GetCompletions(ctx, streamReq)
+	return receiveCompletions(ctx, stream, err)
+}
+
+type completionStreamClient interface {
+	Recv() (*v2.CompletionStreamResponse, error)
+}
+
+func receiveCompletions(ctx context.Context, stream completionStreamClient, err error) (<-chan *model.CompletionStreamResponse, <-chan error) {
 	if err != nil {
 		errCh := make(chan error, 1)
 		errCh <- err

@@ -70,7 +70,7 @@ type UserManagementServiceClient interface {
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
 	// Get the user data of a specific user or the authenticated user.
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
-	// Update selected modifiable attribute of a user resource described by the “User“ message.
+	// Update selected modifiable attribute of a user resource described by the ``User`` message.
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
 	// Delete an existing user and all its rights.
 	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error)
@@ -223,7 +223,7 @@ type UserManagementServiceServer interface {
 	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
 	// Get the user data of a specific user or the authenticated user.
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
-	// Update selected modifiable attribute of a user resource described by the “User“ message.
+	// Update selected modifiable attribute of a user resource described by the ``User`` message.
 	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
 	// Delete an existing user and all its rights.
 	DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error)

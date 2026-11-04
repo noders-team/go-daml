@@ -230,7 +230,7 @@ const (
 	// in model conformance in PV 33
 	Enums_PARTICIPANT_FEATURE_FLAG_PV33_EXTERNAL_SIGNING_LOCAL_CONTRACT_IN_SUBVIEW Enums_ParticipantFeatureFlag = 1
 	// This flag indicates that the participant supports reassignments between synchronizers.
-	Enums_PARTICIPANT_FEATURE_FLAG_ENABLE_ALPHA_MULTI_SYNCHRONIZER Enums_ParticipantFeatureFlag = 2
+	Enums_PARTICIPANT_FEATURE_FLAG_ENABLE_MULTI_SYNCHRONIZER Enums_ParticipantFeatureFlag = 2
 )
 
 // Enum value maps for Enums_ParticipantFeatureFlag.
@@ -238,12 +238,12 @@ var (
 	Enums_ParticipantFeatureFlag_name = map[int32]string{
 		0: "PARTICIPANT_FEATURE_FLAG_UNSPECIFIED",
 		1: "PARTICIPANT_FEATURE_FLAG_PV33_EXTERNAL_SIGNING_LOCAL_CONTRACT_IN_SUBVIEW",
-		2: "PARTICIPANT_FEATURE_FLAG_ENABLE_ALPHA_MULTI_SYNCHRONIZER",
+		2: "PARTICIPANT_FEATURE_FLAG_ENABLE_MULTI_SYNCHRONIZER",
 	}
 	Enums_ParticipantFeatureFlag_value = map[string]int32{
 		"PARTICIPANT_FEATURE_FLAG_UNSPECIFIED":                                     0,
 		"PARTICIPANT_FEATURE_FLAG_PV33_EXTERNAL_SIGNING_LOCAL_CONTRACT_IN_SUBVIEW": 1,
-		"PARTICIPANT_FEATURE_FLAG_ENABLE_ALPHA_MULTI_SYNCHRONIZER":                 2,
+		"PARTICIPANT_FEATURE_FLAG_ENABLE_MULTI_SYNCHRONIZER":                       2,
 	}
 )
 
@@ -2388,7 +2388,7 @@ var File_com_digitalasset_canton_protocol_v30_topology_proto protoreflect.FileDe
 
 const file_com_digitalasset_canton_protocol_v30_topology_proto_rawDesc = "" +
 	"\n" +
-	"3com/digitalasset/canton/protocol/v30/topology.proto\x12$com.digitalasset.canton.protocol.v30\x1a/com/digitalasset/canton/crypto/v30/crypto.proto\x1a@com/digitalasset/canton/protocol/v30/sequencing_parameters.proto\x1aBcom/digitalasset/canton/protocol/v30/synchronizer_parameters.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfc\n" +
+	"3com/digitalasset/canton/protocol/v30/topology.proto\x12$com.digitalasset.canton.protocol.v30\x1a/com/digitalasset/canton/crypto/v30/crypto.proto\x1a@com/digitalasset/canton/protocol/v30/sequencing_parameters.proto\x1aBcom/digitalasset/canton/protocol/v30/synchronizer_parameters.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf6\n" +
 	"\n" +
 	"\x05Enums\"y\n" +
 	"\x10TopologyChangeOp\x12\"\n" +
@@ -2418,11 +2418,11 @@ const file_com_digitalasset_canton_protocol_v30_topology_proto_rawDesc = "" +
 	"&TOPOLOGY_MAPPING_CODE_LSU_ANNOUNCEMENT\x10\x13\x128\n" +
 	"4TOPOLOGY_MAPPING_CODE_SEQUENCER_CONNECTION_SUCCESSOR\x10\x14\"\x04\b\x02\x10\x02\"\x04\b\n" +
 	"\x10\n" +
-	"\"\x04\b\x0e\x10\x0e\"\x04\b\x0f\x10\x0f\"\x04\b\x10\x10\x10\"\xce\x01\n" +
+	"\"\x04\b\x0e\x10\x0e\"\x04\b\x0f\x10\x0f\"\x04\b\x10\x10\x10\"\xc8\x01\n" +
 	"\x16ParticipantFeatureFlag\x12(\n" +
 	"$PARTICIPANT_FEATURE_FLAG_UNSPECIFIED\x10\x00\x12L\n" +
-	"HPARTICIPANT_FEATURE_FLAG_PV33_EXTERNAL_SIGNING_LOCAL_CONTRACT_IN_SUBVIEW\x10\x01\x12<\n" +
-	"8PARTICIPANT_FEATURE_FLAG_ENABLE_ALPHA_MULTI_SYNCHRONIZER\x10\x02\"\xc4\x06\n" +
+	"HPARTICIPANT_FEATURE_FLAG_PV33_EXTERNAL_SIGNING_LOCAL_CONTRACT_IN_SUBVIEW\x10\x01\x126\n" +
+	"2PARTICIPANT_FEATURE_FLAG_ENABLE_MULTI_SYNCHRONIZER\x10\x02\"\xc4\x06\n" +
 	"\x13NamespaceDelegation\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12S\n" +
 	"\n" +

@@ -118,7 +118,7 @@ func (HashFunction) EnumDescriptor() ([]byte, []int) {
 type ListPackagesResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The IDs of all Daml-LF packages supported by the server.
-	// Each element must be a valid PackageIdString (as described in “value.proto“).
+	// Each element must be a valid PackageIdString (as described in ``value.proto``).
 	//
 	// Required: must be non-empty
 	PackageIds    []string `protobuf:"bytes,1,rep,name=package_ids,json=packageIds,proto3" json:"package_ids,omitempty"`
@@ -169,12 +169,12 @@ type GetPackageResponse struct {
 	//
 	// Required
 	HashFunction HashFunction `protobuf:"varint,1,opt,name=hash_function,json=hashFunction,proto3,enum=com.daml.ledger.api.v2.HashFunction" json:"hash_function,omitempty"`
-	// Contains a “daml_lf“ ArchivePayload. See further details in “daml_lf.proto“.
+	// Contains a ``daml_lf`` ArchivePayload. See further details in ``daml_lf.proto``.
 	//
 	// Required: must be non-empty
 	ArchivePayload []byte `protobuf:"bytes,2,opt,name=archive_payload,json=archivePayload,proto3" json:"archive_payload,omitempty"`
-	// The hash of the archive payload, can also used as a “package_id“.
-	// Must be a valid PackageIdString (as described in “value.proto“).
+	// The hash of the archive payload, can also used as a ``package_id``.
+	// Must be a valid PackageIdString (as described in ``value.proto``).
 	//
 	// Required
 	Hash          string `protobuf:"bytes,3,opt,name=hash,proto3" json:"hash,omitempty"`
@@ -319,7 +319,7 @@ func (*ListPackagesRequest) Descriptor() ([]byte, []int) {
 type GetPackageRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID of the requested package.
-	// Must be a valid PackageIdString (as described in “value.proto“).
+	// Must be a valid PackageIdString (as described in ``value.proto``).
 	//
 	// Required
 	PackageId     string `protobuf:"bytes,1,opt,name=package_id,json=packageId,proto3" json:"package_id,omitempty"`
@@ -367,7 +367,7 @@ func (x *GetPackageRequest) GetPackageId() string {
 type GetPackageStatusRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID of the requested package.
-	// Must be a valid PackageIdString (as described in “value.proto“).
+	// Must be a valid PackageIdString (as described in ``value.proto``).
 	//
 	// Required
 	PackageId     string `protobuf:"bytes,1,opt,name=package_id,json=packageId,proto3" json:"package_id,omitempty"`
@@ -494,7 +494,7 @@ type TopologyStateFilter struct {
 	// If this list is non-empty, only vetted packages hosted on participants
 	// listed in this field match the filter.
 	// Query the current Ledger API's participant's ID via the public
-	// “GetParticipantId“ command in “PartyManagementService“.
+	// ``GetParticipantId`` command in ``PartyManagementService``.
 	//
 	// Optional: can be empty
 	ParticipantIds []string `protobuf:"bytes,1,rep,name=participant_ids,json=participantIds,proto3" json:"participant_ids,omitempty"`
@@ -562,9 +562,9 @@ type ListVettedPackagesRequest struct {
 	// Optional
 	TopologyStateFilter *TopologyStateFilter `protobuf:"bytes,2,opt,name=topology_state_filter,json=topologyStateFilter,proto3" json:"topology_state_filter,omitempty"`
 	// Pagination token to determine the specific page to fetch. Using the token
-	// guarantees that “VettedPackages“ on a subsequent page are all greater
-	// (“VettedPackages“ are sorted by synchronizer ID then participant ID) than
-	// the last “VettedPackages“ on a previous page.
+	// guarantees that ``VettedPackages`` on a subsequent page are all greater
+	// (``VettedPackages`` are sorted by synchronizer ID then participant ID) than
+	// the last ``VettedPackages`` on a previous page.
 	//
 	// The server does not store intermediate results between calls chained by a
 	// series of page tokens. As a consequence, if new vetted packages are being
@@ -575,7 +575,7 @@ type ListVettedPackagesRequest struct {
 	//
 	// Optional
 	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	// Maximum number of “VettedPackages“ results to return in a single page.
+	// Maximum number of ``VettedPackages`` results to return in a single page.
 	//
 	// If the page_size is unspecified (i.e. left as 0), the server will decide
 	// the number of results to be returned.
@@ -652,8 +652,8 @@ func (x *ListVettedPackagesRequest) GetPageSize() uint32 {
 
 type ListVettedPackagesResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// All “VettedPackages“ that contain at least one “VettedPackage“ matching
-	// both a “PackageMetadataFilter“ and a “TopologyStateFilter“.
+	// All ``VettedPackages`` that contain at least one ``VettedPackage`` matching
+	// both a ``PackageMetadataFilter`` and a ``TopologyStateFilter``.
 	// Sorted by synchronizer_id then participant_id.
 	//
 	// Optional: can be empty

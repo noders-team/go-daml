@@ -42,9 +42,9 @@ type StateServiceClient interface {
 	// Clients SHOULD NOT assume that the set of active contracts they receive reflects the state at the ledger end.
 	GetActiveContracts(ctx context.Context, in *GetActiveContractsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetActiveContractsResponse], error)
 	// Returns a page of the snapshot of the active contracts and incomplete (un)assignments at a ledger offset.
-	// Once all pages are fetched by repeated calls to “GetActiveContractsPage“,
+	// Once all pages are fetched by repeated calls to ``GetActiveContractsPage``,
 	// the client SHOULD begin retrieving updates from the update service,
-	// starting at the “GetActiveContractsPageResponse“.“active_at_offset“ specified in this request.
+	// starting at the ``GetActiveContractsPageResponse``.``active_at_offset`` specified in this request.
 	// Clients SHOULD NOT assume that the set of active contracts they receive reflects the state at the ledger end.
 	GetActiveContractsPage(ctx context.Context, in *GetActiveContractsPageRequest, opts ...grpc.CallOption) (*GetActiveContractsPageResponse, error)
 	// Get the list of connected synchronizers at the time of the query.
@@ -136,9 +136,9 @@ type StateServiceServer interface {
 	// Clients SHOULD NOT assume that the set of active contracts they receive reflects the state at the ledger end.
 	GetActiveContracts(*GetActiveContractsRequest, grpc.ServerStreamingServer[GetActiveContractsResponse]) error
 	// Returns a page of the snapshot of the active contracts and incomplete (un)assignments at a ledger offset.
-	// Once all pages are fetched by repeated calls to “GetActiveContractsPage“,
+	// Once all pages are fetched by repeated calls to ``GetActiveContractsPage``,
 	// the client SHOULD begin retrieving updates from the update service,
-	// starting at the “GetActiveContractsPageResponse“.“active_at_offset“ specified in this request.
+	// starting at the ``GetActiveContractsPageResponse``.``active_at_offset`` specified in this request.
 	// Clients SHOULD NOT assume that the set of active contracts they receive reflects the state at the ledger end.
 	GetActiveContractsPage(context.Context, *GetActiveContractsPageRequest) (*GetActiveContractsPageResponse, error)
 	// Get the list of connected synchronizers at the time of the query.

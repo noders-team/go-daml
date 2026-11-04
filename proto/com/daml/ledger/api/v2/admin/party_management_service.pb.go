@@ -66,7 +66,7 @@ func (*GetParticipantIdRequest) Descriptor() ([]byte, []int) {
 type GetParticipantIdResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Identifier of the participant, which SHOULD be globally unique.
-	// Must be a valid LedgerString (as describe in “value.proto“).
+	// Must be a valid LedgerString (as describe in ``value.proto``).
 	//
 	// Required
 	ParticipantId string `protobuf:"bytes,1,opt,name=participant_id,json=participantId,proto3" json:"participant_id,omitempty"`
@@ -115,11 +115,11 @@ func (x *GetParticipantIdResponse) GetParticipantId() string {
 type GetPartiesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The stable, unique identifier of the Daml parties.
-	// Must be valid PartyIdStrings (as described in “value.proto“).
+	// Must be valid PartyIdStrings (as described in ``value.proto``).
 	//
 	// Required: must be non-empty
 	Parties []string `protobuf:"bytes,1,rep,name=parties,proto3" json:"parties,omitempty"`
-	// The id of the “Identity Provider“ whose parties should be retrieved.
+	// The id of the ``Identity Provider`` whose parties should be retrieved.
 	// If not set, assume the party is managed by the default identity provider or party is not hosted by the participant.
 	//
 	// Optional
@@ -238,7 +238,7 @@ type ListKnownPartiesRequest struct {
 	//
 	// Optional
 	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// The id of the “Identity Provider“ whose parties should be retrieved.
+	// The id of the ``Identity Provider`` whose parties should be retrieved.
 	// If not set, assume the party is managed by the default identity provider or party is not hosted by the participant.
 	//
 	// Optional
@@ -377,15 +377,15 @@ type AllocatePartyRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// A hint to the participant which party ID to allocate. It can be
 	// ignored.
-	// Must be a valid PartyIdString (as described in “value.proto“).
+	// Must be a valid PartyIdString (as described in ``value.proto``).
 	//
 	// Optional
 	PartyIdHint string `protobuf:"bytes,1,opt,name=party_id_hint,json=partyIdHint,proto3" json:"party_id_hint,omitempty"`
-	// Participant-local metadata to be stored in the “PartyDetails“ of this newly allocated party.
+	// Participant-local metadata to be stored in the ``PartyDetails`` of this newly allocated party.
 	//
 	// Optional
 	LocalMetadata *ObjectMeta `protobuf:"bytes,3,opt,name=local_metadata,json=localMetadata,proto3" json:"local_metadata,omitempty"`
-	// The id of the “Identity Provider“
+	// The id of the ``Identity Provider``
 	// If not set, assume the party is managed by the default identity provider or party is not hosted by the participant.
 	//
 	// Optional
@@ -543,7 +543,7 @@ type AllocateExternalPartyRequest struct {
 	//
 	// Optional: can be empty
 	MultiHashSignatures []*v2.Signature `protobuf:"bytes,3,rep,name=multi_hash_signatures,json=multiHashSignatures,proto3" json:"multi_hash_signatures,omitempty"`
-	// The id of the “Identity Provider“
+	// The id of the ``Identity Provider``
 	// If not set, assume the party is managed by the default identity provider.
 	//
 	// Optional
@@ -692,26 +692,26 @@ type UpdatePartyDetailsRequest struct {
 	//
 	// Required
 	PartyDetails *PartyDetails `protobuf:"bytes,1,opt,name=party_details,json=partyDetails,proto3" json:"party_details,omitempty"`
-	// An update mask specifies how and which properties of the “PartyDetails“ message are to be updated.
+	// An update mask specifies how and which properties of the ``PartyDetails`` message are to be updated.
 	// An update mask consists of a set of update paths.
-	// A valid update path points to a field or a subfield relative to the “PartyDetails“ message.
+	// A valid update path points to a field or a subfield relative to the ``PartyDetails`` message.
 	// A valid update mask must:
 	//
 	// 1. contain at least one update path,
 	// 2. contain only valid update paths.
 	//
-	// Fields that can be updated are marked as “Modifiable“.
-	// An update path can also point to non-“Modifiable“ fields such as 'party' and 'local_metadata.resource_version'
+	// Fields that can be updated are marked as ``Modifiable``.
+	// An update path can also point to non-``Modifiable`` fields such as 'party' and 'local_metadata.resource_version'
 	// because they are used:
 	//
 	// 1. to identify the party details resource subject to the update,
 	// 2. for concurrent change control.
 	//
-	// An update path can also point to non-“Modifiable“ fields such as 'is_local'
+	// An update path can also point to non-``Modifiable`` fields such as 'is_local'
 	// as long as the values provided in the update request match the server values.
 	// Examples of update paths: 'local_metadata.annotations', 'local_metadata'.
-	// For additional information see the documentation for standard protobuf3's “google.protobuf.FieldMask“.
-	// For similar Ledger API see “com.daml.ledger.api.v2.admin.UpdateUserRequest“.
+	// For additional information see the documentation for standard protobuf3's ``google.protobuf.FieldMask``.
+	// For similar Ledger API see ``com.daml.ledger.api.v2.admin.UpdateUserRequest``.
 	//
 	// Required
 	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
@@ -813,7 +813,7 @@ func (x *UpdatePartyDetailsResponse) GetPartyDetails() *PartyDetails {
 type PartyDetails struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The stable unique identifier of a Daml party.
-	// Must be a valid PartyIdString (as described in “value.proto“).
+	// Must be a valid PartyIdString (as described in ``value.proto``).
 	//
 	// Required
 	Party string `protobuf:"bytes,1,opt,name=party,proto3" json:"party,omitempty"`
@@ -826,7 +826,7 @@ type PartyDetails struct {
 	//
 	// Optional
 	LocalMetadata *ObjectMeta `protobuf:"bytes,4,opt,name=local_metadata,json=localMetadata,proto3" json:"local_metadata,omitempty"`
-	// The id of the “Identity Provider“
+	// The id of the ``Identity Provider``
 	// Optional, if not set, there could be 3 options:
 	//
 	// 1. the party is managed by the default identity provider.

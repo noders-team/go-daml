@@ -190,8 +190,8 @@ type GetActiveContractsPageRequest struct {
 	//
 	// Optional
 	MaxPageSize *int32 `protobuf:"varint,3,opt,name=max_page_size,json=maxPageSize,proto3,oneof" json:"max_page_size,omitempty"`
-	// To get the next page of the active contracts snapshot, the “page_token“ should be set to the
-	// “next_page_token“ of the last “GetActiveContractsPageResponse“.
+	// To get the next page of the active contracts snapshot, the ``page_token`` should be set to the
+	// ``next_page_token`` of the last ``GetActiveContractsPageResponse``.
 	// The page token only works if subsequent requests:
 	//
 	// - are executed on the same participant,
@@ -267,8 +267,8 @@ func (x *GetActiveContractsPageRequest) GetPageToken() []byte {
 type GetActiveContractsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The workflow ID used in command submission which corresponds to the contract_entry. Only set if
-	// the “workflow_id“ for the command was set.
-	// Must be a valid LedgerString (as described in “value.proto“).
+	// the ``workflow_id`` for the command was set.
+	// Must be a valid LedgerString (as described in ``value.proto``).
 	//
 	// Optional
 	WorkflowId string `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
@@ -276,9 +276,9 @@ type GetActiveContractsResponse struct {
 	// the state of one contract in the snapshot.
 	// A contract_entry is included in the result, if and only if there is at least one stakeholder party of the contract
 	// that is hosted on the synchronizer at the time of the event and the party satisfies the
-	// “TransactionFilter“ in the query.
+	// ``TransactionFilter`` in the query.
 	//
-	// # Required
+	// Required
 	//
 	// Types that are valid to be assigned to ContractEntry:
 	//
@@ -288,7 +288,7 @@ type GetActiveContractsResponse struct {
 	ContractEntry isGetActiveContractsResponse_ContractEntry `protobuf_oneof:"contract_entry"`
 	// Opaque representation of a continuation token which can be used in the request to bypass the already processed part
 	// of the active contracts snapshot.
-	// Only populated for the streaming “GetActiveContracts“ rpc call.
+	// Only populated for the streaming ``GetActiveContracts`` rpc call.
 	//
 	// Optional: can be empty
 	StreamContinuationToken []byte `protobuf:"bytes,5,opt,name=stream_continuation_token,json=streamContinuationToken,proto3" json:"stream_continuation_token,omitempty"`
@@ -664,7 +664,7 @@ func (x *IncompleteAssigned) GetAssignedEvent() *AssignedEvent {
 type GetConnectedSynchronizersRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The party of interest
-	// Must be a valid PartyIdString (as described in “value.proto“).
+	// Must be a valid PartyIdString (as described in ``value.proto``).
 	// If empty, all synchronizers this node is connected to will be returned
 	//
 	// Optional
@@ -675,7 +675,7 @@ type GetConnectedSynchronizersRequest struct {
 	//
 	// Optional
 	ParticipantId string `protobuf:"bytes,2,opt,name=participant_id,json=participantId,proto3" json:"participant_id,omitempty"`
-	// The ID of the identity provider configured by “Identity Provider Config“
+	// The ID of the identity provider configured by ``Identity Provider Config``
 	// If not set, it's assumed the user is managed by the default identity provider.
 	//
 	// Optional
@@ -912,9 +912,9 @@ type GetLatestPrunedOffsetsResponse struct {
 	ParticipantPrunedUpToInclusive int64 `protobuf:"varint,1,opt,name=participant_pruned_up_to_inclusive,json=participantPrunedUpToInclusive,proto3" json:"participant_pruned_up_to_inclusive,omitempty"`
 	// It will always be a non-negative integer.
 	// If positive, the absolute offset up to which all divulged events have been pruned on the ledger.
-	// It can be at or before the “participant_pruned_up_to_inclusive“ offset.
+	// It can be at or before the ``participant_pruned_up_to_inclusive`` offset.
 	// For more details about all divulged events pruning,
-	// see “PruneRequest.prune_all_divulged_contracts“ in “participant_pruning_service.proto“.
+	// see ``PruneRequest.prune_all_divulged_contracts`` in ``participant_pruning_service.proto``.
 	// If zero, the divulged events have not been pruned yet.
 	//
 	// Optional

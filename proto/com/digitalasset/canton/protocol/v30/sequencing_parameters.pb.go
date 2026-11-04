@@ -27,8 +27,7 @@ const (
 type DynamicSequencingParameters struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Sequencing dynamic synchronizer parameters can only be interpreted by a sequencer implementation
-	//
-	//	and are opaque to the rest of the synchronizer.
+	//  and are opaque to the rest of the synchronizer.
 	Payload       []byte `protobuf:"bytes,1,opt,name=payload,proto3" json:"payload,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
