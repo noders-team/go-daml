@@ -12,7 +12,9 @@ import (
 )
 
 type StateService interface {
-	GetActiveContracts(ctx context.Context, req *model.GetActiveContractsRequest) (<-chan *model.GetActiveContractsResponse, <-chan error)
+	GetActiveContracts(ctx context.Context,
+		req *model.GetActiveContractsRequest,
+		responseCh chan *model.GetActiveContractsResponse) error
 	GetConnectedSynchronizers(ctx context.Context, req *model.GetConnectedSynchronizersRequest) (*model.GetConnectedSynchronizersResponse, error)
 	GetLedgerEnd(ctx context.Context, req *model.GetLedgerEndRequest) (*model.GetLedgerEndResponse, error)
 	GetLatestPrunedOffsets(ctx context.Context, req *model.GetLatestPrunedOffsetsRequest) (*model.GetLatestPrunedOffsetsResponse, error)
@@ -29,7 +31,10 @@ func NewStateServiceClient(conn *grpc.ClientConn) *stateService {
 	}
 }
 
-func (c *stateService) GetActiveContracts(ctx context.Context, req *model.GetActiveContractsRequest) (<-chan *model.GetActiveContractsResponse, <-chan error) {
+func (c *stateService) GetActiveContracts(
+	ctx context.Context,
+	req *model.GetActiveContractsRequest,
+	responseCh chan *model.GetActiveContractsResponse) error {
 	protoReq := &v2.GetActiveContractsRequest{
 		ActiveAtOffset: req.ActiveAtOffset,
 		EventFormat:    eventFormatToProto(req.EventFormat),
@@ -37,43 +42,28 @@ func (c *stateService) GetActiveContracts(ctx context.Context, req *model.GetAct
 
 	stream, err := c.client.GetActiveContracts(ctx, protoReq)
 	if err != nil {
-		errCh := make(chan error, 1)
-		errCh <- err
-		close(errCh)
-		return nil, errCh
+		return err
 	}
 
-	responseCh := make(chan *model.GetActiveContractsResponse)
-	errCh := make(chan error, 1)
-
-	go func() {
-		defer close(responseCh)
-		defer close(errCh)
-
-		for {
-			resp, err := stream.Recv()
-			if err == io.EOF {
-				return
-			}
-			if err != nil {
-				errCh <- err
-				return
-			}
-
-			modelResp := getActiveContractsResponseFromProto(resp)
-			if modelResp == nil {
-				errCh <- fmt.Errorf("received unrecognized active contracts response from ledger API, possible version mismatch")
-				return
-			}
-			select {
-			case responseCh <- modelResp:
-			case <-ctx.Done():
-				return
-			}
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			return nil
 		}
-	}()
+		if err != nil {
+			return err
+		}
 
-	return responseCh, errCh
+		modelResp := getActiveContractsResponseFromProto(resp)
+		if modelResp == nil {
+			return fmt.Errorf("received unrecognized active contracts response from ledger API, possible version mismatch")
+		}
+		select {
+		case responseCh <- modelResp:
+		case <-ctx.Done():
+			return nil
+		}
+	}
 }
 
 func (c *stateService) GetConnectedSynchronizers(ctx context.Context, req *model.GetConnectedSynchronizersRequest) (*model.GetConnectedSynchronizersResponse, error) {

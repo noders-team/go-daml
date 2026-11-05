@@ -236,41 +236,42 @@ func (t *tokenStandardController) ListContractsByInterface(ctx context.Context, 
 		},
 	}
 
-	stream, errChan := t.damlClient.StateService.GetActiveContracts(ctx, req)
+	sctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	stream := make(chan *model.GetActiveContractsResponse)
+	done := make(chan error, 1)
+	go func() {
+		done <- t.damlClient.StateService.GetActiveContracts(sctx, req, stream)
+		close(stream)
+	}()
 
 	var contracts []*model.CreatedEvent
+	for resp := range stream {
+		if resp == nil {
+			return nil, fmt.Errorf("empty response")
+		}
 
-	for {
-		select {
-		case resp, ok := <-stream:
-			if !ok {
-				return contracts, nil
-			}
-			if resp == nil {
-				return nil, fmt.Errorf("empty response")
-			}
+		entry, ok := resp.ContractEntry.(*model.ActiveContractEntry)
+		if !ok || entry.ActiveContract == nil || entry.ActiveContract.CreatedEvent == nil {
+			continue
+		}
 
-			if len(contracts) >= int(maxEntries) && maxEntries != 0 {
-				return contracts, nil
-			}
-
-			if entry, ok := resp.ContractEntry.(*model.ActiveContractEntry); ok {
-				if entry.ActiveContract != nil && entry.ActiveContract.CreatedEvent != nil {
-					contracts = append(contracts, entry.ActiveContract.CreatedEvent)
-				}
-			}
-		case err, open := <-errChan:
-			if !open {
-				errChan = nil
-				continue
-			}
-			if err != nil {
-				return nil, fmt.Errorf("failed to list contracts by interface: %w", err)
-			}
-		case <-ctx.Done():
-			return nil, ctx.Err()
+		contracts = append(contracts, entry.ActiveContract.CreatedEvent)
+		if len(contracts) >= maxEntries {
+			return contracts, nil
 		}
 	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	if err := <-done; err != nil {
+		return nil, fmt.Errorf("failed to list contracts by interface: %w", err)
+	}
+
+	return contracts, nil
 }
 
 func (t *tokenStandardController) numericToDecimal(n types.NUMERIC) decimal.Decimal {
