@@ -112,52 +112,55 @@ func (c *ContractQuery[T]) scanActiveContractsByTemplate(
 		return err
 	}
 
-	respCh, errCh := c.cl.StateService.GetActiveContracts(streamCtx, req)
-	for {
-		select {
-		case resp, ok := <-respCh:
-			if !ok {
-				return nil
+	respCh := make(chan *model.GetActiveContractsResponse)
+	done := make(chan error, 1)
+	go func() {
+		done <- c.cl.StateService.GetActiveContracts(streamCtx, req, respCh)
+		close(respCh)
+	}()
+
+	for resp := range respCh {
+		entry, ok := resp.ContractEntry.(*model.ActiveContractEntry)
+		if !ok || entry.ActiveContract == nil || entry.ActiveContract.CreatedEvent == nil {
+			continue
+		}
+		evt := entry.ActiveContract.CreatedEvent
+		arguments := evt.CreateArguments
+		if query.interfaceID != "" {
+			arguments = nil
+			for _, iv := range evt.InterfaceViews {
+				if iv.InterfaceID == query.interfaceID && iv.ViewValue != nil {
+					arguments = iv.ViewValue
+					break
+				}
 			}
-			entry, ok := resp.ContractEntry.(*model.ActiveContractEntry)
-			if !ok || entry.ActiveContract == nil || entry.ActiveContract.CreatedEvent == nil {
+			if arguments == nil {
 				continue
 			}
-			evt := entry.ActiveContract.CreatedEvent
-			arguments := evt.CreateArguments
-			if query.interfaceID != "" {
-				arguments = nil
-				for _, iv := range evt.InterfaceViews {
-					if iv.InterfaceID == query.interfaceID && iv.ViewValue != nil {
-						arguments = iv.ViewValue
-						break
-					}
-				}
-				if arguments == nil {
-					continue
-				}
-			}
-			stop, err := onEvent(activeContractEvent{
-				contractID:       evt.ContractID,
-				templateID:       evt.TemplateID,
-				arguments:        arguments,
-				createdAt:        evt.CreatedAt,
-				createdEventBlob: evt.CreatedEventBlob,
-			})
-			if err != nil {
-				return err
-			}
-			if stop {
-				return nil
-			}
-		case err := <-errCh:
-			if err != nil {
-				return fmt.Errorf("error scanning active contracts: %w", err)
-			}
-		case <-streamCtx.Done():
-			return streamCtx.Err()
+		}
+		stop, err := onEvent(activeContractEvent{
+			contractID:       evt.ContractID,
+			templateID:       evt.TemplateID,
+			arguments:        arguments,
+			createdAt:        evt.CreatedAt,
+			createdEventBlob: evt.CreatedEventBlob,
+		})
+		if err != nil {
+			return err
+		}
+		if stop {
+			return nil
 		}
 	}
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	if err := <-done; err != nil {
+		return fmt.Errorf("error scanning active contracts: %w", err)
+	}
+	return nil
 }
 
 func (c *ContractQuery[T]) newActiveContractsRequest(ctx context.Context, query contractQuery) (*model.GetActiveContractsRequest, error) {

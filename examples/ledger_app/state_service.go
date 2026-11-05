@@ -57,42 +57,45 @@ func RunStateService(cl *client.DamlBindingClient) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	responseCh, errCh := cl.StateService.GetActiveContracts(ctx, activeContractsReq)
+	responseCh := make(chan *model.GetActiveContractsResponse)
+	defer close(responseCh)
 
-	contractCount := 0
-	for {
-		select {
-		case response, ok := <-responseCh:
-			if !ok {
-				log.Info().Int("totalContracts", contractCount).Msg("active contracts stream completed")
-				return
-			}
-			if response != nil && response.ContractEntry != nil {
-				switch entry := response.ContractEntry.(type) {
-				case *model.ActiveContractEntry:
-					if entry.ActiveContract != nil {
-						contractCount++
-						log.Info().
-							Str("contractID", entry.ActiveContract.CreatedEvent.ContractID).
-							Str("templateID", entry.ActiveContract.CreatedEvent.TemplateID).
-							Str("synchronizerID", entry.ActiveContract.SynchronizerID).
-							Uint64("reassignmentCounter", entry.ActiveContract.ReassignmentCounter).
-							Msg("received active contract")
-					}
-				case *model.IncompleteUnassignedEntry:
-					log.Info().Msg("received incomplete unassigned contract")
-				case *model.IncompleteAssignedEntry:
-					log.Info().Msg("received incomplete assigned contract")
+	go func() {
+		contractCount := 0
+		for {
+			select {
+			case response, ok := <-responseCh:
+				if !ok {
+					log.Info().Int("totalContracts", contractCount).Msg("active contracts stream completed")
+					return
 				}
-			}
-		case err := <-errCh:
-			if err != nil {
-				log.Warn().Err(err).Msg("active contracts stream error")
+				if response != nil && response.ContractEntry != nil {
+					switch entry := response.ContractEntry.(type) {
+					case *model.ActiveContractEntry:
+						if entry.ActiveContract != nil {
+							contractCount++
+							log.Info().
+								Str("contractID", entry.ActiveContract.CreatedEvent.ContractID).
+								Str("templateID", entry.ActiveContract.CreatedEvent.TemplateID).
+								Str("synchronizerID", entry.ActiveContract.SynchronizerID).
+								Uint64("reassignmentCounter", entry.ActiveContract.ReassignmentCounter).
+								Msg("received active contract")
+						}
+					case *model.IncompleteUnassignedEntry:
+						log.Info().Msg("received incomplete unassigned contract")
+					case *model.IncompleteAssignedEntry:
+						log.Info().Msg("received incomplete assigned contract")
+					}
+				}
+			case <-ctx.Done():
+				log.Info().Int("totalContracts", contractCount).Msg("active contracts stream timeout")
 				return
 			}
-		case <-ctx.Done():
-			log.Info().Int("totalContracts", contractCount).Msg("active contracts stream timeout")
-			return
 		}
+	}()
+
+	err = cl.StateService.GetActiveContracts(ctx, activeContractsReq, responseCh)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to get active contracts")
 	}
 }
