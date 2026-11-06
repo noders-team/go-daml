@@ -419,6 +419,21 @@ func valueFromProtoAt(pb *v2.Value, depth int) interface{} {
 			result[entry.Key] = valueFromProtoAt(entry.Value, depth+1)
 		}
 		return result
+	case *v2.Value_GenMap:
+		if v.GenMap == nil {
+			return nil
+		}
+		result := make(map[interface{}]interface{})
+		for _, entry := range v.GenMap.Entries {
+			key := valueFromProtoAt(entry.Key, depth+1)
+			switch key.(type) {
+			case map[string]interface{}, []interface{}:
+				log.Warn().Msgf("valueFromProto: unsupported genmap key type %T, skipping entry", key)
+				continue
+			}
+			result[key] = valueFromProtoAt(entry.Value, depth+1)
+		}
+		return result
 	case *v2.Value_Enum:
 		if v.Enum != nil {
 			return v.Enum.Constructor

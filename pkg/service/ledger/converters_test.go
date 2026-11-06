@@ -10,6 +10,7 @@ import (
 	v2 "github.com/noders-team/go-daml/proto/com/daml/ledger/api/v2"
 	"github.com/noders-team/go-daml/proto/com/daml/ledger/api/v2/interactive"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -2851,6 +2852,111 @@ func TestPrepareSubmissionResponseFromProto_CostEstimation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			resp := prepareSubmissionResponseFromProto(tc.pb)
 			tc.verify(t, resp)
+		})
+	}
+}
+
+func TestValueFromProtoGenMap(t *testing.T) {
+	text := func(s string) *v2.Value { return &v2.Value{Sum: &v2.Value_Text{Text: s}} }
+	i64 := func(n int64) *v2.Value { return &v2.Value{Sum: &v2.Value_Int64{Int64: n}} }
+	entry := func(k, v *v2.Value) *v2.GenMap_Entry { return &v2.GenMap_Entry{Key: k, Value: v} }
+	genMap := func(entries ...*v2.GenMap_Entry) *v2.Value {
+		return &v2.Value{Sum: &v2.Value_GenMap{GenMap: &v2.GenMap{Entries: entries}}}
+	}
+
+	tests := []struct {
+		name  string
+		input *v2.Value
+		want  interface{}
+	}{
+		{
+			name:  "text keys",
+			input: genMap(entry(text("a"), text("one")), entry(text("b"), i64(2))),
+			want:  map[interface{}]interface{}{"a": "one", "b": int64(2)},
+		},
+		{
+			name: "party and contract id keys",
+			input: genMap(
+				entry(&v2.Value{Sum: &v2.Value_Party{Party: "alice::fp"}}, text("p")),
+				entry(&v2.Value{Sum: &v2.Value_ContractId{ContractId: "cid-1"}}, text("c")),
+			),
+			want: map[interface{}]interface{}{"alice::fp": "p", "cid-1": "c"},
+		},
+		{
+			name:  "int64 keys",
+			input: genMap(entry(i64(1), text("one")), entry(i64(2), text("two"))),
+			want:  map[interface{}]interface{}{int64(1): "one", int64(2): "two"},
+		},
+		{
+			name: "bool and date keys",
+			input: genMap(
+				entry(&v2.Value{Sum: &v2.Value_Bool{Bool: true}}, text("bool")),
+				entry(&v2.Value{Sum: &v2.Value_Date{Date: 19000}}, text("date")),
+			),
+			want: map[interface{}]interface{}{true: "bool", int32(19000): "date"},
+		},
+		{
+			name:  "mixed text and int64 keys",
+			input: genMap(entry(text("keep"), text("yes")), entry(i64(7), text("also"))),
+			want:  map[interface{}]interface{}{"keep": "yes", int64(7): "also"},
+		},
+		{
+			name: "nested gen map with non text key",
+			input: genMap(entry(text("outer"), genMap(
+				entry(text("inner"), text("v")),
+				entry(i64(1), text("n")),
+			))),
+			want: map[interface{}]interface{}{
+				"outer": map[interface{}]interface{}{"inner": "v", int64(1): "n"},
+			},
+		},
+		{
+			name:  "duplicate keys keep the last value",
+			input: genMap(entry(i64(1), text("first")), entry(i64(1), text("last"))),
+			want:  map[interface{}]interface{}{int64(1): "last"},
+		},
+		{
+			name:  "empty entries give empty map",
+			input: genMap(),
+			want:  map[interface{}]interface{}{},
+		},
+		{
+			name:  "nil gen map gives nil",
+			input: &v2.Value{Sum: &v2.Value_GenMap{GenMap: nil}},
+			want:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, valueFromProto(tt.input))
+		})
+	}
+}
+
+func TestValueFromProtoGenMapUnhashableKey(t *testing.T) {
+	text := func(s string) *v2.Value { return &v2.Value{Sum: &v2.Value_Text{Text: s}} }
+	entry := func(k, v *v2.Value) *v2.GenMap_Entry { return &v2.GenMap_Entry{Key: k, Value: v} }
+	genMap := func(entries ...*v2.GenMap_Entry) *v2.Value {
+		return &v2.Value{Sum: &v2.Value_GenMap{GenMap: &v2.GenMap{Entries: entries}}}
+	}
+
+	tests := []struct {
+		name string
+		key  *v2.Value
+	}{
+		{name: "record key", key: &v2.Value{Sum: &v2.Value_Record{Record: &v2.Record{}}}},
+		{name: "list key", key: &v2.Value{Sum: &v2.Value_List{List: &v2.List{}}}},
+		{name: "unit key", key: &v2.Value{Sum: &v2.Value_Unit{Unit: &emptypb.Empty{}}}},
+		{name: "variant key", key: &v2.Value{Sum: &v2.Value_Variant{Variant: &v2.Variant{Constructor: "A", Value: text("x")}}}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input := genMap(entry(tt.key, text("v")), entry(text("keep"), text("yes")))
+			var got interface{}
+			require.NotPanics(t, func() { got = valueFromProto(input) })
+			require.Equal(t, map[interface{}]interface{}{"keep": "yes"}, got)
 		})
 	}
 }
